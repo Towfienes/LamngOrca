@@ -70,9 +70,10 @@ export function useTerminalPaneProjection(controller: TerminalPaneMobileControll
   const hiddenStartupStyle: CSSProperties = shouldMeasureHiddenStartup
     ? { opacity: 0, pointerEvents: 'none' }
     : {}
-  const terminalContainerStyle: CSSProperties = {
+  const terminalContainerStyle: CSSProperties & { '--orca-pane-title-bg': string } = {
     display: terminalContentVisible ? 'flex' : 'none',
     overflow: 'hidden',
+    '--orca-pane-title-bg': paneTitleBackground,
     ...hiddenStartupStyle,
     ['--orca-terminal-divider-color' as string]:
       effectiveAppearance?.dividerColor ?? DEFAULT_TERMINAL_DIVIDER_DARK,

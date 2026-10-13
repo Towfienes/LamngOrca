@@ -44,6 +44,7 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-workspace-canvas: var(--workspace-canvas);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -206,6 +207,7 @@
   --chart-4: var(--color-blue-700);
   --chart-5: var(--color-blue-800);
   --worktree-sidebar: #f5f5f5;
+  --workspace-canvas: var(--worktree-sidebar);
   --worktree-sidebar-foreground: #0a0a0a;
   --worktree-sidebar-accent: #eaeaea;
   --worktree-sidebar-accent-foreground: #171717;
@@ -322,6 +324,7 @@
   --chart-5: var(--color-blue-800);
   /* Keep the rail slightly lighter than the terminal canvas. */
   --worktree-sidebar: #181818;
+  --workspace-canvas: var(--worktree-sidebar);
   --worktree-sidebar-foreground: #d4d4d4;
   --worktree-sidebar-accent: #353535;
   --worktree-sidebar-accent-foreground: #fafafa;

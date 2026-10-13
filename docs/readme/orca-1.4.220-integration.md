@@ -1,7 +1,7 @@
 # Orca 1.4.220 — Deck UI installed and verified
 
 Orca on this machine now opens the full Deck renderer from
-`~/Applications/Orca-1.4.220-Deck-Sidebar/AppRun`. Quit Orca and reopen it from
+`~/Applications/Orca-1.4.220-Deck-Seamless/AppRun`. Quit Orca and reopen it from
 the application menu to load the new renderer. The previous running instance
 was left running; the installer does not close active terminals.
 
@@ -33,14 +33,14 @@ The editor tab close button stays reachable by keyboard while the file is dirty.
   hidden windows, Deck controls, appearance import and restart persistence.
 - All 3,839 original files outside the renderer retain their bytes, executable
   flags and unpacking flags. All 1,146 renderer files match the production build.
-- Installed archive hash matches `dist/orca-deck-sidebar/verification.json`.
+- Installed archive hash matches `dist/orca-deck-seamless/verification.json`.
 
 Tests run with `ORCA_BACKGROUND_LAUNCH=1` and CDP. No native-focus tests,
 full repository suite, macOS/Windows execution or live SSH session were run.
 
 ## Package and rollback
 
-The verified package and one-off installer are in `dist/orca-deck-sidebar/`.
+The verified package and one-off installer are in `dist/orca-deck-seamless/`.
 The installer has already run. The original AppImage and previous Deck runtime
 remain available. No automatic updater was added; an official update or
 reinstallation can replace the local customization.
@@ -48,7 +48,7 @@ reinstallation can replace the local customization.
 To restore the previous Orca launcher, run:
 
 ```sh
-cp -- "$HOME/Applications/Orca-1.4.220-Deck-Sidebar/original-orca.desktop" \
+cp -- "$HOME/Applications/Orca-1.4.220-Deck-Seamless/original-orca.desktop" \
   "$HOME/.local/share/applications/appimagekit_ae11192f5fe223a1e05f0008606929e5-Orca.desktop"
 ```
 
@@ -77,3 +77,24 @@ checks covering the sidebar, agent tiling and both workspace kinds, and a
 packaged-app launch/cancel/open/restart check with isolated home and profile.
 
 ![Compact agent rows and overlapping status badges](../assets/orca-deck-sidebar.png)
+
+## Seamless workspace refinement
+
+Workspace chrome and terminal gutters share the sidebar appearance through the
+canonical `workspace-canvas` token. Each terminal sits 6 px inside the workspace
+with a rounded hairline border. Idle divider lines recede; hover and drag still
+show the resize handle. A 32 px header reserves matching terminal space, and
+the active pane keeps the terminal surface while other headers lift subtly.
+Tabs use a quiet background without the boxed selection outline.
+
+Project and branch rows now have a 2 px virtual-row gap and 2 px workspace
+padding. The virtualizer and drag placement consume the same gap constant.
+Appearance preferences and agent/session routing are unchanged.
+
+Validation covers 40 sidebar layout tests, renderer typecheck and changed-code
+quality, hidden Electron screenshots across themes and viewport widths, tab
+overflow/drag/keyboard controls, agent tiling, folder/worktree launch choices,
+and packaged-app restart with an isolated profile. Terminal screen bounds and
+header alignment are checked after resizing.
+
+![Seamless workspace with inset terminal cards](../assets/orca-deck-workspace.png)

@@ -8,21 +8,21 @@ Mở **Orca Deck** trong menu ứng dụng, hoặc chạy:
 
 Mã nguồn: `/home/towfienes/Projects/orca-deck`, nhánh `deck-ui`.
 Cấu hình riêng: `/home/towfienes/.config/orca-deck`.
-UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Sidebar/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
+UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Seamless/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
 
 ## Giao diện
 
-- Sidebar 280 px, nhóm theo project, nhánh và agent; mỗi agent hai dòng với biểu tượng và trạng thái.
+- Sidebar nhóm theo project, nhánh và agent; khoảng hở giữa các hàng 2 px và đệm workspace 2 px để project/nhánh sát nhau. Mỗi agent hai dòng với biểu tượng và trạng thái.
 - Worktree / Folder / Agent ở trên; Search, Tasks và Automations trong nút Tools and search bên dưới.
 - **+ Agent** chia ô terminal vừa rê chuột qua trong workspace hiện tại. Nếu chưa rê qua ô nào, dùng ô đang chọn; ô rộng chia trái/phải, ô cao chia trên/dưới. Thêm agent tiếp tục chia ô đích, không tạo thêm tab. Khi không có terminal hiện trên màn hình, giữ luồng tạo tab agent mới.
 - Tab có nhiều pane hiển thị “Workspace · N panes”, giữ nguyên tên tự đặt. Breadcrumb project/nhánh nằm cùng hàng tab và tự ẩn khi thanh tab hẹp.
-- Pane đang chọn có viền sáng; tiêu đề dùng cùng nền terminal.
+- Sidebar, thanh tab và vùng giữa các pane dùng một nền liền mạch. Pane cách mép 6 px, bo nhẹ, có viền mảnh; pane đang chọn có viền sáng hơn. Header pane cao 32 px, nền header của pane đang chọn khớp terminal.
 - Hàng agent đang chọn nền sáng ngay cả trước khi có trạng thái; hỗ trợ Enter/Space để chuyển pane.
 - Nền đen than, viền mảnh và tiêu đề nhỏ có biểu tượng cho từng terminal.
 - Workspace TDTU đã được mở với bốn terminal theo bố cục 2×2, lưu qua lần khởi động tiếp theo.
 - Gợi ý setup script nằm trong menu công cụ; các thao tác workspace và terminal dùng lại cơ chế Orca.
 
-Thanh tab được tinh chỉnh theo video Deck: tab thấp, bo nhẹ, nền thường/hover/active phân cấp rõ, viền chọn mảnh và nút đóng có vùng bấm rộng hơn. Khi nhiều tab, tên giữ chiều rộng tối thiểu và tab đang chọn vẫn hiện ở mép khi cuộn. Hàng tóm tắt terminal cùng màu nền terminal và giới hạn chiều dài.
+Thanh tab được tinh chỉnh theo video Deck: tab thấp, bo nhẹ, nền thường/hover/active phân cấp rõ, dấu chọn gọn và nút đóng có vùng bấm rộng hơn. Khi nhiều tab, tên giữ chiều rộng tối thiểu và tab đang chọn vẫn hiện ở mép khi cuộn. Hàng tóm tắt terminal cùng màu nền terminal và giới hạn chiều dài.
 
 Định hướng hình ảnh và đối chiếu mã nguồn được lưu ở [SpaceVibe Deck UI reference](docs/readme/spacevibe-deck-ui.md). Đây là bản thích nghi theo kiến trúc Orca, chưa trùng từng pixel. Nội dung CLI do từng agent và cấu hình shell hiển thị. Các agent trong ảnh kiểm thử là dữ liệu minh họa; bản sử dụng mở terminal thật và không tự chạy tác vụ AI.
 

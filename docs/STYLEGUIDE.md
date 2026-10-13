@@ -27,21 +27,22 @@ Never hardcode a hex value in component code if a variable already covers it. If
 
 Tokens come in pairs: a **surface** and a **foreground** that meets contrast on it. Always use them together.
 
-| Role                                     | Use it for                                                  | Don't use it for                                    |
-| ---------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
-| `background` / `foreground`              | App canvas, default text                                    | Cards, popovers, sidebar (have their own)           |
-| `card` / `card-foreground`               | Panels lifted off the canvas                                | The canvas itself                                   |
-| `popover` / `popover-foreground`         | Floating menus, dropdowns, hovercards                       | Inline UI                                           |
-| `primary` / `primary-foreground`         | The single affirmative action in a flow (Save, Confirm)     | Decorative accents; hover states; secondary actions |
-| `secondary` / `secondary-foreground`     | Lower-emphasis actions next to a primary                    | The affirmative action                              |
-| `muted` / `muted-foreground`             | De-emphasized text, captions, placeholders, disabled chrome | Body copy; primary actions                          |
-| `accent` / `accent-foreground`           | Hover/active backgrounds for ghost buttons and list rows    | Solid filled buttons (use `secondary` instead)      |
-| `destructive` / `destructive-foreground` | Delete, discard, irreversible-action buttons; error states  | Cancel buttons (Cancel is not destructive)          |
-| `border`                                 | All hairlines: dividers, input outlines, card edges         | Heavy emphasis; that's `ring`                       |
-| `input`                                  | Form field background only                                  | Anywhere outside form fields                        |
-| `ring`                                   | Focus-visible outlines, active selection halos              | Persistent decoration                               |
-| `sidebar` (+ variants)                   | The worktree sidebar and its children                       | Other panels                                        |
-| `editor-surface`                         | Background of Monaco / markdown editor panes                | App chrome                                          |
+| Role                                     | Use it for                                                                  | Don't use it for                                    |
+| ---------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------- |
+| `background` / `foreground`              | App canvas, default text                                                    | Cards, popovers, sidebar (have their own)           |
+| `workspace-canvas` / `foreground`        | Workspace chrome and gaps around terminal cards; follows sidebar appearance | Terminal content, popovers, lifted panels           |
+| `card` / `card-foreground`               | Panels lifted off the canvas                                                | The canvas itself                                   |
+| `popover` / `popover-foreground`         | Floating menus, dropdowns, hovercards                                       | Inline UI                                           |
+| `primary` / `primary-foreground`         | The single affirmative action in a flow (Save, Confirm)                     | Decorative accents; hover states; secondary actions |
+| `secondary` / `secondary-foreground`     | Lower-emphasis actions next to a primary                                    | The affirmative action                              |
+| `muted` / `muted-foreground`             | De-emphasized text, captions, placeholders, disabled chrome                 | Body copy; primary actions                          |
+| `accent` / `accent-foreground`           | Hover/active backgrounds for ghost buttons and list rows                    | Solid filled buttons (use `secondary` instead)      |
+| `destructive` / `destructive-foreground` | Delete, discard, irreversible-action buttons; error states                  | Cancel buttons (Cancel is not destructive)          |
+| `border`                                 | All hairlines: dividers, input outlines, card edges                         | Heavy emphasis; that's `ring`                       |
+| `input`                                  | Form field background only                                                  | Anywhere outside form fields                        |
+| `ring`                                   | Focus-visible outlines, active selection halos                              | Persistent decoration                               |
+| `sidebar` (+ variants)                   | The worktree sidebar and its children                                       | Other panels                                        |
+| `editor-surface`                         | Background of Monaco / markdown editor panes                                | App chrome                                          |
 
 The `sidebar` family expands into `--sidebar`, `--sidebar-foreground`, `--sidebar-primary`, `--sidebar-primary-foreground`, `--sidebar-accent`, `--sidebar-accent-foreground`, `--sidebar-border`, and `--sidebar-ring` — use them inside the worktree sidebar so its hover/selected/focus states stay consistent and don't bleed into other panels. `editor-surface` is its own token (not just `background`) because Monaco and the markdown editor have a slightly darker surface in dark mode to match VS Code conventions; reach for it whenever you're rendering an editor pane.
 

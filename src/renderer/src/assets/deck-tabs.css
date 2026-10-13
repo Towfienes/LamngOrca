@@ -6,14 +6,14 @@
   padding-inline: 8px;
   border: 0;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--foreground) 3%, var(--card));
+  background: transparent;
   transition:
     background-color 150ms ease-out,
     color 150ms ease-out;
 }
 
 .terminal-tab-strip > [data-tab-strip-slot] {
-  background: var(--card);
+  background: transparent;
 }
 
 .terminal-tab-strip > [data-tab-strip-slot]:not(:last-child) {
@@ -29,12 +29,12 @@
 }
 
 .terminal-tab-strip .workspace-tab:hover {
-  background: color-mix(in srgb, var(--foreground) 6%, var(--card));
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
 }
 
 .terminal-tab-strip .workspace-tab.workspace-tab-active {
-  background: color-mix(in srgb, var(--foreground) 10%, var(--card));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 20%, transparent);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  box-shadow: none;
   font-weight: 500;
 }
 

@@ -44,6 +44,22 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
     })
   })
   await ensureTerminalVisible(page)
+  const canvas = page.locator('.deck-workspace-shell')
+  const canvasColor = await canvas.evaluate((element) => getComputedStyle(element).backgroundColor)
+  await expect(page.locator('.deck-sidebar')).toHaveCSS('background-color', canvasColor)
+  await expect(page.locator('[data-tab-group-strip-id]').first()).toHaveCSS(
+    'background-color',
+    canvasColor
+  )
+  const projectBranchSpacing = await page.locator('.deck-sidebar').evaluate((sidebar) => {
+    const header = sidebar.querySelector('[data-repo-header-id]')!.getBoundingClientRect()
+    const branch = sidebar
+      .querySelector('[data-worktree-card-hover-trigger]')!
+      .getBoundingClientRect()
+    return branch.top - header.bottom
+  })
+  expect(projectBranchSpacing).toBeGreaterThanOrEqual(0)
+  expect(projectBranchSpacing).toBeLessThanOrEqual(6)
   await page.evaluate(() => {
     const state = window.__store!.getState()
     for (const title of ['Review changes', 'Build and verify']) {
@@ -73,7 +89,11 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
     page.locator('[data-testid="sortable-tab"]').filter({ hasText: 'Workspace · 4 panes' })
   ).toHaveCount(1)
   await expect(page.locator('.pane[data-active-pane]:visible')).toHaveCount(1)
-  await expect(page.locator('.pane-title-bar:visible').first()).toHaveCSS(
+  await expect(page.locator('.pane[data-active-pane]:visible')).toHaveCSS(
+    'background-color',
+    'rgb(12, 12, 12)'
+  )
+  await expect(page.locator('.pane-title-bar[data-active-pane]:visible')).toHaveCSS(
     'background-color',
     'rgb(12, 12, 12)'
   )
@@ -195,6 +215,27 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   expect(borderColors.find((pane) => pane.active)?.color).not.toBe(
     borderColors.find((pane) => !pane.active)?.color
   )
+  await expect(page.locator('.deck-terminal-surface:visible')).toHaveCSS(
+    'background-color',
+    canvasColor
+  )
+  await expect(page.locator('.pane-title-bar:visible').first()).toHaveCSS('height', '32px')
+  await expect
+    .poll(() =>
+      page.locator('.pane-title-bar:visible').evaluateAll((headers) =>
+        headers.every((header) => {
+          const pane = document.querySelector(`.deck-terminal-surface .pane[data-active-pane]`)
+          const box = header.getBoundingClientRect()
+          return (
+            !header.hasAttribute('data-active-pane') ||
+            (pane &&
+              Math.abs(box.left - pane.getBoundingClientRect().left) < 1 &&
+              Math.abs(box.top - pane.getBoundingClientRect().top) < 1)
+          )
+        })
+      )
+    )
+    .toBe(true)
 
   await expect(page.getByRole('button', { name: 'New agent', exact: true })).toBeEnabled()
   for (const button of await page.getByRole('button', { name: 'Got it', exact: true }).all()) {
@@ -225,14 +266,19 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
         elements.every((element) => {
           const box = element.getBoundingClientRect()
           const terminal = element.querySelector('.xterm-container')?.getBoundingClientRect()
+          const screen = element.querySelector('.xterm-screen')?.getBoundingClientRect()
           return (
             box.width > 100 &&
             box.height > 100 &&
             box.right <= innerWidth + 1 &&
             box.bottom <= innerHeight + 1 &&
             terminal &&
-            terminal.top >= box.top + 23 &&
-            terminal.bottom <= box.bottom + 1
+            terminal.top >= box.top + 31 &&
+            terminal.bottom <= box.bottom + 1 &&
+            screen &&
+            screen.top >= terminal.top &&
+            screen.right <= box.right + 1 &&
+            screen.bottom <= box.bottom + 1
           )
         })
       )
