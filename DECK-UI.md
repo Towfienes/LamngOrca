@@ -8,17 +8,17 @@ Mở **Orca Deck** trong menu ứng dụng, hoặc chạy:
 
 Mã nguồn: `/home/towfienes/Projects/orca-deck`, nhánh `deck-ui`.
 Cấu hình riêng: `/home/towfienes/.config/orca-deck`.
-UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Seamless/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
+UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Header/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
 
 ## Giao diện
 
 - Sidebar nhóm theo project, nhánh và agent; khoảng hở giữa các hàng 2 px và đệm workspace 2 px để project/nhánh sát nhau. Mỗi agent hai dòng với biểu tượng và trạng thái.
-- Worktree / Folder / Agent ở trên; Search, Tasks và Automations trong nút Tools and search bên dưới.
+- Worktree / Folder / Agent ở trên, tự xuống hàng khi sidebar hẹp để giữ đủ chữ; Search, Tasks và Automations trong nút Tools and search bên dưới.
 - **+ Agent** chia ô terminal vừa rê chuột qua trong workspace hiện tại. Nếu chưa rê qua ô nào, dùng ô đang chọn; ô rộng chia trái/phải, ô cao chia trên/dưới. Thêm agent tiếp tục chia ô đích, không tạo thêm tab. Khi không có terminal hiện trên màn hình, giữ luồng tạo tab agent mới.
 - Tab có nhiều pane hiển thị “Workspace · N panes”, giữ nguyên tên tự đặt. Breadcrumb project/nhánh nằm cùng hàng tab và tự ẩn khi thanh tab hẹp.
 - Sidebar, thanh tab và vùng giữa các pane dùng một nền liền mạch. Pane cách mép 6 px, bo nhẹ, có viền mảnh; pane đang chọn có viền sáng hơn. Header pane cao 32 px, nền header của pane đang chọn khớp terminal.
 - Hàng agent đang chọn nền sáng ngay cả trước khi có trạng thái; hỗ trợ Enter/Space để chuyển pane.
-- Nền đen than, viền mảnh và tiêu đề nhỏ có biểu tượng cho từng terminal.
+- Nền liền mạch, bỏ đường chia sidebar/header/thanh dưới; chỉ pane giữ viền mảnh. Logo agent đứng yên, vòng trạng thái nhỏ vẫn báo đang làm việc.
 - Workspace TDTU đã được mở với bốn terminal theo bố cục 2×2, lưu qua lần khởi động tiếp theo.
 - Gợi ý setup script nằm trong menu công cụ; các thao tác workspace và terminal dùng lại cơ chế Orca.
 
@@ -27,6 +27,8 @@ Thanh tab được tinh chỉnh theo video Deck: tab thấp, bo nhẹ, nền th�
 Định hướng hình ảnh và đối chiếu mã nguồn được lưu ở [SpaceVibe Deck UI reference](docs/readme/spacevibe-deck-ui.md). Đây là bản thích nghi theo kiến trúc Orca, chưa trùng từng pixel. Nội dung CLI do từng agent và cấu hình shell hiển thị. Các agent trong ảnh kiểm thử là dữ liệu minh họa; bản sử dụng mở terminal thật và không tự chạy tác vụ AI.
 
 Profile riêng không sao chép tài khoản hay phiên chat đang chạy. Sign-in hiện chưa được cấu hình trong bản chạy từ mã nguồn này; bản đóng gói Orca có cấu hình mặc định riêng. Không cần đăng nhập Deck để phát triển UI và đưa thay đổi về Orca gốc. Bản tùy chỉnh chưa được đóng gói thành AppImage; cần giữ thư mục mã nguồn và node_modules. Cập nhật ứng dụng Orca gốc không cập nhật bản tùy chỉnh này.
+
+Trên Linux, bỏ các nút thu nhỏ/phóng to/đóng trong app; cụm chống ngủ, RAM, số terminal và cổng chuyển lên góc trên phải. Bấm vẫn mở menu và bảng chi tiết cũ. Windows giữ nút cửa sổ; macOS giữ traffic lights.
 
 ## Kiểm tra
 

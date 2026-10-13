@@ -1,7 +1,7 @@
 # Orca 1.4.220 — Deck UI installed and verified
 
 Orca on this machine now opens the full Deck renderer from
-`~/Applications/Orca-1.4.220-Deck-Seamless/AppRun`. Quit Orca and reopen it from
+`~/Applications/Orca-1.4.220-Deck-Header/AppRun`. Quit Orca and reopen it from
 the application menu to load the new renderer. The previous running instance
 was left running; the installer does not close active terminals.
 
@@ -33,14 +33,14 @@ The editor tab close button stays reachable by keyboard while the file is dirty.
   hidden windows, Deck controls, appearance import and restart persistence.
 - All 3,839 original files outside the renderer retain their bytes, executable
   flags and unpacking flags. All 1,146 renderer files match the production build.
-- Installed archive hash matches `dist/orca-deck-seamless/verification.json`.
+- Installed archive hash matches `dist/orca-deck-header/verification.json`.
 
 Tests run with `ORCA_BACKGROUND_LAUNCH=1` and CDP. No native-focus tests,
 full repository suite, macOS/Windows execution or live SSH session were run.
 
 ## Package and rollback
 
-The verified package and one-off installer are in `dist/orca-deck-seamless/`.
+The verified package and one-off installer are in `dist/orca-deck-header/`.
 The installer has already run. The original AppImage and previous Deck runtime
 remain available. No automatic updater was added; an official update or
 reinstallation can replace the local customization.
@@ -48,7 +48,7 @@ reinstallation can replace the local customization.
 To restore the previous Orca launcher, run:
 
 ```sh
-cp -- "$HOME/Applications/Orca-1.4.220-Deck-Seamless/original-orca.desktop" \
+cp -- "$HOME/Applications/Orca-1.4.220-Deck-Header/original-orca.desktop" \
   "$HOME/.local/share/applications/appimagekit_ae11192f5fe223a1e05f0008606929e5-Orca.desktop"
 ```
 
@@ -60,8 +60,8 @@ The working diff and Git index before completing integration are backed up in
 ## Sidebar refinement
 
 Agent provider icons are centered across both text lines. A small round status
-badge overlaps the lower left edge; waiting uses an amber dot, and working
-provider icons rotate. Reduced motion disables rotation. Agent rows retain
+badge overlaps the lower left edge; waiting uses an amber dot, and a small working
+status ring rotates. Provider logos stay still. Agent rows retain
 keyboard navigation and the selected row's contrasting surface.
 
 Clicking a sidebar workspace with no tabs opens the existing Agent picker,
@@ -98,3 +98,27 @@ and packaged-app restart with an isolated profile. Terminal screen bounds and
 header alignment are checked after resizing.
 
 ![Seamless workspace with inset terminal cards](../assets/orca-deck-workspace.png)
+
+## Quiet chrome and Linux titlebar
+
+Linux Deck replaces the app's minimize, maximize and close buttons with the
+existing awake, memory/session and port controls at the top right. The same
+components move through a React portal, so they keep their host-aware data and
+menus without a second subscription or a second resource scan. Windows keeps
+its window controls; macOS keeps native traffic lights; paired web clients keep
+their existing chrome. The top area reserves space in the titlebar and scrolls
+when needed, independently of the footer's usage density.
+
+Workspace action buttons size to their labels and wrap at narrow sidebar widths.
+Sidebar edges, toolbar/header/footer separators, workspace row outlines and the
+explorer mode selector's framing are removed. Pane outlines and keyboard focus
+indicators remain. Agent provider logos stay still while the small working
+status ring continues to animate.
+
+Validation includes 17 focused policy/density/explorer tests, renderer typecheck,
+changed-code quality, hidden Electron checks for both zoom settings and a narrow
+viewport, top status popovers, no duplicate footer counters, pane geometry and
+stationary provider logos. The packaged renderer is checked with an isolated
+profile before installation.
+
+![Linux top status and quiet explorer](../assets/orca-deck-titlebar.png)

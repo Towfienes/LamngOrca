@@ -176,7 +176,7 @@ export function AppRootSurfaces(props: {
       {statusBarVisible ? (
         <Suspense
           fallback={
-            <div className="h-6 min-h-[24px] shrink-0 border-t border-border bg-[var(--bg-titlebar,var(--card))]" />
+            <div className="deck-status-bar h-6 min-h-[24px] shrink-0 bg-[var(--bg-titlebar,var(--card))]" />
           }
         >
           <OverlayBoundary

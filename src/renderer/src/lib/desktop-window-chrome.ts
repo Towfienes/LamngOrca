@@ -3,6 +3,13 @@ export type DesktopWindowChromeInput = {
   isWebClient: boolean
 }
 
+export function shouldUseDeckTitlebarStatus({
+  platform,
+  isWebClient
+}: DesktopWindowChromeInput): boolean {
+  return platform === 'linux' && !isWebClient
+}
+
 export function isPairedWebClientWindow(): boolean {
   return (globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ === true
 }

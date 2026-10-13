@@ -140,7 +140,7 @@ function RightSidebarInner(): React.JSX.Element {
     <div
       ref={containerRef}
       className={cn(
-        'relative flex-shrink-0 flex flex-row',
+        'deck-right-sidebar relative flex-shrink-0 flex flex-row',
         // Why: overflow-visible is needed when open so the resize handle
         // on the left edge remains interactive.  When closed (width 0),
         // switch to overflow-hidden so the activity bar icons and panel
@@ -150,12 +150,7 @@ function RightSidebarInner(): React.JSX.Element {
       )}
     >
       {/* Panel content area */}
-      <div
-        className="flex flex-col flex-1 min-w-0 bg-sidebar overflow-hidden"
-        style={{
-          borderLeft: rightSidebarOpen ? '1px solid var(--sidebar-border)' : 'none'
-        }}
-      >
+      <div className="flex flex-col flex-1 min-w-0 bg-sidebar overflow-hidden">
         {activityBarPosition === 'top' ? (
           <RightSidebarTopActivityBar
             hasDesktopWindowChrome={hasDesktopWindowChrome}

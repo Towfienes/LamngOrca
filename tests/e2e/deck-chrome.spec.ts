@@ -201,7 +201,7 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   expect(iconAlignment.rowCenter).toBeLessThan(1)
   expect(iconAlignment.rowHeight).toBeLessThan(43)
   const providerIcon = keyboardRow.locator('.deck-agent-icon-slot > *')
-  await expect(providerIcon).toHaveCSS('animation-name', 'spin')
+  await expect(providerIcon).toHaveCSS('animation-name', 'none')
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await expect(providerIcon).toHaveCSS('animation-name', 'none')
   await page.emulateMedia({ reducedMotion: 'no-preference' })

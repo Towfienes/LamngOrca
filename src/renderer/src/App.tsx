@@ -18,7 +18,8 @@ import {
   MAC_TRAFFIC_LIGHTS_WIDTH,
   WINDOW_CONTROLS_HEIGHT,
   WINDOW_CONTROLS_WIDTH,
-  hasCustomTitleBar
+  hasCustomTitleBar,
+  usesDeckTitlebarStatus
 } from './app-shell/app-window-chrome'
 import { useAppChromeLayout } from './app-shell/use-app-chrome-layout'
 import { useAppSessionPersistence } from './app-shell/use-app-session-persistence'
@@ -109,7 +110,17 @@ function App(): React.JSX.Element {
       <PinnedTabCloseDialog />
       <RunningTerminalCloseDialog />
       {/* Why: Electron's drag-region hit-test is DOM-order-based (ignores z-index); render last so WindowControls stay clickable. */}
-      {hasCustomTitleBar && <WindowControls />}
+      {usesDeckTitlebarStatus ? (
+        <div
+          id="deck-titlebar-status"
+          className="deck-titlebar-status"
+          style={layout.leftSidebarStyle}
+          role="group"
+          aria-label="System status"
+        />
+      ) : hasCustomTitleBar ? (
+        <WindowControls />
+      ) : null}
     </div>
   )
 }

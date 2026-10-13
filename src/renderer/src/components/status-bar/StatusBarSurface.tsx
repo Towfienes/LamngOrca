@@ -1,5 +1,7 @@
 import { PanelsTopLeft, RefreshCw } from 'lucide-react'
 import React from 'react'
+import { createPortal } from 'react-dom'
+import { usesDeckTitlebarStatus } from '@/app-shell/app-window-chrome'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -96,11 +98,29 @@ export function StatusBarSurface({
     usageTightestOnly
   } = controller
 
+  const titlebarStatusHost = usesDeckTitlebarStatus
+    ? document.getElementById('deck-titlebar-status')
+    : null
+  const systemSegmentsIconOnly = titlebarStatusHost ? false : segmentsIconOnly
+  const systemSegments = (
+    <React.Suspense fallback={null}>
+      {!isPairedWebClientWindow() ? (
+        <CaffeinateStatusSegment iconOnly={systemSegmentsIconOnly} />
+      ) : null}
+      {showResourceUsage ? (
+        <ResourceUsageStatusSegment compact={compact} iconOnly={systemSegmentsIconOnly} />
+      ) : null}
+      {showPorts ? (
+        <PortsStatusSegment compact={compact} iconOnly={systemSegmentsIconOnly} />
+      ) : null}
+    </React.Suspense>
+  )
+
   return (
     <div
       ref={barRef}
       // Why: one line at any width — density steps down first. overflow-clip (not hidden) so focus can't scroll the bar; the clip margin spares focus rings and badge dots.
-      className="flex items-center h-6 min-h-[24px] px-3 gap-4 overflow-clip [overflow-clip-margin:3px] whitespace-nowrap border-t border-border bg-[var(--bg-titlebar,var(--card))] text-xs select-none shrink-0 relative"
+      className="deck-status-bar flex items-center h-6 min-h-[24px] px-3 gap-4 overflow-clip [overflow-clip-margin:3px] whitespace-nowrap border-t border-border bg-[var(--bg-titlebar,var(--card))] text-xs select-none shrink-0 relative"
       onContextMenuCapture={(event) => {
         if (!shouldOpenStatusBarContextMenu(event.target)) {
           return
@@ -269,21 +289,13 @@ export function StatusBarSurface({
         data-overflowing={overflowing}
       >
         <div ref={segmentsRef} className="flex w-max items-center gap-3">
-          {!isPairedWebClientWindow() ? (
-            <CaffeinateStatusSegment iconOnly={segmentsIconOnly} />
-          ) : null}
+          {titlebarStatusHost ? createPortal(systemSegments, titlebarStatusHost) : systemSegments}
           <RemoteServerUpdateStatusSegment iconOnly={segmentsIconOnly} />
           <SkillUpdateStatusSegment iconOnly={segmentsIconOnly} />
           <NativeChatResumeStatusSegment iconOnly={segmentsIconOnly} />
           <UpdateStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
           <React.Suspense fallback={null}>
             {petEnabled ? <PetStatusSegment /> : null}
-            {showResourceUsage ? (
-              <ResourceUsageStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
-            ) : null}
-            {showPorts ? (
-              <PortsStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
-            ) : null}
             {showSsh ? <SshStatusSegment compact={compact} iconOnly={segmentsIconOnly} /> : null}
           </React.Suspense>
           {showFloatingTerminalToggle && (

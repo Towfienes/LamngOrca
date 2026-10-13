@@ -1,6 +1,7 @@
 import {
   isPairedWebClientWindow,
-  shouldRenderDesktopWindowChrome
+  shouldRenderDesktopWindowChrome,
+  shouldUseDeckTitlebarStatus
 } from '@/lib/desktop-window-chrome'
 
 export const isMac = navigator.userAgent.includes('Mac')
@@ -12,9 +13,17 @@ export const hasCustomTitleBar = shouldRenderDesktopWindowChrome({
   isWebClient: isPairedWebClientWindow()
 })
 
-// Why: the three 46px window-control buttons and the 36px titlebar they sit in.
-// Surfaces offset by these instead of hardcoding the pixels.
-export const WINDOW_CONTROLS_WIDTH = hasCustomTitleBar ? '138px' : '0px'
+export const usesDeckTitlebarStatus = shouldUseDeckTitlebarStatus({
+  platform: shortcutPlatform,
+  isWebClient: isPairedWebClientWindow()
+})
+
+// Reserve the top-right chrome for Linux status or Windows window controls.
+export const WINDOW_CONTROLS_WIDTH = usesDeckTitlebarStatus
+  ? 'min(280px, 40vw)'
+  : hasCustomTitleBar
+    ? '138px'
+    : '0px'
 export const WINDOW_CONTROLS_HEIGHT = hasCustomTitleBar ? '36px' : '0px'
 
 // Why: macOS paints traffic lights on the window's top-left edge. Windows and Linux paint their
