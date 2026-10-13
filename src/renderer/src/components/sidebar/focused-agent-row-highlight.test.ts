@@ -104,6 +104,10 @@ describe('getFocusedAgentPaneKeyForWorktree', () => {
     expect(getFocusedAgentPaneKeyForWorktree(state, WORKTREE_ID)).toBe(PANE_KEY)
   })
 
+  it('highlights the focused pane before its agent reports status', () => {
+    expect(getFocusedAgentPaneKeyForWorktree(makeState(), WORKTREE_ID)).toBe(PANE_KEY)
+  })
+
   it('does not return another split pane in the same terminal tab', () => {
     const state = makeState({
       agentStatusByPaneKey: {
@@ -111,7 +115,7 @@ describe('getFocusedAgentPaneKeyForWorktree', () => {
       }
     })
 
-    expect(getFocusedAgentPaneKeyForWorktree(state, WORKTREE_ID)).toBeNull()
+    expect(getFocusedAgentPaneKeyForWorktree(state, WORKTREE_ID)).toBe(PANE_KEY)
   })
 
   it('does not highlight while another surface type is active', () => {

@@ -258,6 +258,7 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
     return (
       <React.Fragment key={agent.paneKey}>
         <DashboardAgentRow
+          rail
           agent={agent}
           onDismiss={handleDismissAgent}
           onActivate={

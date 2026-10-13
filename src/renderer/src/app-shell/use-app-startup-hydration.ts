@@ -37,6 +37,7 @@ import {
 import { mapWithConcurrency } from '../../../shared/map-with-concurrency'
 import type { OnboardingState } from '../../../shared/onboarding-state-types'
 import { ensureLocalRuntimeCapabilities } from '../runtime/local-runtime-capabilities'
+import { importDeckAppearanceOnce } from '../lib/deck-appearance-import'
 
 async function listRuntimeSessionHostIdsForStartup(): Promise<ExecutionHostId[]> {
   try {
@@ -88,6 +89,7 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
       try {
         // Why: nothing in the hydration chain reads profile state synchronously, so don't let it add a serial IPC round-trip before fetchSettings.
         void actions.fetchOrcaProfiles()
+        await timeRendererStartupStep('import-deck-appearance', importDeckAppearanceOnce)
         // Why: publish local settings before persisted UI/catalog work; a saved remote owner's defaults can spend the full connect timeout.
         await timeRendererStartupStep('fetch-settings', () =>
           actions.fetchSettings({ deferOwnerWorktreeVisibilityDefaults: true })

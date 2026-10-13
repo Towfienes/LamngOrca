@@ -14,6 +14,8 @@ import { WORKSPACE_FILE_PATH_MIME, WORKSPACE_FILE_PATHS_MIME } from '@/lib/works
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import type { PtyTransport } from './pty-transport'
 import { handleInternalTerminalFileDrop } from './terminal-drop-handler'
+import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { DeckPaneIdentity } from './DeckPaneIdentity'
 
 export type PaneTitleOverlayRect = {
   left: number
@@ -153,9 +155,7 @@ export default function TerminalPaneHeaderOverlay({
             {...(isActivePane ? { 'data-active-pane': '' } : {})}
             {...(isChromeless ? { 'data-chromeless': '' } : {})}
             {...(isEditing ? { 'data-editing': '' } : {})}
-            onPointerDownCapture={
-              title || isEditing ? () => onActivatePaneTitleInteraction(pane.id) : undefined
-            }
+            onPointerDownCapture={() => onActivatePaneTitleInteraction(pane.id)}
             onDragOver={(event) => {
               onActivatePaneTitleInteraction(pane.id)
               if (
@@ -244,6 +244,10 @@ export default function TerminalPaneHeaderOverlay({
                     }}
                   />
                 )}
+                <DeckPaneIdentity
+                  paneKey={makePaneKey(tabId, pane.leafId)}
+                  hasTitle={Boolean(title)}
+                />
                 {title ? (
                   <button
                     type="button"

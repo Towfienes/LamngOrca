@@ -37,6 +37,8 @@ export type QuickLaunchAgentMenuItemsProps = {
   launchSource?: LaunchSource
   /** Called after a prompt is queued into the agent, or immediately for argv prompt launches. */
   onPromptDelivered?: () => void
+  /** A caller that owns pane placement can launch into that pane. */
+  onLaunchAgent?: (agent: TuiAgent) => void
 }
 
 function getCatalogEntry(agent: TuiAgent): { id: TuiAgent; label: string } | null {
@@ -103,7 +105,8 @@ function QuickLaunchAgentMenuItemsInner({
   prompt,
   promptDelivery,
   launchSource,
-  onPromptDelivered
+  onPromptDelivered,
+  onLaunchAgent
 }: QuickLaunchAgentMenuItemsProps): React.JSX.Element | null {
   // Why: resolving only the SSH connectionId here made paired-runtime
   // worktrees fall back to LOCAL detection, listing the client's agents
@@ -132,6 +135,10 @@ function QuickLaunchAgentMenuItemsInner({
 
   const runLaunch = useCallback(
     (agent: TuiAgent) => {
+      if (onLaunchAgent) {
+        onLaunchAgent(agent)
+        return
+      }
       const entry = getCatalogEntry(agent)
       const label = entry?.label ?? agent
       const result = launchAgentInNewTab({
@@ -179,7 +186,16 @@ function QuickLaunchAgentMenuItemsInner({
         toast.message(getLaunchWatchdogTimeoutMessage(label))
       })
     },
-    [worktreeId, groupId, onFocusTerminal, prompt, promptDelivery, launchSource, onPromptDelivered]
+    [
+      worktreeId,
+      groupId,
+      onFocusTerminal,
+      prompt,
+      promptDelivery,
+      launchSource,
+      onPromptDelivered,
+      onLaunchAgent
+    ]
   )
 
   const enabledDetectedIds = detectedIds ? filterEnabledTuiAgents(detectedIds, disabledAgents) : []
@@ -206,7 +222,10 @@ function QuickLaunchAgentMenuItemsInner({
         const isStructuredLaunchPending =
           isAgentSessionHandleProvider(agent) && structuredLaunchStatusByAgent[agent] === 'pending'
         const showsDefaultAgentShortcut =
-          newAgentShortcut !== null && defaultAgent !== 'blank' && agent === defaultAgent
+          !onLaunchAgent &&
+          newAgentShortcut !== null &&
+          defaultAgent !== 'blank' &&
+          agent === defaultAgent
         return (
           <DropdownMenuItem
             key={agent}

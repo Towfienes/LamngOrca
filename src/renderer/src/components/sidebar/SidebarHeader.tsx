@@ -46,7 +46,7 @@ const SidebarHeader = React.memo(function SidebarHeader({
   )
 
   return (
-    <div className="mt-2 flex h-8 min-w-0 items-center justify-between gap-1.5 px-2">
+    <div className="deck-sidebar-options mt-2 flex h-8 min-w-0 items-center justify-between gap-1.5 px-2">
       <div className="flex min-w-0 items-center gap-1">
         <span
           // Why truncate: the action cluster is shrink-0, so a long localized title

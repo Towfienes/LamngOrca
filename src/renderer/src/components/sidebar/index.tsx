@@ -3,8 +3,7 @@ import { useAppStore } from '@/store'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useSidebarResize } from '@/hooks/useSidebarResize'
 import SidebarHeader from './SidebarHeader'
-import SidebarNav from './SidebarNav'
-import SetupScriptPromptCard from './SetupScriptPromptCard'
+import { DeckCreateBar } from './DeckCreateBar'
 import WorktreeList from './WorktreeList'
 import SidebarToolbar from './SidebarToolbar'
 import WorkspaceKanbanDrawer from './WorkspaceKanbanDrawer'
@@ -154,18 +153,14 @@ function Sidebar({
       <div
         ref={containerRef}
         data-native-file-drop-target={sidebarOpen ? nativeDropTarget : undefined}
-        className="relative min-h-0 flex-shrink-0 bg-worktree-sidebar flex flex-col overflow-hidden scrollbar-sleek-parent"
+        className="deck-sidebar relative min-h-0 flex-shrink-0 bg-worktree-sidebar flex flex-col overflow-hidden scrollbar-sleek-parent"
         style={leftSidebarStyle}
         {...dropHandlers}
       >
         {sidebarOpen && (
           <>
             {/* Fixed controls */}
-            <SidebarNav />
-            <SidebarHeader
-              onWorkspaceBoardMenuOpenChange={setWorkspaceBoardMenuOpen}
-              activityOptionsTarget={setAgentOptionsTarget}
-            />
+            <DeckCreateBar />
             {sidebarBody === 'agents' ? (
               <React.Suspense fallback={<div className="min-h-0 flex-1" />}>
                 <ActivityThreadCollapseContext.Provider value={agentsCollapseState}>
@@ -197,8 +192,10 @@ function Sidebar({
             )}
 
             <div className="relative shrink-0">
-              <SetupScriptPromptCard />
-
+              <SidebarHeader
+                onWorkspaceBoardMenuOpenChange={setWorkspaceBoardMenuOpen}
+                activityOptionsTarget={setAgentOptionsTarget}
+              />
               {/* Fixed bottom toolbar */}
               <SidebarToolbar
                 workspaceBoardOpen={workspaceBoardOpen}

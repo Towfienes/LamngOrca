@@ -8,6 +8,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ManagedPane, PaneManager } from '@/lib/pane-manager/pane-manager'
 import type { PtyTransport } from './pty-transport'
 import TerminalPaneHeaderOverlay from './TerminalPaneHeaderOverlay'
+import { isTerminalLeafId } from '../../../../shared/stable-pane-id'
+
+vi.mock('./DeckPaneIdentity', () => ({ DeckPaneIdentity: () => <span>Terminal</span> }))
 
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children?: ReactNode }) => children,
@@ -25,7 +28,10 @@ vi.mock('@/i18n/i18n', () => ({
 const mounted: { container: HTMLDivElement; root: Root }[] = []
 
 function makePane(id: number): ManagedPane {
-  const leafId = `leaf-${id}` as ManagedPane['leafId']
+  const leafId = `00000000-0000-4000-8000-${String(id).padStart(12, '0')}`
+  if (!isTerminalLeafId(leafId)) {
+    throw new Error('Invalid fixture pane ID')
+  }
   return {
     id,
     leafId,
@@ -48,6 +54,7 @@ function renderOverlay({
   onClosePane = vi.fn(),
   onRemoveTitle = vi.fn(),
   onRenameSubmit = vi.fn(),
+  onActivatePaneTitleInteraction = vi.fn(),
   canContinueAgentSessionInNewSession = false,
   onContinueAgentSessionInNewSession = vi.fn(),
   renameValue = '',
@@ -61,6 +68,7 @@ function renderOverlay({
   onClosePane?: ReturnType<typeof vi.fn>
   onRemoveTitle?: ReturnType<typeof vi.fn>
   onRenameSubmit?: ReturnType<typeof vi.fn>
+  onActivatePaneTitleInteraction?: (paneId: number) => void
   canContinueAgentSessionInNewSession?: boolean
   onContinueAgentSessionInNewSession?: ReturnType<typeof vi.fn>
   renameValue?: string
@@ -107,7 +115,7 @@ function renderOverlay({
         }
         onSplitPane={vi.fn()}
         onBeginPaneDrag={vi.fn()}
-        onActivatePaneTitleInteraction={vi.fn()}
+        onActivatePaneTitleInteraction={onActivatePaneTitleInteraction}
         onPaneTitleContextMenu={vi.fn()}
         onStartRename={vi.fn()}
         onRemoveTitle={onRemoveTitle as (paneId: number) => void}
@@ -148,6 +156,18 @@ afterEach(() => {
 })
 
 describe('TerminalPaneHeaderOverlay', () => {
+  it('activates an untitled pane through its visible Deck header', () => {
+    const activate = vi.fn()
+    const { container } = renderOverlay({
+      paneTitles: {},
+      onActivatePaneTitleInteraction: activate
+    })
+    const headers = container.querySelectorAll('.pane-title-bar')
+    expect(headers).toHaveLength(2)
+    act(() => headers[1]!.dispatchEvent(new Event('pointerdown', { bubbles: true })))
+    expect(activate).toHaveBeenCalledExactlyOnceWith(2)
+  })
+
   it('keeps the titled split-pane X as remove-title only', () => {
     const { container, onClosePane, onRemoveTitle } = renderOverlay({
       paneTitles: { 1: 'server', 2: '' }

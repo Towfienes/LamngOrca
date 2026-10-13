@@ -11,6 +11,14 @@ import type { Page } from '@stablyai/playwright-test'
 import { test, expect } from './helpers/orca-app'
 import { waitForSessionReady, waitForActiveWorktree, ensureTerminalVisible } from './helpers/store'
 
+test.use({
+  orcaAppExtraArgs: [
+    ...(process.platform === 'linux' ? ['--ozone-platform=headless'] : []),
+    '--disable-background-timer-throttling',
+    '--disable-renderer-backgrounding'
+  ]
+})
+
 const STRIP = '.terminal-tab-strip'
 
 type DockSample = { scrollLeft: number; activeLeft: number; activeRight: number }
@@ -76,6 +84,7 @@ async function nextFrames(page: Page, count: number): Promise<void> {
 
 test.describe('Tab strip active-tab dock', () => {
   test.beforeEach(async ({ orcaPage }) => {
+    await orcaPage.setViewportSize({ width: 1280, height: 800 })
     await waitForSessionReady(orcaPage)
     await waitForActiveWorktree(orcaPage)
     await ensureTerminalVisible(orcaPage)

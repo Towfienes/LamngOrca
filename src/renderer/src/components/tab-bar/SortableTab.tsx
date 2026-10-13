@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { X, Minimize2, Pin } from 'lucide-react'
 import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
+import { collectLeafIdsInOrder } from '../terminal-pane/terminal-layout-leaf-ids'
 import { useTabAgent } from '@/lib/use-tab-agent'
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import { Input } from '@/components/ui/input'
@@ -117,9 +118,18 @@ export default function SortableTab({
   // Why: use hook status + title evidence so the icon reflects the harness running now, not just the launch command.
   const tabAgent = useTabAgent(tab)
 
+  const paneCount = useAppStore(
+    (state) => collectLeafIdsInOrder(state.terminalLayoutsByTabId?.[tab.id]?.root).length
+  )
+
   // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
   const displayTitle =
-    tab.customTitle ?? (tabAgent ? stripLeadingAgentTitleDecoration(tab.title) : tab.title)
+    tab.customTitle ??
+    (paneCount > 1
+      ? translate('deck.tabs.workspacePanes', 'Workspace · {{count}} panes', { count: paneCount })
+      : tabAgent
+        ? stripLeadingAgentTitleDecoration(tab.title)
+        : tab.title)
 
   const { attributes, listeners, setNodeRef } = useSortable({
     id: tab.id,

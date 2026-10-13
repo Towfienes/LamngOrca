@@ -201,6 +201,11 @@ export default function BrowserTab({
       <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{tabLabel}</span>
       {!isPinned && (
         <button
+          type="button"
+          aria-label={translate(
+            'auto.components.tab.bar.EditorFileTabCloseButton.4655cf570e',
+            'Close tab'
+          )}
           className={`flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive
               ? 'text-muted-foreground hover:text-foreground hover:bg-muted'

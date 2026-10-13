@@ -25,12 +25,12 @@ export function getDropIndicatorClasses(dropIndicator: DropIndicator): string {
 // strip between "fits exactly" and "overflows by 1px", which jitters every
 // tab by 1px because the browser preserves scrollLeft near the end.
 export const ACTIVE_TAB_INDICATOR_CLASSES =
-  'pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-foreground z-20'
+  'workspace-tab-indicator pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-foreground z-20'
 
 export function getTabRootStateClasses(isActive: boolean): string {
   return isActive
-    ? 'bg-[color-mix(in_srgb,var(--foreground)_6%,var(--card))] text-foreground'
-    : 'bg-card text-muted-foreground hover:text-foreground'
+    ? 'workspace-tab workspace-tab-active bg-[color-mix(in_srgb,var(--foreground)_6%,var(--card))] text-foreground'
+    : 'workspace-tab bg-card text-muted-foreground hover:text-foreground'
 }
 
 export function getTabStripBorderClasses(
