@@ -1,7 +1,7 @@
 # Orca 1.4.220 — Deck UI installed and verified
 
 Orca on this machine now opens the full Deck renderer from
-`~/Applications/Orca-1.4.220-Deck-Header/AppRun`. Quit Orca and reopen it from
+`~/Applications/Orca-1.4.220-Deck-Usage/AppRun`. Quit Orca and reopen it from
 the application menu to load the new renderer. The previous running instance
 was left running; the installer does not close active terminals.
 
@@ -31,16 +31,18 @@ The editor tab close button stays reachable by keyboard while the file is dirty.
 - Full E2E and production builds passed, including the daemon load guard.
 - Packaged application smoke passed with a disposable profile and isolated home:
   hidden windows, Deck controls, appearance import and restart persistence.
-- All 3,839 original files outside the renderer retain their bytes, executable
-  flags and unpacking flags. All 1,146 renderer files match the production build.
-- Installed archive hash matches `dist/orca-deck-header/verification.json`.
+- All 3,838 original files outside the renderer and the main UI route normalizer
+  retain their bytes, executable flags and unpacking flags. The release main bundle
+  differs only by accepting the built-in Usage route; a byte comparison verifies
+  that single change. All 1,146 renderer files match the production build.
+- Installed archive hash matches `dist/orca-deck-usage/verification.json`.
 
 Tests run with `ORCA_BACKGROUND_LAUNCH=1` and CDP. No native-focus tests,
 full repository suite, macOS/Windows execution or live SSH session were run.
 
 ## Package and rollback
 
-The verified package and one-off installer are in `dist/orca-deck-header/`.
+The verified package and one-off installer are in `dist/orca-deck-usage/`.
 The installer has already run. The original AppImage and previous Deck runtime
 remain available. No automatic updater was added; an official update or
 reinstallation can replace the local customization.
@@ -48,7 +50,7 @@ reinstallation can replace the local customization.
 To restore the previous Orca launcher, run:
 
 ```sh
-cp -- "$HOME/Applications/Orca-1.4.220-Deck-Header/original-orca.desktop" \
+cp -- "$HOME/Applications/Orca-1.4.220-Deck-Usage/original-orca.desktop" \
   "$HOME/.local/share/applications/appimagekit_ae11192f5fe223a1e05f0008606929e5-Orca.desktop"
 ```
 
@@ -122,3 +124,44 @@ stationary provider logos. The packaged renderer is checked with an isolated
 profile before installation.
 
 ![Linux top status and quiet explorer](../assets/orca-deck-titlebar.png)
+
+## Sidebar Usage and pane interaction refinement
+
+The right sidebar adds a Usage item available for git, folder and SSH workspaces.
+It reads local Claude, Codex, OpenCode and Muse snapshots through the existing
+usage APIs and overview model. Independent all-local 7/30/90/all queries leave the
+full Stats page's saved scope and range untouched. Missing data stays unavailable;
+a failed provider keeps other results visible with an error message, and stale
+responses cannot overwrite a newer period. Cost remains an API equivalent, with
+unpriced tokens called out. Disabled tracking stays disabled.
+
+Existing subscription controls move into this panel through a portal, preserving
+account switching and rate-limit menus. Linux removes the footer and moves its
+remaining attention controls to the top status area. Command becomes a compact
+Play control with a tooltip; active tab underlines are hidden. Faint hierarchy
+guides return only to agent groups and nested file rows.
+
+The whole pane header can start the existing drag operation, excluding actions
+and rename input. Existing edge drop zones and stable pane/session identities are
+retained. Mouse focus is enabled once per profile and respects later preference
+changes, held-button selection/drag gates and the focused-app gate. Header hover
+uses the same policy as terminal content.
+
+The release runtime remains original except for one UI allowlist change in
+`out/main/index.js`, admitting `usage` so the panel can survive restart. The
+one-off package scripts assert the exact release function, check its known,
+plugin and invalid routes, and compare every other main byte and archive flag.
+No new RPC method, stream opcode, execution-host status store or account copy is
+introduced. Older readers safely normalize the new sidebar key to Explorer.
+
+Validation includes 46 focused unit tests, main and renderer typechecks,
+changed-code quality, hidden Electron tests for costs, range changes, tree guides,
+Command/dialog bounds, header dragging and mouse focus, plus an isolated-profile
+packaged-app restart. Native OS focus behavior is not exercised on the user's
+desktop; the in-app focus gate is simulated in the hidden test renderer.
+
+![Compact local cost panel with fixture data](../assets/orca-deck-usage.png)
+
+[Nested tree guides](../assets/orca-deck-tree-guides.png) and
+[reordered panes](../assets/orca-deck-pane-reordered.png) were captured from the
+same hidden Electron check.

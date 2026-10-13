@@ -26,10 +26,17 @@ afterEach(() => {
 })
 
 describe('Deck appearance import', () => {
+  it('enables mouse focus on an already imported profile without resetting appearance', async () => {
+    localStorage.setItem('orca.deckAppearanceImported.v1:local-default', 'true')
+    await importDeckAppearanceOnce()
+    await importDeckAppearanceOnce()
+    expect(settings).toHaveBeenCalledExactlyOnceWith({ terminalFocusFollowsMouse: true })
+    expect(saveUI).not.toHaveBeenCalled()
+  })
   it('keeps later user edits by importing only once per profile', async () => {
     await importDeckAppearanceOnce()
     await importDeckAppearanceOnce()
-    expect(settings).toHaveBeenCalledTimes(1)
+    expect(settings).toHaveBeenCalledTimes(2)
     expect(saveUI).toHaveBeenCalledTimes(1)
   })
 
@@ -37,7 +44,7 @@ describe('Deck appearance import', () => {
     await importDeckAppearanceOnce()
     profiles.mockResolvedValue({ activeProfileId: 'another-profile' })
     await importDeckAppearanceOnce()
-    expect(settings).toHaveBeenCalledTimes(2)
+    expect(settings).toHaveBeenCalledTimes(4)
     expect(saveUI).toHaveBeenCalledTimes(2)
   })
 

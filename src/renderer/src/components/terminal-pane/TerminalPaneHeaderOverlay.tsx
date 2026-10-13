@@ -16,6 +16,7 @@ import type { PtyTransport } from './pty-transport'
 import { handleInternalTerminalFileDrop } from './terminal-drop-handler'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
 import { DeckPaneIdentity } from './DeckPaneIdentity'
+import { shouldFollowMouseFocus } from '@/lib/pane-manager/focus-follows-mouse'
 
 export type PaneTitleOverlayRect = {
   left: number
@@ -25,6 +26,7 @@ export type PaneTitleOverlayRect = {
 
 type TerminalPaneHeaderOverlayProps = {
   tabId: string
+  focusFollowsMouse?: boolean
   worktreeId: string
   cwd: string
   showAlwaysOnHeaders: boolean
@@ -45,15 +47,9 @@ type TerminalPaneHeaderOverlayProps = {
   hiddenStartupStyle: CSSProperties
   managerRef: RefObject<PaneManager | null>
   paneTransportsRef: RefObject<Map<number, PtyTransport>>
-  /** When true, this pane can switch between the terminal and the native chat
-   *  view; renders a chat/terminal toggle as the first button in the pane header
-   *  actions row (beside split/close). The caller gates it to the active pane to
-   *  avoid duplicating it across splits, and to bridge chat only — a structured
-   *  session has no terminal underneath to switch to. */
+  /** Only bridge chat has a terminal underneath; the caller gates this to the active pane. */
   canToggleNativeChat?: boolean
-  /** True when the active pane is currently showing the native chat view. */
   isChatViewMode?: boolean
-  /** Flip the active pane between the terminal and the native chat view. */
   onToggleNativeChat?: () => void
   canContinueAgentSessionInNewSession?: boolean
   onContinueAgentSessionInNewSession?: (pane: ManagedPane) => void
@@ -72,6 +68,7 @@ type TerminalPaneHeaderOverlayProps = {
 
 export default function TerminalPaneHeaderOverlay({
   tabId,
+  focusFollowsMouse = false,
   worktreeId,
   cwd,
   showAlwaysOnHeaders,
@@ -112,6 +109,18 @@ export default function TerminalPaneHeaderOverlay({
     'auto.components.terminal.pane.TerminalContextMenu.20e565d865',
     'Split Terminal Right'
   )
+  const paneTitleLabel = translate(
+    'auto.components.terminal.pane.TerminalPane.7dbbfcbecc',
+    'Pane title'
+  )
+  const continueLabel = translate(
+    'components.agentSessionContinuation.continueInNewSession',
+    'Continue in New Session…'
+  )
+  const chatToggleLabel = isChatViewMode
+    ? translate('components.native-chat.toggle.showTerminal', 'Show terminal')
+    : translate('components.native-chat.toggle.showChat', 'Show chat view')
+  const ChatToggleIcon = isChatViewMode ? SquareTerminal : MessageSquare
 
   return (
     <div
@@ -137,8 +146,7 @@ export default function TerminalPaneHeaderOverlay({
                 'Close Pane'
               )
             : translate('auto.components.tab.bar.SortableTab.95db5f2f7d', 'Close tab')
-        // Why: a titled split pane keeps its X as remove-title, but a titled single
-        // pane (agent terminals get runtime titles) still needs a close control.
+        // A titled single pane still needs a close control; split titles use X to remove the title.
         const showCloseButton =
           showAlwaysOnHeaders && (paneCount > 1 ? !title : showSplitButton && !isTabPinned)
         if (!showHeader || !overlayRect) {
@@ -152,10 +160,37 @@ export default function TerminalPaneHeaderOverlay({
             data-native-file-drop-target="terminal"
             data-terminal-tab-id={tabId}
             data-pane-prevent-terminal-focus=""
+            data-pane-draggable={paneCount > 1 && !isEditing ? '' : undefined}
             {...(isActivePane ? { 'data-active-pane': '' } : {})}
             {...(isChromeless ? { 'data-chromeless': '' } : {})}
             {...(isEditing ? { 'data-editing': '' } : {})}
             onPointerDownCapture={() => onActivatePaneTitleInteraction(pane.id)}
+            onPointerEnter={(event) => {
+              const manager = managerRef.current
+              if (
+                manager &&
+                shouldFollowMouseFocus({
+                  featureEnabled: focusFollowsMouse,
+                  activePaneId: manager.getActivePane()?.id ?? null,
+                  hoveredPaneId: pane.id,
+                  mouseButtons: event.buttons,
+                  windowHasFocus: document.hasFocus(),
+                  managerDestroyed: false
+                })
+              ) {
+                manager.setActivePane(pane.id, { focus: true })
+              }
+            }}
+            onPointerDown={(event) => {
+              if (
+                paneCount > 1 &&
+                !isEditing &&
+                event.target instanceof Element &&
+                !event.target.closest('.pane-title-actions, input')
+              ) {
+                onBeginPaneDrag(pane.id, event.currentTarget, event.nativeEvent)
+              }
+            }}
             onDragOver={(event) => {
               onActivatePaneTitleInteraction(pane.id)
               if (
@@ -191,41 +226,25 @@ export default function TerminalPaneHeaderOverlay({
               })
             }}
             onContextMenuCapture={(event) => onPaneTitleContextMenu(event, pane.id)}
-            style={{
-              left: overlayRect.left,
-              top: overlayRect.top,
-              width: overlayRect.width
-            }}
+            style={overlayRect}
           >
             {isEditing ? (
               <input
                 ref={renameInputRef}
                 className="pane-title-input"
-                aria-label={translate(
-                  'auto.components.terminal.pane.TerminalPane.7dbbfcbecc',
-                  'Pane title'
-                )}
-                placeholder={translate(
-                  'auto.components.terminal.pane.TerminalPane.7dbbfcbecc',
-                  'Pane title'
-                )}
+                aria-label={paneTitleLabel}
+                placeholder={paneTitleLabel}
                 value={renameValue}
                 onChange={(event) => onRenameValueChange(event.target.value)}
                 onKeyDown={(event) => {
-                  // Why: an Enter that only confirms a CJK IME candidate must
-                  // not commit the rename; wait for a non-composition Enter.
+                  // IME candidate confirmation must not commit the rename.
                   if (isImeCompositionKeyDown(event)) {
                     return
                   }
                   if (event.key === 'Enter') {
                     onRenameSubmit()
                   } else if (event.key === 'Tab') {
-                    // Why: commit on Tab directly instead of relying on the
-                    // browser advancing focus (which fires blur). Headless / no
-                    // window-focus environments (xvfb, some SSH sessions) don't
-                    // always move focus off the input, so the blur-driven commit
-                    // never runs. Submitting closes the editor, so the default
-                    // Tab focus move is moot and any follow-on blur is a no-op.
+                    // Commit directly because headless and SSH windows may not blur on Tab.
                     onRenameSubmit()
                   } else if (event.key === 'Escape') {
                     onRenameCancel()
@@ -236,13 +255,7 @@ export default function TerminalPaneHeaderOverlay({
             ) : (
               <>
                 {paneCount > 1 && !isChromeless && (
-                  <div
-                    className="pane-title-drag-handle"
-                    aria-hidden="true"
-                    onPointerDown={(event) => {
-                      onBeginPaneDrag(pane.id, event.currentTarget, event.nativeEvent)
-                    }}
-                  />
+                  <div className="pane-title-drag-handle" aria-hidden="true" />
                 )}
                 <DeckPaneIdentity
                   paneKey={makePaneKey(tabId, pane.leafId)}
@@ -271,10 +284,7 @@ export default function TerminalPaneHeaderOverlay({
                           variant="ghost"
                           size="icon-xs"
                           className="pane-title-split-trigger"
-                          aria-label={translate(
-                            'components.agentSessionContinuation.continueInNewSession',
-                            'Continue in New Session…'
-                          )}
+                          aria-label={continueLabel}
                           onClick={(event) => {
                             event.stopPropagation()
                             onContinueAgentSessionInNewSession?.(pane)
@@ -284,10 +294,7 @@ export default function TerminalPaneHeaderOverlay({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={4}>
-                        {translate(
-                          'components.agentSessionContinuation.continueInNewSession',
-                          'Continue in New Session…'
-                        )}
+                        {continueLabel}
                       </TooltipContent>
                     </Tooltip>
                   ) : null}
@@ -298,37 +305,19 @@ export default function TerminalPaneHeaderOverlay({
                           type="button"
                           variant="ghost"
                           size="icon-xs"
-                          // Same class as split so it shares the hover/active reveal
-                          // and sits as a peer in the [chat][split][×] cluster.
                           className="pane-title-split-trigger"
-                          aria-label={
-                            isChatViewMode
-                              ? translate(
-                                  'components.native-chat.toggle.showTerminal',
-                                  'Show terminal'
-                                )
-                              : translate(
-                                  'components.native-chat.toggle.showChat',
-                                  'Show chat view'
-                                )
-                          }
+                          aria-label={chatToggleLabel}
                           aria-pressed={isChatViewMode}
                           onClick={(event) => {
                             event.stopPropagation()
                             onToggleNativeChat?.()
                           }}
                         >
-                          {isChatViewMode ? (
-                            <SquareTerminal className="size-3" />
-                          ) : (
-                            <MessageSquare className="size-3" />
-                          )}
+                          <ChatToggleIcon className="size-3" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={4}>
-                        {isChatViewMode
-                          ? translate('components.native-chat.toggle.showTerminal', 'Show terminal')
-                          : translate('components.native-chat.toggle.showChat', 'Show chat view')}
+                        {chatToggleLabel}
                       </TooltipContent>
                     </Tooltip>
                   ) : null}

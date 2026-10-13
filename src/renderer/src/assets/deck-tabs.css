@@ -39,9 +39,7 @@
 }
 
 .terminal-tab-strip .workspace-tab-indicator {
-  inset-inline: 12px;
-  height: 1px;
-  background: color-mix(in srgb, var(--foreground) 55%, transparent);
+  display: none;
 }
 
 .terminal-tab-strip .workspace-tab:focus-visible {

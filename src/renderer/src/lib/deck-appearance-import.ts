@@ -6,6 +6,11 @@ export async function importDeckAppearanceOnce(): Promise<void> {
     return
   }
   const { activeProfileId } = await window.api.orcaProfiles.list()
+  const focusKey = `orca.deckMouseFocusImported.v1:${activeProfileId}`
+  if (!localStorage.getItem(focusKey)) {
+    await window.api.settings.set({ terminalFocusFollowsMouse: true })
+    localStorage.setItem(focusKey, 'true')
+  }
   const key = `${DECK_APPEARANCE_IMPORT_KEY}:${activeProfileId}`
   if (localStorage.getItem(key)) {
     return

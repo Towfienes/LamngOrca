@@ -44,6 +44,49 @@
   border-color: transparent;
 }
 
+.app-layout:has(#deck-titlebar-status) .deck-status-bar {
+  display: none;
+}
+
+#deck-usage-roster .status-bar-usage-cluster {
+  position: relative;
+  font-size: 12px;
+}
+
+#deck-usage-roster .status-bar-usage-cluster > div {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.deck-cost-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+}
+
+.deck-cost-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chart-1);
+}
+
+[data-usage-provider='claude'] .deck-cost-fill {
+  background: var(--chart-2);
+}
+
+.deck-file-tree-guides {
+  position: absolute;
+  inset: 0 auto 0 8px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0 5px,
+    color-mix(in srgb, var(--foreground) 12%, transparent) 5px 6px,
+    transparent 6px 16px
+  );
+}
+
 .deck-right-sidebar [data-ignore-file-explorer-keys] {
   border-color: transparent;
 }
@@ -135,7 +178,7 @@
 
 .deck-sidebar.deck-sidebar [role='group']:has(> [data-deck-agent]),
 .deck-sidebar.deck-sidebar [role='tree']:has(> [data-deck-agent]) {
-  border-left: 1px solid transparent;
+  border-left: 1px solid color-mix(in srgb, var(--worktree-sidebar-foreground) 12%, transparent);
   margin-left: 4px;
   padding-left: 8px;
 }
@@ -261,6 +304,10 @@
   border-color: color-mix(in srgb, var(--orca-pane-title-button-fg) 65%, transparent);
 }
 
+.pane-title-overlay-layer .pane-title-bar[data-pane-draggable] {
+  cursor: grab;
+}
+
 .pane-title-overlay-layer .pane-title-bar {
   font-family: var(--font-sans);
   font-size: 12px;
@@ -268,6 +315,10 @@
   background: color-mix(in srgb, var(--orca-pane-title-fg) 8%, var(--orca-pane-title-bg));
   border: 0;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.pane-title-overlay-layer .pane-title-bar[data-editing] {
+  cursor: default;
 }
 
 .pane-title-bar .pane-title-actions {

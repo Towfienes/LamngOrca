@@ -184,7 +184,7 @@ export function TabBarQuickCommandsMenu({
     'More quick commands'
   )
   const splitButtonClass =
-    'my-auto flex h-7 shrink-0 items-stretch overflow-hidden rounded-md border border-border/60 text-muted-foreground'
+    'deck-quick-command my-auto flex h-7 shrink-0 items-stretch overflow-hidden rounded-md text-muted-foreground'
   const innerButtonBase =
     'flex items-center bg-transparent leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
   return (
@@ -210,10 +210,6 @@ export function TabBarQuickCommandsMenu({
             }
           >
             <Play className="size-3 shrink-0" fill="currentColor" strokeWidth={0} />
-            <span className="max-w-[160px] truncate text-[12px] font-medium">
-              {mostRecent?.command.label ??
-                translate('auto.components.tab.bar.TabBarQuickCommandsButton.7b1c9d6ae1', 'Run')}
-            </span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sideOffset={6}>

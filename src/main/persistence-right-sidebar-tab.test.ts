@@ -16,6 +16,9 @@ vi.mock('electron', () => ({
 import { normalizeRightSidebarTab } from './persistence'
 
 describe('normalizeRightSidebarTab', () => {
+  it('keeps the built-in Usage tab', () => {
+    expect(normalizeRightSidebarTab('usage')).toBe('usage')
+  })
   it.each(['explorer', 'search', 'vault', 'workspaces', 'source-control', 'checks', 'ports'])(
     'preserves the built-in %s tab',
     (tab) => {

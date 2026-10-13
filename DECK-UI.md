@@ -8,7 +8,7 @@ Mở **Orca Deck** trong menu ứng dụng, hoặc chạy:
 
 Mã nguồn: `/home/towfienes/Projects/orca-deck`, nhánh `deck-ui`.
 Cấu hình riêng: `/home/towfienes/.config/orca-deck`.
-UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Header/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
+UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Usage/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
 
 ## Giao diện
 
@@ -22,13 +22,22 @@ UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Or
 - Workspace TDTU đã được mở với bốn terminal theo bố cục 2×2, lưu qua lần khởi động tiếp theo.
 - Gợi ý setup script nằm trong menu công cụ; các thao tác workspace và terminal dùng lại cơ chế Orca.
 
-Thanh tab được tinh chỉnh theo video Deck: tab thấp, bo nhẹ, nền thường/hover/active phân cấp rõ, dấu chọn gọn và nút đóng có vùng bấm rộng hơn. Khi nhiều tab, tên giữ chiều rộng tối thiểu và tab đang chọn vẫn hiện ở mép khi cuộn. Hàng tóm tắt terminal cùng màu nền terminal và giới hạn chiều dài.
+Thanh tab được tinh chỉnh theo video Deck: tab thấp, bo nhẹ, nền thường/hover/active phân cấp rõ, nền chọn gọn, không có gạch trắng và nút đóng có vùng bấm rộng hơn. Khi nhiều tab, tên giữ chiều rộng tối thiểu và tab đang chọn vẫn hiện ở mép khi cuộn. Hàng tóm tắt terminal cùng màu nền terminal và giới hạn chiều dài.
 
 Định hướng hình ảnh và đối chiếu mã nguồn được lưu ở [SpaceVibe Deck UI reference](docs/readme/spacevibe-deck-ui.md). Đây là bản thích nghi theo kiến trúc Orca, chưa trùng từng pixel. Nội dung CLI do từng agent và cấu hình shell hiển thị. Các agent trong ảnh kiểm thử là dữ liệu minh họa; bản sử dụng mở terminal thật và không tự chạy tác vụ AI.
 
 Profile riêng không sao chép tài khoản hay phiên chat đang chạy. Sign-in hiện chưa được cấu hình trong bản chạy từ mã nguồn này; bản đóng gói Orca có cấu hình mặc định riêng. Không cần đăng nhập Deck để phát triển UI và đưa thay đổi về Orca gốc. Bản tùy chỉnh chưa được đóng gói thành AppImage; cần giữ thư mục mã nguồn và node_modules. Cập nhật ứng dụng Orca gốc không cập nhật bản tùy chỉnh này.
 
 Trên Linux, bỏ các nút thu nhỏ/phóng to/đóng trong app; cụm chống ngủ, RAM, số terminal và cổng chuyển lên góc trên phải. Bấm vẫn mở menu và bảng chi tiết cũ. Windows giữ nút cửa sổ; macOS giữ traffic lights.
+
+## Usage và thao tác pane
+
+- Usage nằm trong thanh công cụ sidebar phải. Bảng gọn có tổng chi phí API tương đương, thanh theo agent, token và bộ lọc 7/30/90 ngày/toàn bộ. Dữ liệu lấy từ log local và các bộ đọc hiện có, không phải hóa đơn thuê bao. Hạn mức và menu tài khoản vẫn truy cập trong cùng mục; nút Usage settings mở trang thống kê đầy đủ. Tracking đang tắt cần bật trong Settings.
+- Linux bỏ thanh usage dưới cùng; RAM, terminal, cổng và các thông báo vẫn nằm ở góc trên. Windows/macOS giữ cơ chế chrome hiện có.
+- Command là biểu tượng Play có tooltip; menu và lệnh đã lưu giữ nguyên chức năng.
+- Đường dẫn mờ chỉ nằm trong cây agent và các thư mục con; không vẽ lại viền chia các khu vực.
+- Nhấn giữ header pane rồi thả vào cạnh pane khác để đổi vị trí/bố cục. Pane và phiên terminal giữ đúng ID.
+- Focus theo chuột được bật một lần cho mỗi profile. Rê chuột qua nội dung hoặc header sẽ chuyển pane nhận phím khi Orca có focus; không chuyển trong lúc kéo/chọn. Có thể tắt lại tùy chọn Terminal focus follows mouse trong Settings.
 
 ## Kiểm tra
 
@@ -49,8 +58,8 @@ cd /home/towfienes/Projects/orca-deck
 pnpm exec electron-vite build
 ```
 
-Ảnh kiểm thử mới: [workspace và pane](docs/assets/orca-deck-workspace.png), [thanh tab](docs/assets/orca-deck-tabs.png).
+Ảnh kiểm thử mới: [Usage với dữ liệu minh họa](docs/assets/orca-deck-usage.png), [cây thư mục](docs/assets/orca-deck-tree-guides.png), [đổi chỗ pane](docs/assets/orca-deck-pane-reordered.png).
 
 ## Tích hợp vào Orca gốc
 
-Đã tích hợp trên nhánh `deck-integration/1.4.220` và cài vào menu Orca chính. Gói cài dùng runtime/main/preload gốc và renderer Deck; cấu hình giao diện được nhập một lần cho từng profile, giữ các chỉnh sửa sau đó. Tài khoản, dự án và phiên terminal không được sao chép từ Deck. Xem [trạng thái tích hợp và cách hoàn tác](docs/readme/orca-1.4.220-integration.md).
+Đã tích hợp trên nhánh `deck-integration/1.4.220` và cài vào menu Orca chính. Gói cài dùng runtime/preload gốc, renderer Deck và một thay đổi nhỏ trong main để lưu mục Usage qua lần mở lại. Cấu hình giao diện được nhập một lần cho từng profile, giữ các chỉnh sửa sau đó. Tài khoản, dự án và phiên terminal không được sao chép từ Deck. Xem [trạng thái tích hợp và cách hoàn tác](docs/readme/orca-1.4.220-integration.md).

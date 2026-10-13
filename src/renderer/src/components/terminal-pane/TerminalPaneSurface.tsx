@@ -300,6 +300,7 @@ export function TerminalPaneSurface({
         />
       ) : null}
       <TerminalPaneHeaderOverlay
+        focusFollowsMouse={controller.settings?.terminalFocusFollowsMouse}
         tabId={tabId}
         worktreeId={worktreeId}
         cwd={cwd ?? ''}

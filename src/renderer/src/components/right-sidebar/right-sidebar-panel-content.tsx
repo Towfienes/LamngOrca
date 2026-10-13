@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import type { ActiveRightSidebarTab } from '@/store/slices/editor'
 import { isPluginPanelTabKey } from '../../../../shared/plugins/plugin-manifest'
+import DeckUsagePanel from './DeckUsagePanel'
 
 const FileExplorer = lazy(() => import('./FileExplorer'))
 const SourceControl = lazy(() => import('./SourceControl'))
@@ -25,6 +26,7 @@ export function RightSidebarPanelContent({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <Suspense fallback={null}>
         {effectiveTab === 'explorer' && <FileExplorer />}
+        {effectiveTab === 'usage' && <DeckUsagePanel />}
         {effectiveTab === 'source-control' && <SourceControl />}
         {effectiveTab === 'checks' && <ChecksPanel />}
         {/* Why: SSH port forwarding still depends on the raw ports.detect data,

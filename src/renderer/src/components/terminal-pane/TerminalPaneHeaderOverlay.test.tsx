@@ -55,6 +55,7 @@ function renderOverlay({
   onRemoveTitle = vi.fn(),
   onRenameSubmit = vi.fn(),
   onActivatePaneTitleInteraction = vi.fn(),
+  onBeginPaneDrag = vi.fn(),
   canContinueAgentSessionInNewSession = false,
   onContinueAgentSessionInNewSession = vi.fn(),
   renameValue = '',
@@ -69,6 +70,7 @@ function renderOverlay({
   onRemoveTitle?: ReturnType<typeof vi.fn>
   onRenameSubmit?: ReturnType<typeof vi.fn>
   onActivatePaneTitleInteraction?: (paneId: number) => void
+  onBeginPaneDrag?: (paneId: number, handle: HTMLElement, event: PointerEvent) => void
   canContinueAgentSessionInNewSession?: boolean
   onContinueAgentSessionInNewSession?: ReturnType<typeof vi.fn>
   renameValue?: string
@@ -114,7 +116,7 @@ function renderOverlay({
           onContinueAgentSessionInNewSession as (pane: ManagedPane) => void
         }
         onSplitPane={vi.fn()}
-        onBeginPaneDrag={vi.fn()}
+        onBeginPaneDrag={onBeginPaneDrag}
         onActivatePaneTitleInteraction={onActivatePaneTitleInteraction}
         onPaneTitleContextMenu={vi.fn()}
         onStartRename={vi.fn()}
@@ -156,6 +158,17 @@ afterEach(() => {
 })
 
 describe('TerminalPaneHeaderOverlay', () => {
+  it('starts reordering from an untitled header without capturing its action buttons', () => {
+    const drag = vi.fn()
+    const { container } = renderOverlay({ paneTitles: {}, onBeginPaneDrag: drag })
+    const header = container.querySelector('.pane-title-bar')!
+    act(() => header.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })))
+    expect(drag).toHaveBeenCalledTimes(1)
+    expect(drag.mock.calls[0]?.[0]).toBe(1)
+    const action = header.querySelector('.pane-title-actions button')!
+    act(() => action.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })))
+    expect(drag).toHaveBeenCalledTimes(1)
+  })
   it('activates an untitled pane through its visible Deck header', () => {
     const activate = vi.fn()
     const { container } = renderOverlay({
