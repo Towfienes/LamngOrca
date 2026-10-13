@@ -245,6 +245,13 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
       }
       // Why: the activation gate reconciles durable/live agent state first; only an actually empty, never-visited workspace receives a default shell.
       const { renderableTabCount } = reconcileWorktreeTabModel(activeWorktreeId)
+      // An empty root group is the launch chooser's surface, not permission to spawn a shell.
+      if (
+        renderableTabCount === 0 &&
+        (useAppStore.getState().groupsByWorktree[activeWorktreeId]?.length ?? 0) > 0
+      ) {
+        return
+      }
       // Why (main): only a workspace emptied by a recorded close stays empty; an empty row with no
       // record is unknown and seeds. Read at decision time: the row can change while the check runs.
       const activeWorktreeHasTerminalState = isTerminalWorkspaceEmptiedOnPurpose(

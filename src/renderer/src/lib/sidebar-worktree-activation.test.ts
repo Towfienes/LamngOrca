@@ -2,8 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   activateAndRevealFolderWorkspace: vi.fn(),
-  activateAndRevealWorktree: vi.fn()
+  activateAndRevealWorktree: vi.fn(),
+  getState: vi.fn(),
+  ensureWorktreeRootGroup: vi.fn(),
+  gate: vi.fn()
 }))
+
+vi.mock('@/store', () => ({ useAppStore: { getState: mocks.getState } }))
+vi.mock('@/lib/worktree-agent-activation-gate', () => ({ gateWorktreeAgentActivation: mocks.gate }))
 
 vi.mock('@/lib/worktree-activation', () => ({
   activateAndRevealFolderWorkspace: mocks.activateAndRevealFolderWorkspace,
@@ -14,8 +20,13 @@ import { activateWorktreeFromSidebar } from './sidebar-worktree-activation'
 
 describe('sidebar worktree activation', () => {
   beforeEach(() => {
-    mocks.activateAndRevealWorktree.mockClear()
-    mocks.activateAndRevealFolderWorkspace.mockClear()
+    vi.resetAllMocks()
+    mocks.gate.mockResolvedValue('empty')
+    mocks.getState.mockReturnValue({
+      activeWorktreeId: null,
+      reconcileWorktreeTabModel: () => ({ renderableTabCount: 0 }),
+      ensureWorktreeRootGroup: mocks.ensureWorktreeRootGroup
+    })
   })
 
   afterEach(() => {
@@ -27,6 +38,7 @@ describe('sidebar worktree activation', () => {
 
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-live', {
       navigationIntent: 'user-open',
+      providesInitialSurface: true,
       revealInSidebar: false
     })
     expect(mocks.activateAndRevealFolderWorkspace).not.toHaveBeenCalled()
@@ -40,6 +52,7 @@ describe('sidebar worktree activation', () => {
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledTimes(1)
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-slept', {
       navigationIntent: 'user-open',
+      providesInitialSurface: true,
       revealInSidebar: false
     })
   })
@@ -60,6 +73,7 @@ describe('sidebar worktree activation', () => {
 
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-vm', {
       navigationIntent: 'user-open',
+      providesInitialSurface: true,
       revealInSidebar: false
     })
     expect(resumeWorkspace).toHaveBeenCalledWith({ workspaceId: 'wt-vm' })
@@ -72,8 +86,54 @@ describe('sidebar worktree activation', () => {
     await activateWorktreeFromSidebar('folder:folder-workspace-1')
 
     expect(mocks.activateAndRevealFolderWorkspace).toHaveBeenCalledWith('folder-workspace-1', {
-      navigationIntent: 'user-open'
+      navigationIntent: 'user-open',
+      providesInitialSurface: true
     })
     expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+  })
+
+  it('requests a chooser for an empty workspace without creating a terminal', async () => {
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { dispatchEvent })
+    mocks.getState.mockReturnValue({
+      activeWorktreeId: 'wt-empty',
+      reconcileWorktreeTabModel: () => ({ renderableTabCount: 0 }),
+      ensureWorktreeRootGroup: mocks.ensureWorktreeRootGroup
+    })
+    await activateWorktreeFromSidebar('wt-empty')
+    expect(mocks.ensureWorktreeRootGroup).toHaveBeenCalledWith('wt-empty')
+    expect(dispatchEvent.mock.calls[0][0].type).toBe('orca-workspace-launch-picker')
+    await activateWorktreeFromSidebar('wt-empty')
+    expect(dispatchEvent).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps existing editor/browser/agent surfaces and declined activations unchanged', async () => {
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { dispatchEvent })
+    mocks.getState.mockReturnValue({
+      activeWorktreeId: 'wt-existing',
+      reconcileWorktreeTabModel: () => ({ renderableTabCount: 1 }),
+      ensureWorktreeRootGroup: mocks.ensureWorktreeRootGroup
+    })
+    await activateWorktreeFromSidebar('wt-existing')
+    mocks.activateAndRevealWorktree.mockReturnValue(false)
+    await activateWorktreeFromSidebar('wt-existing')
+    expect(dispatchEvent).not.toHaveBeenCalled()
+    expect(mocks.ensureWorktreeRootGroup).not.toHaveBeenCalled()
+  })
+
+  it('does not show a launch menu when the host cannot confirm its inventory or restores an agent', async () => {
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { dispatchEvent })
+    mocks.getState.mockReturnValue({
+      activeWorktreeId: 'wt-remote',
+      reconcileWorktreeTabModel: () => ({ renderableTabCount: 0 }),
+      ensureWorktreeRootGroup: mocks.ensureWorktreeRootGroup
+    })
+    for (const outcome of ['blocked', 'adopted', 'structured', 'resumed']) {
+      mocks.gate.mockResolvedValue(outcome)
+      await activateWorktreeFromSidebar('wt-remote')
+    }
+    expect(dispatchEvent).not.toHaveBeenCalled()
   })
 })

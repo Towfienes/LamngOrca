@@ -68,7 +68,7 @@
 .deck-sidebar.deck-sidebar [data-deck-agent] {
   min-height: 40px;
   margin: 1px 0;
-  padding: 5px 8px 5px 30px;
+  padding: 4px 8px 4px 30px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
 }
@@ -79,23 +79,55 @@
 
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-state-slot {
   position: absolute;
-  left: -23px;
-  width: 14px;
-  top: calc(100% + 7.5px);
+  left: -28px;
+  width: 10px;
+  height: 10px;
+  top: calc(50% + 14.5px);
   transform: translateY(-50%);
+  border: 1px solid var(--worktree-sidebar);
+  border-radius: 50%;
+  background: var(--worktree-sidebar);
   z-index: 1;
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-icon-slot {
   position: absolute;
-  left: -23px;
-  top: 50%;
+  left: -24px;
+  top: calc(50% + 7.5px);
   transform: translateY(-50%);
+}
+
+.deck-sidebar [data-deck-agent-state='working'] .deck-agent-icon-slot > * {
+  animation: var(--animate-spin);
+  animation-duration: 2s;
+}
+
+.deck-sidebar .deck-agent-state-slot [data-agent-spinner] {
+  border-width: 1px;
+}
+
+.deck-sidebar .deck-agent-state-slot svg {
+  width: 8px;
+  height: 8px;
+}
+
+.deck-sidebar [data-deck-agent-state='waiting'] .deck-agent-state-slot svg,
+.deck-sidebar [data-deck-agent-state='permission'] .deck-agent-state-slot svg {
+  visibility: hidden;
+}
+
+.deck-sidebar [data-deck-agent-state='waiting'] .deck-agent-state-slot::after,
+.deck-sidebar [data-deck-agent-state='permission'] .deck-agent-state-slot::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 50%;
+  background: var(--workspace-status-progress);
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-heading > span[title].flex-1 {
   font-size: 13px;
-  font-weight: 450;
+  font-weight: 500;
   color: var(--foreground);
 }
 
@@ -114,13 +146,17 @@
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent-state='waiting'] {
-  border-color: var(--workspace-status-progress);
-  background: var(--accent);
+  border-color: transparent;
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent][data-focused-agent-pane='true'] {
   background: var(--foreground);
   color: var(--background);
+}
+
+.deck-sidebar [data-deck-agent][data-focused-agent-pane='true'] .deck-agent-state-slot {
+  background: var(--foreground);
+  border-color: var(--foreground);
 }
 
 .deck-sidebar.deck-sidebar
@@ -197,6 +233,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .deck-sidebar [data-deck-agent-state='working'] .deck-agent-icon-slot > * {
+    animation: none;
+  }
+
   .pane-title-bar .pane-title-actions {
     transition: none;
   }

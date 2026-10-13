@@ -1,7 +1,7 @@
 # Orca 1.4.220 — Deck UI installed and verified
 
 Orca on this machine now opens the full Deck renderer from
-`~/Applications/Orca-1.4.220-Deck-Complete/AppRun`. Quit Orca and reopen it from
+`~/Applications/Orca-1.4.220-Deck-Sidebar/AppRun`. Quit Orca and reopen it from
 the application menu to load the new renderer. The previous running instance
 was left running; the installer does not close active terminals.
 
@@ -33,14 +33,14 @@ The editor tab close button stays reachable by keyboard while the file is dirty.
   hidden windows, Deck controls, appearance import and restart persistence.
 - All 3,839 original files outside the renderer retain their bytes, executable
   flags and unpacking flags. All 1,146 renderer files match the production build.
-- Installed archive hash matches `dist/orca-deck-complete/verification.json`.
+- Installed archive hash matches `dist/orca-deck-sidebar/verification.json`.
 
 Tests run with `ORCA_BACKGROUND_LAUNCH=1` and CDP. No native-focus tests,
 full repository suite, macOS/Windows execution or live SSH session were run.
 
 ## Package and rollback
 
-The verified package and one-off installer are in `dist/orca-deck-complete/`.
+The verified package and one-off installer are in `dist/orca-deck-sidebar/`.
 The installer has already run. The original AppImage and previous Deck runtime
 remain available. No automatic updater was added; an official update or
 reinstallation can replace the local customization.
@@ -48,7 +48,7 @@ reinstallation can replace the local customization.
 To restore the previous Orca launcher, run:
 
 ```sh
-cp -- "$HOME/Applications/Orca-1.4.220-Deck-Complete/original-orca.desktop" \
+cp -- "$HOME/Applications/Orca-1.4.220-Deck-Sidebar/original-orca.desktop" \
   "$HOME/.local/share/applications/appimagekit_ae11192f5fe223a1e05f0008606929e5-Orca.desktop"
 ```
 
@@ -56,3 +56,24 @@ Appearance fields before synchronization are saved in
 `dist/deck-ui-settings-backup-20261013-081631/appearance-before.json`.
 The working diff and Git index before completing integration are backed up in
 `dist/deck-integration-backup-20261013-081257/`.
+
+## Sidebar refinement
+
+Agent provider icons are centered across both text lines. A small round status
+badge overlaps the lower left edge; waiting uses an amber dot, and working
+provider icons rotate. Reduced motion disables rotation. Agent rows retain
+keyboard navigation and the selected row's contrasting surface.
+
+Clicking a sidebar workspace with no tabs opens the existing Agent picker,
+with an explicit Blank terminal choice. Cancelling leaves the workspace empty;
+clicking a workspace with an existing editor, browser, agent or terminal tab
+returns to that content. Both git worktrees and folder workspaces follow this
+flow. Agent recovery and host inventory finish before an empty-workspace menu
+opens, and local/paired-client background seeders respect its empty tab group.
+
+This refinement passed renderer typecheck, the changed-code quality gate,
+focused unit checks (including remote inventory and retry cases), four Electron
+checks covering the sidebar, agent tiling and both workspace kinds, and a
+packaged-app launch/cancel/open/restart check with isolated home and profile.
+
+![Compact agent rows and overlapping status badges](../assets/orca-deck-sidebar.png)

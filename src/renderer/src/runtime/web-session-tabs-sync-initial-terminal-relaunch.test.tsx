@@ -181,6 +181,14 @@ describe('useWebSessionTabsSync initial-terminal bootstrap across an effect re-r
   // `requestedInitialTerminal` flag reset to false in the new closure, so a second empty frame
   // seeded a second terminal while the first create was still in flight. The module-scoped latch
   // outlives the closures, so exactly one create is issued.
+  it('keeps the remote workspace empty while its local launch chooser owns an empty group', async () => {
+    useAppStore.getState().ensureWorktreeRootGroup(WORKTREE)
+    renderHook(() => useWebSessionTabsSync())
+    await act(settle)
+    await publish(findActiveSubscription(0), { type: 'snapshot', ...emptyActiveSnapshot(1) })
+    expect(mocks.createTerminal).not.toHaveBeenCalled()
+  })
+
   it('does not seed a second terminal when the effect re-runs before the first create settles', async () => {
     const pendingCreate = createDeferred<unknown>()
     mocks.createTerminal.mockReturnValue(pendingCreate.promise)

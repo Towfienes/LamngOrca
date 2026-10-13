@@ -8,7 +8,7 @@ Mở **Orca Deck** trong menu ứng dụng, hoặc chạy:
 
 Mã nguồn: `/home/towfienes/Projects/orca-deck`, nhánh `deck-ui`.
 Cấu hình riêng: `/home/towfienes/.config/orca-deck`.
-UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Complete/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
+UI Deck đã được tích hợp và cài vào **Orca chính 1.4.220**. Menu Orca mở `~/Applications/Orca-1.4.220-Deck-Sidebar/AppRun`, dùng profile Orca hiện có. Thoát rồi mở lại Orca để nạp renderer mới.
 
 ## Giao diện
 

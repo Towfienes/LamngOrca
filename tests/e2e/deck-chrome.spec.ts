@@ -110,7 +110,7 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
         `${tabId}:${pane.leafId}`,
         {
           agentType: spec.agentType,
-          state: 'working',
+          state: index === 0 ? 'waiting' : 'working',
           prompt: spec.prompt,
           lastAssistantMessage: spec.message
         },
@@ -125,6 +125,21 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   })
   const rows = page.locator('[data-deck-agent]')
   await expect(rows).toHaveCount(4)
+  const waitingRow = rows.filter({ hasText: 'Refine the sidebar layout' })
+  await expect(waitingRow.locator('.deck-agent-state-slot')).toHaveAttribute(
+    'aria-label',
+    'Waiting for input'
+  )
+  expect(
+    await waitingRow
+      .locator('.deck-agent-icon-slot > *')
+      .evaluate((icon) => getComputedStyle(icon).animationName)
+  ).toBe('none')
+  expect(
+    await waitingRow
+      .locator('.deck-agent-state-slot')
+      .evaluate((badge) => getComputedStyle(badge, '::after').borderRadius)
+  ).toBe('50%')
   await expect
     .poll(() =>
       page.locator('[data-worktree-virtual-row-key]').evaluateAll((elements) => {
@@ -155,14 +170,21 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
       .getBoundingClientRect()
     const summary = row.querySelector('.deck-agent-summary')!.getBoundingClientRect()
     return {
-      horizontal: Math.abs(status.left + status.width / 2 - icon.left - icon.width / 2),
-      title: Math.abs(icon.top + icon.height / 2 - title.top - title.height / 2),
-      summary: Math.abs(status.top + status.height / 2 - summary.top - summary.height / 2)
+      leftOverlap: status.right > icon.left && status.left < icon.left,
+      bottomOverlap: status.top > icon.top && status.top < icon.bottom,
+      rowCenter: Math.abs(icon.top + icon.height / 2 - (title.top + summary.bottom) / 2),
+      rowHeight: row.getBoundingClientRect().height
     }
   })
-  expect(iconAlignment.horizontal).toBeLessThan(1)
-  expect(iconAlignment.title).toBeLessThan(1)
-  expect(iconAlignment.summary).toBeLessThan(1)
+  expect(iconAlignment.leftOverlap).toBe(true)
+  expect(iconAlignment.bottomOverlap).toBe(true)
+  expect(iconAlignment.rowCenter).toBeLessThan(1)
+  expect(iconAlignment.rowHeight).toBeLessThan(43)
+  const providerIcon = keyboardRow.locator('.deck-agent-icon-slot > *')
+  await expect(providerIcon).toHaveCSS('animation-name', 'spin')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(providerIcon).toHaveCSS('animation-name', 'none')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   await expect(page.locator('.pane[data-active-pane]:visible')).toHaveCount(1)
   const borderColors = await page.locator('.pane:visible').evaluateAll((panes) =>
     panes.map((pane) => ({
@@ -190,6 +212,9 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   await expect(page.locator('.deck-workspace-breadcrumb').first()).toBeVisible()
   await expect(page.locator('.deck-workspace-breadcrumb').first()).not.toContainText('refs/heads/')
   await page.screenshot({ path: testInfo.outputPath('deck-workspace.png') })
+  await page
+    .locator('.deck-sidebar')
+    .screenshot({ path: testInfo.outputPath('deck-agent-sidebar.png') })
   await page.setViewportSize({ width: 1050, height: 700 })
   await expect(page.locator('.deck-workspace-breadcrumb').first()).toBeHidden()
   await expect(page.locator('.pane:visible')).toHaveCount(4)

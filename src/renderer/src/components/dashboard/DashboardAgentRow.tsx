@@ -263,7 +263,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         {/* Why: subagent rows skip the icon — agentType holds a child name, not an iconable agent, so it would render the unknown "?" glyph. */}
         {!hideIdentityIcon && agent.rowSource !== 'subagent' && (
           <span className="deck-agent-icon-slot inline-flex shrink-0" title={identityTitle}>
-            <AgentIcon agent={agentTypeToIconAgent(agent.agentType)} size={14} />
+            <AgentIcon agent={agentTypeToIconAgent(agent.agentType)} size={rail ? 16 : 14} />
           </span>
         )}
         {/* Why: interpolate-size:allow-keywords is the only way to animate height to/from auto without measuring in JS; falls back to an instant swap where unsupported. */}

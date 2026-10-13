@@ -11,6 +11,7 @@ import {
 const mocks = vi.hoisted(() => {
   const storeTabsByWorktree: Record<string, unknown[]> = {}
   const storeClosedRecords: Record<string, { worktreeId: string; closedAt: number }> = {}
+  const storeGroupsByWorktree: Record<string, unknown[]> = {}
   return {
     gate: vi.fn(),
     resume: vi.fn(),
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => {
     launchStatus: vi.fn((_worktreeId: string, _provider: string): string => 'idle'),
     createTab: vi.fn(),
     storeTabsByWorktree,
+    storeGroupsByWorktree,
     storeClosedRecords
   }
 })
@@ -26,6 +28,7 @@ vi.mock('@/store', () => ({
     getState: () => ({
       activeWorktreeId: 'wt-1',
       tabsByWorktree: mocks.storeTabsByWorktree,
+      groupsByWorktree: mocks.storeGroupsByWorktree,
       closedTerminalTabTombstonesByTabId: mocks.storeClosedRecords
     })
   })
@@ -58,6 +61,7 @@ afterEach(async () => {
   vi.clearAllMocks()
   mocks.authority = 'none'
   mocks.storeTabsByWorktree = {}
+  mocks.storeGroupsByWorktree = {}
   mocks.storeClosedRecords = {}
 })
 
@@ -206,6 +210,15 @@ describe('passive terminal seeding retries until a decision applies', () => {
     mocks.storeTabsByWorktree = { 'wt-1': [] }
     await finishGate('empty')
     expect(mocks.createTab).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps an empty launch chooser group empty when its inventory check finishes', async () => {
+    const finishGate = deferredGate()
+    root = createRoot(document.createElement('div'))
+    await act(async () => root?.render(<Watcher />))
+    mocks.storeGroupsByWorktree = { 'wt-1': [{ id: 'empty-root', tabOrder: [] }] }
+    await finishGate('empty')
+    expect(mocks.createTab).not.toHaveBeenCalled()
   })
 
   it('leaves the seed to an activation reseed awaiting agent detection', async () => {
