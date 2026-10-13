@@ -67,6 +67,7 @@ type Props = {
   /** Why: inline-in-card variant drops the redundant chevron and identity glyph in its tighter layout. */
   hideIdentityIcon?: boolean
   hideExpand?: boolean
+  rail?: boolean
   /** Reuse the row's hover tint to show the focused terminal pane's agent. */
   isFocusedPane?: boolean
   // Why: inline-card orchestration rows can fold their child agents.
@@ -90,6 +91,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   stateDotSize = 'md',
   hideIdentityIcon = false,
   hideExpand = false,
+  rail = false,
   isFocusedPane = false,
   childAgentCount,
   childAgentsExpanded = false,
@@ -210,6 +212,8 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
         sendTargetStatus === 'disabled' && 'cursor-default opacity-60'
       )}
+      data-deck-agent={rail ? '' : undefined}
+      data-deck-agent-state={rail ? dotState : undefined}
       data-focused-agent-pane={isFocusedPane ? 'true' : undefined}
       data-agent-send-target={sendTargetStatus}
       title={titleParts.length > 0 ? titleParts.join(' • ') : undefined}
@@ -243,12 +247,12 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
           <span className="absolute left-0 top-[0.7rem] w-1.5 border-t-[1.5px] border-muted-foreground/45 dark:border-muted-foreground/35" />
         </span>
       ) : null}
-      <div className="flex items-center gap-1.5">
+      <div className="deck-agent-heading flex items-center gap-1.5">
         {/* Why: state dot sits in the leading gutter so the eye can scan one column for row state. */}
         <Tooltip>
           <TooltipTrigger asChild>
             <span
-              className="inline-flex shrink-0 items-center justify-center"
+              className="deck-agent-state-slot inline-flex shrink-0 items-center justify-center"
               aria-label={dotTooltipLabel}
             >
               <AgentStateDot state={dotState} size={stateDotSize} title={null} />
@@ -260,7 +264,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         </Tooltip>
         {/* Why: subagent rows skip the icon — agentType holds a child name, not an iconable agent, so it would render the unknown "?" glyph. */}
         {!hideIdentityIcon && agent.rowSource !== 'subagent' && (
-          <span className="inline-flex shrink-0" title={identityTitle}>
+          <span className="deck-agent-icon-slot inline-flex shrink-0" title={identityTitle}>
             <AgentIcon agent={agentTypeToIconAgent(agent.agentType)} size={14} />
           </span>
         )}
@@ -275,6 +279,19 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
             isFocusedPane && !isUnvisited && 'text-foreground/90'
           )}
           title={displayLabel}
+          role={rail ? 'button' : undefined}
+          tabIndex={rail ? 0 : undefined}
+          onKeyDown={
+            rail
+              ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    event.currentTarget.click()
+                  }
+                }
+              : undefined
+          }
         >
           {displayLabel}
         </span>
@@ -310,6 +327,12 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
           onSendTargetClick={onSendTargetClick}
         />
       </div>
+      {rail ? (
+        <div className="deck-agent-summary">
+          {formatAgentTypeLabel(agent.agentType)} ·{' '}
+          {stoppingLabel || lastAssistantMessage || toolName || dotTooltipLabel}
+        </div>
+      ) : null}
       <DashboardAgentRowToolStep
         expanded={expanded}
         showsTool={showsTool}

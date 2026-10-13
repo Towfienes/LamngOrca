@@ -82,6 +82,7 @@ export function applyPaneOpacity(
 
   for (const pane of panes) {
     const isActive = pane.id === activePaneId
+    pane.container.toggleAttribute('data-active-pane', isActive)
     pane.container.style.opacity = String(isActive ? activePaneOpacity : inactivePaneOpacity)
     pane.container.style.transition = transition
   }

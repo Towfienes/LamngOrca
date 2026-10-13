@@ -42,6 +42,8 @@ export type QuickLaunchAgentMenuItemsProps = {
   onPromptHandedOff?: (delivered: Promise<unknown>) => void
   /** Nothing to send: e.g. every note is already on its way, so no agent is started. */
   disabled?: boolean
+  /** A caller that owns pane placement can launch into that pane. */
+  onLaunchAgent?: (agent: TuiAgent) => void
 }
 
 function getCatalogEntry(agent: TuiAgent): { id: TuiAgent; label: string } | null {
@@ -110,6 +112,7 @@ function QuickLaunchAgentMenuItemsInner({
   launchSource,
   onPromptDelivered,
   onPromptHandedOff,
+  onLaunchAgent,
   disabled = false
 }: QuickLaunchAgentMenuItemsProps): React.JSX.Element | null {
   // Why: resolving only the SSH connectionId here made paired-runtime
@@ -135,6 +138,10 @@ function QuickLaunchAgentMenuItemsInner({
   const runLaunch = useCallback(
     (agent: TuiAgent) => {
       if (disabled) {
+        return
+      }
+      if (onLaunchAgent) {
+        onLaunchAgent(agent)
         return
       }
       const entry = getCatalogEntry(agent)
@@ -216,6 +223,7 @@ function QuickLaunchAgentMenuItemsInner({
       launchSource,
       onPromptDelivered,
       onPromptHandedOff,
+      onLaunchAgent,
       disabled
     ]
   )
@@ -255,7 +263,10 @@ function QuickLaunchAgentMenuItemsInner({
         const entry = getCatalogEntry(agent)
         const label = entry?.label ?? agent
         const showsDefaultAgentShortcut =
-          newAgentShortcut !== null && defaultAgent !== 'blank' && agent === defaultAgent
+          !onLaunchAgent &&
+          newAgentShortcut !== null &&
+          defaultAgent !== 'blank' &&
+          agent === defaultAgent
         return (
           <DropdownMenuItem
             key={agent}

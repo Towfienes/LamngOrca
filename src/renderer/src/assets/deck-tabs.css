@@ -1,0 +1,108 @@
+/* Deck-inspired state ladder; attribution: docs/readme/spacevibe-deck-ui.md. */
+/* Keep slot geometry stable for dragging, overflow and active-tab docking. */
+.terminal-tab-strip .workspace-tab {
+  height: calc(100% - 6px);
+  margin: 3px 2px;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--card));
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.terminal-tab-strip > [data-tab-strip-slot] {
+  background: var(--card);
+}
+
+.terminal-tab-strip > [data-tab-strip-slot]:not(:last-child) {
+  background-image: linear-gradient(var(--border), var(--border));
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: 1px 12px;
+}
+
+.terminal-tab-strip > [data-tab-strip-slot]:has(.workspace-tab-active),
+.terminal-tab-strip > [data-tab-strip-slot]:has(+ [data-tab-strip-slot] .workspace-tab-active) {
+  background-image: none;
+}
+
+.terminal-tab-strip .workspace-tab:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--card));
+}
+
+.terminal-tab-strip .workspace-tab.workspace-tab-active {
+  background: color-mix(in srgb, var(--foreground) 10%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 20%, transparent);
+  font-weight: 500;
+}
+
+.terminal-tab-strip .workspace-tab-indicator {
+  inset-inline: 12px;
+  height: 1px;
+  background: color-mix(in srgb, var(--foreground) 55%, transparent);
+}
+
+.terminal-tab-strip .workspace-tab:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.terminal-tab-strip .workspace-tab > button,
+.terminal-tab-strip .workspace-tab [data-tab-close-button],
+.terminal-tab-strip .workspace-tab-close-slot {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.terminal-tab-strip .workspace-tab button:focus-visible {
+  color: var(--foreground);
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.deck-tab-bar button {
+  -webkit-app-region: no-drag;
+}
+
+@media (hover: none) {
+  .terminal-tab-strip .workspace-tab button {
+    color: var(--muted-foreground);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-tab-strip .workspace-tab,
+  .terminal-tab-strip .workspace-tab button,
+  .terminal-tab-strip .workspace-tab-close-slot,
+  .deck-tab-bar [data-testid='tab-strip-scroll-indicator'] {
+    transition: none;
+  }
+}
+
+.deck-tab-bar {
+  container-type: inline-size;
+}
+
+.deck-workspace-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  min-width: 0;
+  flex-shrink: 0;
+  padding-inline: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+@container (max-width: 800px) {
+  .deck-workspace-breadcrumb {
+    display: none;
+  }
+}

@@ -15,6 +15,7 @@ import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import type { PtyTransport } from './pty-transport'
 import { TerminalPaneHeaderDropSurface } from './TerminalPaneHeaderDropSurface'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { DeckPaneIdentity } from './DeckPaneIdentity'
 
 export type PaneTitleOverlayRect = {
   left: number
@@ -154,9 +155,7 @@ export default function TerminalPaneHeaderOverlay({
             {...(isActivePane ? { 'data-active-pane': '' } : {})}
             {...(isChromeless ? { 'data-chromeless': '' } : {})}
             {...(isEditing ? { 'data-editing': '' } : {})}
-            onPointerDownCapture={
-              title || isEditing ? () => onActivatePaneTitleInteraction(pane.id) : undefined
-            }
+            onPointerDownCapture={() => onActivatePaneTitleInteraction(pane.id)}
             onContextMenuCapture={(event) => onPaneTitleContextMenu(event, pane.id)}
             style={{
               left: overlayRect.left,
@@ -211,6 +210,10 @@ export default function TerminalPaneHeaderOverlay({
                     }}
                   />
                 )}
+                <DeckPaneIdentity
+                  paneKey={makePaneKey(tabId, pane.leafId)}
+                  hasTitle={Boolean(title)}
+                />
                 {title ? (
                   <button
                     type="button"

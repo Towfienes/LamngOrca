@@ -16,6 +16,8 @@ import {
   writeWorkspaceFileDragSource
 } from '@/lib/workspace-file-drag'
 
+vi.mock('./DeckPaneIdentity', () => ({ DeckPaneIdentity: () => <span>Terminal</span> }))
+
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children?: ReactNode }) => children,
   TooltipTrigger: ({ children }: { children?: ReactNode }) => children,
@@ -73,6 +75,7 @@ function renderOverlay({
   onClosePane = vi.fn(),
   onRemoveTitle = vi.fn(),
   onRenameSubmit = vi.fn(),
+  onActivatePaneTitleInteraction = vi.fn(),
   canContinueAgentSessionInNewSession = false,
   onContinueAgentSessionInNewSession = vi.fn(),
   renameValue = '',
@@ -87,6 +90,7 @@ function renderOverlay({
   onClosePane?: ReturnType<typeof vi.fn>
   onRemoveTitle?: ReturnType<typeof vi.fn>
   onRenameSubmit?: ReturnType<typeof vi.fn>
+  onActivatePaneTitleInteraction?: (paneId: number) => void
   canContinueAgentSessionInNewSession?: boolean
   onContinueAgentSessionInNewSession?: ReturnType<typeof vi.fn>
   renameValue?: string
@@ -139,7 +143,7 @@ function renderOverlay({
         }
         onSplitPane={vi.fn()}
         onBeginPaneDrag={vi.fn()}
-        onActivatePaneTitleInteraction={dropSetup?.activate ?? vi.fn()}
+        onActivatePaneTitleInteraction={dropSetup?.activate ?? onActivatePaneTitleInteraction}
         onPaneTitleContextMenu={vi.fn()}
         onStartRename={vi.fn()}
         onRemoveTitle={onRemoveTitle as (paneId: number) => void}
@@ -181,6 +185,18 @@ afterEach(() => {
 })
 
 describe('TerminalPaneHeaderOverlay', () => {
+  it('activates an untitled pane through its visible Deck header', () => {
+    const activate = vi.fn()
+    const { container } = renderOverlay({
+      paneTitles: {},
+      onActivatePaneTitleInteraction: activate
+    })
+    const headers = container.querySelectorAll('.pane-title-bar')
+    expect(headers).toHaveLength(2)
+    act(() => headers[1]!.dispatchEvent(new Event('pointerdown', { bubbles: true })))
+    expect(activate).toHaveBeenCalledExactlyOnceWith(2)
+  })
+
   it('keeps the titled split-pane X as remove-title only', () => {
     const { container, onClosePane, onRemoveTitle } = renderOverlay({
       paneTitles: { 1: 'server', 2: '' }

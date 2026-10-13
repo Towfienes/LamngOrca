@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertCircle, Server, ServerOff, Star, Trash2 } from 'lucide-react'
+import { AlertCircle, Server, ServerOff, Star, Trash2, GitBranch, Folder } from 'lucide-react'
 
 import { RepoIconGlyph } from '@/components/repo/repo-icon'
 import { Badge } from '@/components/ui/badge'
@@ -92,6 +92,9 @@ export function WorktreeCardHeader({
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <span className="deck-branch-glyph text-muted-foreground" aria-hidden="true">
+          {isFolder ? <Folder className="size-3" /> : <GitBranch className="size-3" />}
+        </span>
         {showPinnedRepoIcon && (
           <RepoIdentityChip repo={repo!}>
             <RepoIconGlyph
@@ -218,6 +221,7 @@ export function WorktreeCardHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge
+                data-deck-primary-worktree=""
                 variant="outline"
                 className="h-[16px] px-1.5 text-[10px] font-medium rounded shrink-0 leading-none text-foreground/70 border-foreground/20 bg-foreground/[0.06]"
               >

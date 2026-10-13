@@ -147,6 +147,24 @@ describe('QuickLaunchAgentMenuItems launches', () => {
     expect(agentRowDisabled('Codex')).toBe('false')
   })
 
+  it('lets the sidebar place the selected agent without opening a tab', () => {
+    launchMock.mockClear()
+    const onLaunchAgent = vi.fn()
+    const onFocusTerminal = vi.fn()
+    render(
+      <QuickLaunchAgentMenuItems
+        worktreeId={WORKTREE_ID}
+        groupId="group-1"
+        onFocusTerminal={onFocusTerminal}
+        onLaunchAgent={onLaunchAgent}
+      />
+    )
+    fireEvent.click(document.querySelector('[title="Launch Codex in a new terminal"]')!)
+    expect(onLaunchAgent).toHaveBeenCalledExactlyOnceWith('codex')
+    expect(launchMock).not.toHaveBeenCalled()
+    expect(onFocusTerminal).not.toHaveBeenCalled()
+  })
+
   it('gives each pick its own request, so a second pick opens its own chat', () => {
     launchMock.mockReset()
     launchMock.mockReturnValue({

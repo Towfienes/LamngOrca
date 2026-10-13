@@ -39,23 +39,7 @@ export function getFocusedAgentPaneKeyForWorktree(
     return null
   }
 
-  const activePaneKey = makePaneKey(activeTabId, activeLeafId)
-  // Why: the inline card lists every agent attributed to this worktree, even
-  // after its status decays to idle. Highlight whichever displayed row matches
-  // the focused pane — gating on freshness left clicked-into stale rows with no
-  // selection coloring.
-  if (state.agentStatusByPaneKey[activePaneKey]) {
-    return activePaneKey
-  }
-
-  if (state.retainedAgentsByPaneKey[activePaneKey]?.worktreeId === worktreeId) {
-    return activePaneKey
-  }
-
-  const hasMigrationUnsupportedRow = Object.values(state.migrationUnsupportedByPtyId).some(
-    (entry) => entry.paneKey === activePaneKey
-  )
-  return hasMigrationUnsupportedRow ? activePaneKey : null
+  return makePaneKey(activeTabId, activeLeafId)
 }
 
 export function useFocusedAgentPaneKey(worktreeId: string): string | null {
