@@ -82,25 +82,3 @@
     transition: none;
   }
 }
-
-.deck-tab-bar {
-  container-type: inline-size;
-}
-
-.deck-workspace-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 220px;
-  min-width: 0;
-  flex-shrink: 0;
-  padding-inline: 8px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
-
-@container (max-width: 800px) {
-  .deck-workspace-breadcrumb {
-    display: none;
-  }
-}

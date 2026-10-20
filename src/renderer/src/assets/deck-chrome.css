@@ -10,6 +10,17 @@
   box-shadow: none;
 }
 
+.deck-signature {
+  width: 112px;
+  height: 32px;
+  flex-shrink: 1;
+  min-width: 32px;
+  margin-inline: 8px;
+  color: var(--foreground);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
 .deck-workspace-shell [data-tab-group-strip-id],
 .deck-workspace-shell [data-terminal-focus-release-surface] {
   background: var(--workspace-canvas);

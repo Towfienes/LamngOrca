@@ -250,14 +250,14 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   await page.mouse.move(700, 400)
   await expect(page.getByRole('tooltip')).toHaveCount(0)
   await page.setViewportSize({ width: 1600, height: 900 })
-  await expect(page.locator('.deck-workspace-breadcrumb').first()).toBeVisible()
-  await expect(page.locator('.deck-workspace-breadcrumb').first()).not.toContainText('refs/heads/')
+  await expect(page.locator('.deck-workspace-breadcrumb')).toHaveCount(0)
+  await expect(page.getByRole('img', { name: 'Lamng', exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('deck-workspace.png') })
   await page
     .locator('.deck-sidebar')
     .screenshot({ path: testInfo.outputPath('deck-agent-sidebar.png') })
   await page.setViewportSize({ width: 1050, height: 700 })
-  await expect(page.locator('.deck-workspace-breadcrumb').first()).toBeHidden()
+  await expect(page.locator('.deck-workspace-breadcrumb')).toHaveCount(0)
   await expect(page.locator('.pane:visible')).toHaveCount(4)
   await expect(rows.first()).toBeVisible()
   await expect

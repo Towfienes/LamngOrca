@@ -1,6 +1,7 @@
 import { Minimize2, PanelRight } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 import { TOGGLE_TERMINAL_PANE_EXPAND_EVENT } from '@/constants/terminal'
 import { ActivityTitlebarControls } from '../components/activity/ActivityTitlebarControls'
 import { useShortcutLabel } from '../hooks/useShortcutLabel'
@@ -14,13 +15,15 @@ export function RightSidebarToggle(): React.JSX.Element {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          className="sidebar-toggle mr-2"
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="mx-1"
           onClick={toggleRightSidebar}
           aria-label={translate('auto.App.9e0b441a91', 'Toggle right sidebar')}
         >
           <PanelRight size={16} />
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
         {translate('auto.App.c184e056de', 'Toggle right sidebar ({{value0}})', {

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Play } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 import {
   createTerminalQuickCommandDraft,
   TerminalQuickCommandDialog
@@ -174,17 +175,20 @@ export function TabBarQuickCommandsButton({
       <>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="xs"
               onClick={() => addRepoCommand(defaultHostId)}
-              className="deck-quick-command my-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="my-auto"
               aria-label={translate(
                 'auto.components.tab.bar.TabBarQuickCommandsButton.8f1e971966',
                 'Add quick command'
               )}
             >
               <Play className="size-3.5" />
-            </button>
+              <span>{translate('terminalQuickCommands.command', 'Command')}</span>
+            </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
             {translate(

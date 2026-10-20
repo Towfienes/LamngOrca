@@ -17,6 +17,8 @@ import { useShortcutLabel } from '../hooks/useShortcutLabel'
 import { useAppStore } from '../store'
 import { hasCustomTitleBar, isMac } from './app-window-chrome'
 import type { AppChromeLayout } from './use-app-chrome-layout'
+import { LamngSignature } from './LamngSignature'
+import { cn } from '@/lib/utils'
 
 /**
  * The titlebar's left cluster: window chrome padding, app name, sidebar toggle, and the
@@ -37,9 +39,10 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
     // Why: collapsed mode floats in a w-0 wrapper; w-max stops Windows Chromium from shrinking the app name to one glyph.
     <div
       ref={layout.titlebarLeftControlsRef}
-      className={`flex h-full shrink-0 items-center${
-        layout.leftTitlebarChromeLayout.isFloating ? ' w-max' : ' w-full'
-      }`}
+      className={cn(
+        'flex h-full min-w-0 shrink-0 items-center',
+        layout.leftTitlebarChromeLayout.isFloating ? 'w-max' : 'w-full'
+      )}
     >
       <div className="flex h-full items-center">
         {isMac && !layout.isFullScreen ? (
@@ -108,6 +111,7 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
           </Tooltip>
         )}
       </div>
+      {layout.showSidebar && <LamngSignature />}
       {/* Why: Back/Forward span worktree + page history, so show the cluster wherever the shortcut is live (hidden in Settings/non-stack views). */}
       {shouldShowWorktreeHistoryControls(layout.activeView) && (
         // With the sidebar collapsed the header shrink-wraps and ml-auto has no spare width, so keep a fixed gutter before Back.
