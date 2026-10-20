@@ -1,4 +1,9 @@
 import type { Store } from '../persistence'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { claudeHookService } from '../claude/hook-service'
+import { isAgentStatusHooksEnabledForAgent } from '../../shared/agent-status-hooks-setting'
+import { writeActiveClaudeKeychainCredentials } from './keychain'
 import {
   getSelectedClaudeAccountIdForTarget,
   type ClaudeAccountSelectionTarget
@@ -16,9 +21,47 @@ export class ClaudeRuntimeAuthService extends ClaudeRuntimeAuthSync {
   }
 
   async prepareForClaudeLaunch(
-    target?: ClaudeAccountSelectionTarget
+    target?: ClaudeAccountSelectionTarget,
+    accountId?: string
   ): Promise<ClaudeRuntimeAuthPreparation> {
     const effectiveTarget = target ?? this.getDefaultAccountSelectionTarget()
+    if (accountId !== undefined) {
+      return this.serializeMutation(async () => {
+        const account = this.store
+          .getSettings()
+          .claudeManagedAccounts.find((a) => a.id === accountId)
+        if (!account || account.managedAuthRuntime === 'wsl' || effectiveTarget.runtime === 'wsl') {
+          throw new Error('This Claude account is not available on this host.')
+        }
+        const configDir = await this.getOwnedManagedAuthPath(account)
+        const credentials = await this.readManagedCredentials(account)
+        if (!configDir || !credentials) {
+          throw new Error('Sign in again to use this Claude account.')
+        }
+        const configPath = join(configDir, '.claude.json')
+        if (!existsSync(configPath)) {
+          const config = this.readJsonObject(this.pathResolver.getRuntimePaths().configPath)
+          const oauthAccount = await this.readManagedOauthAccount(account)
+          if (!config || !oauthAccount) {
+            throw new Error('Sign in again to prepare this Claude account.')
+          }
+          this.writeJson(configPath, { ...config, oauthAccount })
+        }
+        if (process.platform === 'darwin') {
+          await writeActiveClaudeKeychainCredentials(credentials, configDir)
+        }
+        if (isAgentStatusHooksEnabledForAgent(this.store.getSettings(), 'claude')) {
+          claudeHookService.syncManagedHooksToConfigDir(configDir)
+        }
+        return {
+          configDir,
+          runtime: 'host',
+          envPatch: { CLAUDE_CONFIG_DIR: configDir },
+          stripAuthEnv: true,
+          provenance: `managed:${account.id}`
+        }
+      })
+    }
     await this.syncForCurrentSelection(effectiveTarget)
     return this.getPreparation(effectiveTarget)
   }

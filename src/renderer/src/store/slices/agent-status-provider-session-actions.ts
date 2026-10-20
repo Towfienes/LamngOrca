@@ -22,6 +22,7 @@ import { removePaneKeys } from './agent-status-pane-keyed-records'
 import { registryEntryMatchesStatus } from './agent-status-launch-config'
 import { copyLaunchConfig } from './agent-status-sleeping-records'
 import { agentVerdictFields } from '../../../../shared/agent-main-agent-verdict'
+import { parsePaneKey } from '../../../../shared/stable-pane-id'
 
 export function createAgentStatusProviderSessionActions(
   runtime: AgentStatusRuntime
@@ -82,6 +83,19 @@ export function createAgentStatusProviderSessionActions(
         const existingRecordMatchesProviderSession =
           existingRecord?.agent === agent &&
           agentProviderSessionsEqual(agent, existingRecord.providerSession, providerSession)
+        const existingStatusMatchesProviderSession =
+          existingStatus?.agentType === agent &&
+          existingStatus.providerSession &&
+          agentProviderSessionsEqual(agent, existingStatus.providerSession, providerSession)
+        const previous = existingStatusMatchesProviderSession
+          ? existingStatus
+          : existingRecordMatchesProviderSession
+            ? existingRecord
+            : undefined
+        const parsed = parsePaneKey(paneKey)
+        const ptyId = parsed
+          ? s.terminalLayoutsByTabId[parsed.tabId]?.ptyIdsByLeafId?.[parsed.leafId]
+          : undefined
         // Why: provider-session heartbeats can arrive after the turn is complete; preserve the
         // completed checkpoint so a late heartbeat cannot make it eligible for ghost resume.
         const preservesCompletedRecoveryRecord =
@@ -97,8 +111,22 @@ export function createAgentStatusProviderSessionActions(
           ...(tabId ? { tabId } : {}),
           worktreeId,
           agent,
-          providerSession,
-          prompt: '',
+          providerSession: { ...previous?.providerSession, ...providerSession },
+          ...(existingRecordMatchesProviderSession
+            ? {
+                ptyId: existingRecord.ptyId
+              }
+            : {}),
+          model:
+            previous?.model ??
+            (existingRecordMatchesProviderSession ? existingRecord.model : undefined),
+          reasoningEffort:
+            previous?.reasoningEffort ??
+            (existingRecordMatchesProviderSession ? existingRecord.reasoningEffort : undefined),
+          ...(ptyId ? { ptyId } : {}),
+          // Identity-only heartbeats must not erase the session's presentation checkpoint.
+          prompt:
+            previous?.prompt || (existingRecordMatchesProviderSession ? existingRecord.prompt : ''),
           // Why: durable process/session identity, not visible turn state; a non-done value keeps cold restore eligible.
           state: preservesCompletedRecoveryRecord ? 'done' : 'working',
           capturedAt: updatedAt,

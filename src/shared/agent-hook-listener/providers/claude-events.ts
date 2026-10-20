@@ -1,4 +1,9 @@
-import type { ParsedAgentStatusPayload } from '../../agent-status-types'
+import {
+  AGENT_MODEL_MAX_LENGTH,
+  normalizeAgentStatusPayload,
+  type ParsedAgentStatusPayload
+} from '../../agent-status-types'
+import { normalizeOptionalField } from '../../agent-status-field-normalization'
 import { isAgentStatusHeldOpenByChildWork } from '../../agent-lead-status-fold'
 import { isAskUserQuestionTool } from '../../agent-question-answered-intent'
 import { readClaudeBackgroundAgentTasks } from '../../claude-background-task-inventory'
@@ -26,6 +31,7 @@ import {
   voidClaimsOfReplacedClaudeSession
 } from './claude-roster-state'
 import { buildClaudeStatusPayload } from './claude-status-build'
+import { record } from '../../codex-rollout-jsonl-cursor'
 
 export function normalizeClaudeEvent(
   state: HookListenerState,
@@ -35,6 +41,29 @@ export function normalizeClaudeEvent(
   hookPayload: Record<string, unknown>
 ): ParsedAgentStatusPayload | null {
   const eventAgentId = readString(hookPayload, 'agent_id')
+  if (eventName === 'PostModelSwitch') {
+    const previous = state.lastStatusByPaneKey.get(paneKey)
+    const model = normalizeOptionalField(hookPayload.to_model, AGENT_MODEL_MAX_LENGTH)
+    if (
+      eventAgentId ||
+      !model ||
+      previous?.payload.agentType !== 'claude' ||
+      !previous.providerSession?.id ||
+      previous.providerSession.id !== readString(hookPayload, 'session_id')
+    ) {
+      return null
+    }
+    // Model changes carry metadata; they cannot announce a turn completion.
+    return normalizeAgentStatusPayload({
+      ...previous.payload,
+      model,
+      reasoningEffort: normalizeOptionalField(
+        record(hookPayload.effort)?.level ?? hookPayload.effort,
+        AGENT_MODEL_MAX_LENGTH
+      ),
+      sessionBoundary: true
+    })
+  }
   if (
     eventName === 'SubagentStart' ||
     eventName === 'TeammateIdle' ||

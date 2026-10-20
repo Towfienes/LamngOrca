@@ -66,7 +66,13 @@ describe('runtime terminal split IPC routing', () => {
       paneRuntimeId: 41,
       sourceLeafId: '11111111-1111-4111-8111-111111111111',
       direction: 'horizontal',
-      command: 'codex'
+      command: 'codex',
+      startup: {
+        command: 'codex',
+        env: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' },
+        launchAgent: 'codex',
+        startupCommandDelivery: 'shell-ready'
+      }
     })
 
     expect(received).toEqual([])
@@ -89,7 +95,13 @@ describe('runtime terminal split IPC routing', () => {
         tabId: 'tab-parked',
         sourceLeafId: '11111111-1111-4111-8111-111111111111',
         direction: 'horizontal',
-        command: 'codex'
+        command: 'codex',
+        startup: {
+          command: 'codex',
+          env: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' },
+          launchAgent: 'codex',
+          startupCommandDelivery: 'shell-ready'
+        }
       })
     ])
     expect(vi.getTimerCount()).toBe(1)

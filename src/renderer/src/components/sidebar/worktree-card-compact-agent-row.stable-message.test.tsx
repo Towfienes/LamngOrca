@@ -110,3 +110,11 @@ describe('CompactAgentRow stable assistant message', () => {
     expect(container.textContent).not.toContain('First reply')
   })
 })
+
+it('keeps model metadata on hover without an inline model label', () => {
+  const agent = makeAgent({ stateStartedAt: 1000 })
+  agent.entry.model = 'claude-sonnet-4-6'
+  const container = renderRow(agent)
+  expect(container.textContent).not.toContain('claude-sonnet-4-6')
+  expect(container.querySelector('[title="Claude · claude-sonnet-4-6"]')).not.toBeNull()
+})

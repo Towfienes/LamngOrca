@@ -1,5 +1,9 @@
 import type { Page, TestInfo } from '@stablyai/playwright-test'
+import { writeFileSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { test, expect } from './helpers/orca-app'
+import { waitForSessionReady } from './helpers/store'
 
 // Why: mirrors FLOATING_TERMINAL_WORKTREE_ID in src/shared/constants.ts.
 // E2E specs avoid importing renderer/shared modules into the Playwright runner.
@@ -7,6 +11,10 @@ const FLOATING_WORKTREE_ID = 'global-floating-terminal'
 const PANEL_SELECTOR = '[data-floating-terminal-panel]'
 const OPEN_PANEL_SELECTOR = `${PANEL_SELECTOR}[aria-hidden="false"]`
 const TOGGLE_EVENT = 'orca-toggle-floating-terminal'
+
+test.use({
+  orcaAppExtraArgs: process.platform === 'linux' ? ['--ozone-platform=x11'] : []
+})
 
 type SeededSimulatorTab = {
   id: string
@@ -85,8 +93,11 @@ async function openFloatingPanelIfNeeded(page: Page): Promise<void> {
 }
 
 async function attachPanelScreenshot(page: Page, testInfo: TestInfo): Promise<void> {
-  const panel = page.locator(OPEN_PANEL_SELECTOR).first()
-  const body = await panel.screenshot()
+  const cdp = await page.context().newCDPSession(page)
+  const shot = await cdp.send('Page.captureScreenshot', { format: 'png', fromSurface: false })
+  const body = Buffer.from(shot.data, 'base64')
+  writeFileSync(path.join(os.tmpdir(), 'orca-floating-emulator-preview.png'), body)
+  await cdp.detach()
   await testInfo.attach('floating-mobile-emulator-open', { body, contentType: 'image/png' })
 }
 
@@ -122,4 +133,69 @@ test('floating Mobile Emulator tab renders content and closes from the tab strip
 
   await expect(tabLocator).toHaveCount(0)
   await expect(openPanel.locator('[data-emulator-pane]')).toHaveCount(0)
+})
+
+test('floating empty screen and + menu open the same local emulator tab', async ({
+  orcaPage,
+  electronApp
+}, testInfo) => {
+  await waitForSessionReady(orcaPage)
+  await electronApp.evaluate(({ BrowserWindow }) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.setBackgroundThrottling(false)
+    }
+  })
+  // Keep the UI probe from booting a real device or touching the user's ADB server.
+  await electronApp.evaluate(({ ipcMain }) => {
+    ipcMain.removeHandler('runtime:call')
+    ipcMain.handle('runtime:call', () => ({
+      id: 'emulator-ui-fixture',
+      ok: false,
+      error: { code: 'unavailable', message: 'Emulator backend stubbed for UI test' }
+    }))
+  })
+  await orcaPage.setViewportSize({ width: 1400, height: 900 })
+  const mainWorktreeId = await orcaPage.evaluate(() => {
+    const state = window.__store!.getState()
+    if (!state.settings) {
+      throw new Error('Settings unavailable')
+    }
+    window.__store!.setState({
+      settings: {
+        ...state.settings,
+        floatingTerminalEnabled: true,
+        mobileEmulatorEnabled: true
+      }
+    })
+    return state.activeWorktreeId
+  })
+  await orcaPage.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  )
+  await openFloatingPanelIfNeeded(orcaPage)
+  const panel = orcaPage.locator(OPEN_PANEL_SELECTOR)
+  await panel.getByRole('button', { name: 'New Mobile Emulator', exact: true }).click()
+  await expect(panel.locator('[data-emulator-pane]')).toBeVisible()
+  await expect(
+    panel.getByText('Emulator backend stubbed for UI test', { exact: false })
+  ).toBeVisible()
+  const tabId = await orcaPage.evaluate(
+    () => window.__store!.getState().unifiedTabsByWorktree['global-floating-terminal']![0].id
+  )
+  await panel.getByRole('button', { name: 'New tab', exact: true }).click()
+  await orcaPage.getByRole('menuitem', { name: /Go to Mobile Emulator/ }).click()
+  expect(
+    await orcaPage.evaluate(() => {
+      const state = window.__store!.getState()
+      return {
+        tabs: state.unifiedTabsByWorktree['global-floating-terminal']?.map((tab) => tab.id),
+        main: state.activeWorktreeId
+      }
+    })
+  ).toEqual({ tabs: [tabId], main: mainWorktreeId })
+  await orcaPage.evaluate(async () => {
+    await window.__store!.getState().updateSettings({ theme: 'light' })
+  })
+  await expect(orcaPage.locator('html')).not.toHaveClass(/dark/)
+  await attachPanelScreenshot(orcaPage, testInfo)
 })

@@ -15,6 +15,7 @@ import { makePaneKey } from '../../../../shared/stable-pane-id'
 import { SSH_EXIT_UNCONFIRMED_REASON } from '../../../../shared/pty-liveness-verdict'
 import type { WorkspaceSessionState } from '../../../../shared/workspace-session-state-types'
 import { SessionNotFoundError } from '../../../daemon/daemon-errors'
+import { TerminalKilledError } from '../../../daemon/daemon-pty-lifecycle-errors'
 import type { Store } from '../../../persistence'
 import {
   SSH_SESSION_EXPIRED_ERROR,
@@ -122,6 +123,16 @@ async function adoptAfterAttachRefusal(error: unknown): Promise<{
 }
 
 describe('a stable pane whose reattach was refused', () => {
+  it('replaces a stopped daemon owner without reattaching its tombstone', async () => {
+    const { store, spawn } = await adoptAfterAttachRefusal(new TerminalKilledError(PTY_ID))
+
+    expect(spawn).toHaveBeenCalledTimes(2)
+    expect(spawn.mock.calls[1]?.[0]).not.toHaveProperty('sessionId', PTY_ID)
+    expect(
+      resolvePersistedStablePaneOwner(store, makePaneKey(TAB, LEAF), WORKTREE, CONNECTION)
+    ).toBeNull()
+  })
+
   it('records no death certificate when the relay merely does not know the id', async () => {
     const { runtime, spawn } = await adoptAfterAttachRefusal(
       new SshPtyAbsentFromRelayError(`${SSH_SESSION_EXPIRED_ERROR}: pty2:epoch-a:1`)

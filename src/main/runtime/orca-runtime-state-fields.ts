@@ -94,6 +94,7 @@ export class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCommands {
       // here, not via the window-only registerCoreHandlers path — that path never
       // runs under `orca serve`, so remote/SSH hosts would silently drop
       // managed-Codex sessions. The runtime ctor runs in BOTH window and serve.
+      getAdditionalAiVaultClaudeProjectsPaths?: () => readonly string[]
       getAdditionalAiVaultCodexHomePaths?: () => readonly string[]
       prepareAiVaultSessionResume?: (
         args: AiVaultPrepareSessionResumeArgs
@@ -237,7 +238,8 @@ export class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCommands {
     // even on headless `orca serve` hosts where registerCoreHandlers never runs.
     if (deps?.getAdditionalAiVaultCodexHomePaths) {
       configureAiVaultSessionSources({
-        getAdditionalCodexHomePaths: deps.getAdditionalAiVaultCodexHomePaths
+        getAdditionalCodexHomePaths: deps.getAdditionalAiVaultCodexHomePaths,
+        getAdditionalClaudeProjectsPaths: deps.getAdditionalAiVaultClaudeProjectsPaths
       })
       configureHostReadableTranscriptPathSources({
         getAdditionalCodexHomePaths: deps.getAdditionalAiVaultCodexHomePaths

@@ -11,7 +11,8 @@ const EMPTY_USAGE: UsageOverviewInput = {
 }
 
 export function useDeckUsageOverview(range: CodexUsageRange, revision: number) {
-  const [input, setInput] = useState(EMPTY_USAGE)
+  const [snapshot, setSnapshot] = useState({ range, input: EMPTY_USAGE })
+  const input = snapshot.range === range ? snapshot.input : EMPTY_USAGE
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,7 +20,6 @@ export function useDeckUsageOverview(range: CodexUsageRange, revision: number) {
     let cancelled = false
     setLoading(true)
     setError(null)
-    setInput(EMPTY_USAGE)
     const query = { scope: 'all', range } as const
     void Promise.allSettled([
       window.api.claudeUsage.getSnapshot(query),
@@ -30,12 +30,20 @@ export function useDeckUsageOverview(range: CodexUsageRange, revision: number) {
       if (cancelled) {
         return
       }
-      setInput({
-        claude: claude.status === 'fulfilled' && claude.value ? claude.value : EMPTY_USAGE.claude,
-        codex: codex.status === 'fulfilled' && codex.value ? codex.value : EMPTY_USAGE.codex,
-        opencode:
-          opencode.status === 'fulfilled' && opencode.value ? opencode.value : EMPTY_USAGE.opencode,
-        muse: muse.status === 'fulfilled' && muse.value ? muse.value : EMPTY_USAGE.muse
+      setSnapshot((previous) => {
+        const fallback = previous.range === range ? previous.input : EMPTY_USAGE
+        return {
+          range,
+          input: {
+            claude: claude.status === 'fulfilled' && claude.value ? claude.value : fallback.claude,
+            codex: codex.status === 'fulfilled' && codex.value ? codex.value : fallback.codex,
+            opencode:
+              opencode.status === 'fulfilled' && opencode.value
+                ? opencode.value
+                : fallback.opencode,
+            muse: muse.status === 'fulfilled' && muse.value ? muse.value : fallback.muse
+          }
+        }
       })
       if (
         [claude, codex, opencode, muse].some(

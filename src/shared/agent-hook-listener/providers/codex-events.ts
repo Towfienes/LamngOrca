@@ -56,7 +56,8 @@ export function buildCodexStatusPayload(
       resetOnNewTurn: options.updateLead && isNewTurnEvent('codex', eventName)
     }),
     agentType: 'codex',
-    model: lead?.model,
+    model: state.codexSubagentTranscriptByPaneKey.get(paneKey)?.rootTurn.model ?? lead?.model,
+    reasoningEffort: state.codexSubagentTranscriptByPaneKey.get(paneKey)?.rootTurn.reasoningEffort,
     toolName: snapshot.toolName,
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,

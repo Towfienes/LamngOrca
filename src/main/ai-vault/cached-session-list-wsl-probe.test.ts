@@ -43,7 +43,7 @@ describe('AI Vault listing wsl.exe probes', () => {
   beforeEach(() => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     resetAiVaultSessionListCacheForTests()
-    configureAiVaultSessionSources({ getAdditionalCodexHomePaths: () => [NATIVE_CODEX_HOME] })
+    configureAiVaultSessionSources({ getAdditionalCodexHomePaths: () => [NATIVE_CODEX_HOME], getAdditionalClaudeProjectsPaths: () => ['C:\\orca-claude\\projects'] })
     scanAiVaultSessionsInWorker.mockResolvedValue({ sessions: [], issues: [], scannedAt: 'scan' })
   })
   afterEach(() => {
@@ -62,6 +62,7 @@ describe('AI Vault listing wsl.exe probes', () => {
     expect(scanAiVaultSessionsInWorker).toHaveBeenCalledWith(
       expect.objectContaining({
         additionalCodexSessionsDirs: [join(NATIVE_CODEX_HOME, 'sessions')],
+        additionalClaudeProjectsDirs: ['C:\\orca-claude\\projects'],
         wslHomeDirs: []
       }),
       expect.anything()

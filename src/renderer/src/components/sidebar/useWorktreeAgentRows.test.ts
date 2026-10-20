@@ -90,6 +90,52 @@ function makeSplitPaneLayout(firstLeafId: string, secondLeafId: string): Termina
 }
 
 describe('buildWorktreeAgentRows', () => {
+  it.each(['Review project', 'Terminal 1'])(
+    'shows every process-identified split pane before mount (%s)',
+    (title) => {
+      const thirdLeaf = '88888888-8888-4888-8888-888888888888'
+      const layout = makeSplitPaneLayout(LEAF_ID_1, LEAF_ID_1_SECOND)
+      layout.root = {
+        type: 'split',
+        direction: 'vertical',
+        first: {
+          type: 'split',
+          direction: 'horizontal',
+          first: { type: 'leaf', leafId: LEAF_ID_1 },
+          second: { type: 'leaf', leafId: LEAF_ID_1_SECOND }
+        },
+        second: { type: 'leaf', leafId: thirdLeaf }
+      }
+      layout.ptyIdsByLeafId = {
+        [LEAF_ID_1]: 'pty-codex',
+        [LEAF_ID_1_SECOND]: 'pty-claude',
+        [thirdLeaf]: 'pty-agy'
+      }
+      const rows = buildWorktreeAgentRows({
+        tabs: [makeTab('tab-1', { title, defaultTitle: 'Terminal 1', launchAgent: 'codex' })],
+        entries: [],
+        retained: [],
+        terminalLayoutsByTabId: { 'tab-1': layout },
+        ptyIdsByTabId: { 'tab-1': ['pty-codex', 'pty-claude', 'pty-agy'] },
+        paneForegroundAgentByPaneKey: {
+          [PANE_KEY_1]: { agent: 'codex', agentEvidence: 'process-read', shellForeground: false },
+          [makePaneKey('tab-1', LEAF_ID_1_SECOND)]: {
+            agent: 'claude',
+            agentEvidence: 'process-read',
+            shellForeground: false
+          },
+          [makePaneKey('tab-1', thirdLeaf)]: {
+            agent: 'antigravity',
+            agentEvidence: 'process-read',
+            shellForeground: false
+          }
+        },
+        now: 1_000
+      })
+      expect(rows.map((row) => row.agentType).sort()).toEqual(['antigravity', 'claude', 'codex'])
+      expect(rows.every((row) => row.state === 'idle')).toBe(true)
+    }
+  )
   it('includes retained rows even when their original tab is no longer current', () => {
     const retained = makeRetained(ORPHAN_PANE_KEY, 'wt-1', 1000)
     const rows = buildWorktreeAgentRows({

@@ -48,14 +48,8 @@
   display: none;
 }
 
-#deck-usage-roster .status-bar-usage-cluster {
-  position: relative;
-  font-size: 12px;
-}
-
-#deck-usage-roster .status-bar-usage-cluster > div {
-  flex-wrap: wrap;
-  min-width: 0;
+.deck-right-sidebar .deck-usage-panel {
+  border-top-color: var(--sidebar-border);
 }
 
 .deck-cost-track {
@@ -119,17 +113,27 @@
 }
 
 .deck-create-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  container-type: inline-size;
   padding: 8px 10px;
 }
 
-.deck-create-bar button {
-  flex: 1 0 auto;
-  min-width: max-content;
+.deck-agent-actions {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: 100%;
+  align-items: center;
+  justify-items: center;
   gap: 4px;
-  font-size: 11px;
+}
+
+.deck-agent-quick-button {
+  display: inline-flex;
+}
+
+@container (max-width: 284px) {
+  .deck-agent-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .deck-sidebar.deck-sidebar .deck-sidebar-options {
@@ -148,6 +152,7 @@
 }
 
 .deck-workspace-shell .deck-sidebar.deck-sidebar [data-worktree-card-surface] {
+  border-width: 1.5px;
   border-radius: var(--radius-sm);
   border-color: transparent;
   box-shadow: none;
@@ -159,6 +164,10 @@
   background: transparent;
   border-color: transparent;
   box-shadow: none;
+}
+
+.deck-sidebar.deck-sidebar [data-worktree-card-surface][data-worktree-card-active] {
+  @apply sidebar-glass;
 }
 
 .deck-sidebar.deck-sidebar
@@ -184,9 +193,9 @@
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent] {
-  min-height: 40px;
+  min-height: 28px;
   margin: 1px 0;
-  padding: 4px 8px 4px 30px;
+  padding: 4px 4px 4px 30px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
 }
@@ -200,7 +209,7 @@
   left: -28px;
   width: 10px;
   height: 10px;
-  top: calc(50% + 14.5px);
+  top: calc(50% + 6px);
   transform: translateY(-50%);
   border: 1px solid var(--worktree-sidebar);
   border-radius: 50%;
@@ -211,7 +220,7 @@
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-icon-slot {
   position: absolute;
   left: -24px;
-  top: calc(50% + 7.5px);
+  top: 50%;
   transform: translateY(-50%);
 }
 
@@ -226,16 +235,9 @@
 
 .deck-sidebar [data-deck-agent-state='waiting'] .deck-agent-state-slot svg,
 .deck-sidebar [data-deck-agent-state='permission'] .deck-agent-state-slot svg {
-  visibility: hidden;
-}
-
-.deck-sidebar [data-deck-agent-state='waiting'] .deck-agent-state-slot::after,
-.deck-sidebar [data-deck-agent-state='permission'] .deck-agent-state-slot::after {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  border-radius: 50%;
-  background: var(--workspace-status-progress);
+  width: 10px;
+  height: 10px;
+  color: var(--workspace-status-progress);
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-heading > span[title].flex-1 {
@@ -244,12 +246,12 @@
   color: var(--foreground);
 }
 
-.deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-heading > span.font-mono,
 .deck-sidebar.deck-sidebar [data-deck-agent] > :not(.deck-agent-heading, .deck-agent-summary) {
   display: none;
 }
 
 .deck-agent-summary {
+  display: none;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -263,24 +265,13 @@
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent][data-focused-agent-pane='true'] {
-  background: var(--foreground);
-  color: var(--background);
+  background: transparent;
+  border-color: transparent;
+  color: var(--foreground);
 }
 
-.deck-sidebar [data-deck-agent][data-focused-agent-pane='true'] .deck-agent-state-slot {
-  background: var(--foreground);
-  border-color: var(--foreground);
-}
-
-.deck-sidebar.deck-sidebar
-  [data-deck-agent][data-focused-agent-pane='true']
-  .deck-agent-heading
-  > span[title].flex-1 {
-  color: var(--background);
-}
-
-.deck-sidebar.deck-sidebar [data-deck-agent][data-focused-agent-pane='true'] .deck-agent-summary {
-  color: color-mix(in srgb, var(--background) 75%, var(--foreground));
+.deck-sidebar .compact-agent-row[data-focused-agent-pane='true'] {
+  background: transparent;
 }
 
 /* Inset outlines leave the pane manager's measured terminal geometry untouched. */
@@ -300,8 +291,14 @@
   z-index: 25;
 }
 
-[data-terminal-tab-id] .pane[data-active-pane]::after {
-  border-color: color-mix(in srgb, var(--orca-pane-title-button-fg) 65%, transparent);
+[data-terminal-tab-id] .pane[data-agent-waiting]::after {
+  border-width: 1.5px;
+  border-color: var(--workspace-status-progress);
+}
+
+[data-terminal-tab-id] .pane.pane-focus-rim-flash::before,
+[data-terminal-tab-id] .pane[data-terminal-attention] .xterm-container::after {
+  content: none;
 }
 
 .pane-title-overlay-layer .pane-title-bar[data-pane-draggable] {
@@ -366,6 +363,10 @@
 .pane-title-bar .deck-pane-identity {
   max-width: 72ch;
 }
+
+.deck-pane-identity > span > span[title]:only-child {
+  max-width: 100%;
+}
 .pane-title-overlay-layer .pane-title-bar {
   height: var(--orca-pane-title-height);
 }
@@ -379,16 +380,6 @@
 }
 [data-terminal-tab-id] .pane .pane-top-banner {
   top: var(--orca-pane-title-height);
-}
-.deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-heading > span:last-child {
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-}
-.deck-sidebar.deck-sidebar [data-deck-agent]:hover .deck-agent-heading > span:last-child,
-.deck-sidebar.deck-sidebar [data-deck-agent]:focus-within .deck-agent-heading > span:last-child {
-  max-width: none;
-  opacity: 1;
 }
 
 .deck-sidebar [data-worktree-card-surface]:has([data-deck-agent]) [data-worktree-card-meta-row],
@@ -404,4 +395,10 @@
 .deck-sidebar [data-deck-agent] [role='button']:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Indentation alone shows repo membership; keep selection frames unchanged. */
+.deck-sidebar [data-repo-worktree-tree='branch'],
+.deck-sidebar [data-repo-worktree-tree='last'] {
+  margin-inline-start: 12px;
 }

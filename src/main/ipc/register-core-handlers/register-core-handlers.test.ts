@@ -487,6 +487,7 @@ describe('registerCoreHandlers', () => {
     const agentAwakeService = { marker: 'agentAwakeService' }
     const onBeforeRelaunch = vi.fn()
     const getAdditionalAiVaultCodexHomePaths = vi.fn(() => ['/runtime/codex/home'])
+    const getAdditionalAiVaultClaudeProjectsPaths = vi.fn(() => ['/runtime/claude/projects'])
 
     registerCoreHandlers(
       store as never,
@@ -506,7 +507,11 @@ describe('registerCoreHandlers', () => {
       agentAwakeService as never,
       undefined,
       undefined,
-      { getAdditionalAiVaultCodexHomePaths, onBeforeRelaunch }
+      {
+        getAdditionalAiVaultCodexHomePaths,
+        getAdditionalAiVaultClaudeProjectsPaths,
+        onBeforeRelaunch
+      }
     )
 
     const aiVaultOptions = registerAiVaultHandlersMock.mock.calls[0]?.[0]
@@ -579,6 +584,7 @@ describe('registerCoreHandlers', () => {
     expect(registerAiVaultHandlersMock).toHaveBeenCalledWith(
       expect.objectContaining({
         getAdditionalCodexHomePaths: getAdditionalAiVaultCodexHomePaths,
+        getAdditionalClaudeProjectsPaths: getAdditionalAiVaultClaudeProjectsPaths,
         getActiveRuntimeAiVaultHostInfos: expect.any(Function),
         scanRuntimeAiVaultSessions: expect.any(Function),
         prepareRuntimeSessionResume: expect.any(Function)

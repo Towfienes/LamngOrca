@@ -1,29 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
 
-const storeMock = vi.hoisted(() => ({
-  state: {
+type AttentionTestState = {
+  settings: { experimentalTerminalAttention?: boolean } | null
+  unreadTerminalPanes: Record<string, true>
+  agentStatusByPaneKey?: Record<string, AgentStatusEntry>
+  terminalLayoutsByTabId?: Record<string, { ptyIdsByLeafId: Record<string, string> }>
+}
+
+const storeMock = vi.hoisted(() => {
+  const state: AttentionTestState = {
     settings: { experimentalTerminalAttention: true },
     unreadTerminalPanes: {}
-  } as {
-    settings: { experimentalTerminalAttention?: boolean } | null
-    unreadTerminalPanes: Record<string, true>
-  },
-  subscribers: [] as ((state: {
-    settings: { experimentalTerminalAttention?: boolean } | null
-    unreadTerminalPanes: Record<string, true>
-  }) => void)[]
-}))
+  }
+  const subscribers: ((state: AttentionTestState) => void)[] = []
+  return { state, subscribers }
+})
 
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => storeMock.state,
-    subscribe: (
-      listener: (state: {
-        settings: { experimentalTerminalAttention?: boolean } | null
-        unreadTerminalPanes: Record<string, true>
-      }) => void
-    ) => {
+    subscribe: (listener: (state: AttentionTestState) => void) => {
       storeMock.subscribers.push(listener)
       return () => {
         storeMock.subscribers = storeMock.subscribers.filter((candidate) => candidate !== listener)
@@ -164,4 +162,50 @@ describe('terminal pane attention subscriptions', () => {
     expect(pane1.container.hasAttribute('data-terminal-attention')).toBe(true)
     expect(pane2.container.hasAttribute('data-terminal-attention')).toBe(false)
   })
+})
+
+it('marks only a fresh waiting pane and clears it on user reply without enabling unread attention', () => {
+  const paneKey = makePaneKey('tab-1', LEAF_1)
+  const pane1 = createPane(LEAF_1)
+  const pane2 = createPane(LEAF_2)
+  const entry: AgentStatusEntry = {
+    paneKey,
+    agentType: 'codex',
+    state: 'waiting',
+    prompt: 'Choose one',
+    updatedAt: Date.now(),
+    stateStartedAt: Date.now(),
+    stateHistory: []
+  }
+  storeMock.state = {
+    settings: { experimentalTerminalAttention: false },
+    unreadTerminalPanes: {},
+    agentStatusByPaneKey: {},
+    terminalLayoutsByTabId: { 'tab-1': { ptyIdsByLeafId: { [LEAF_1]: 'pty-one' } } }
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This path only reads getPanes and each pane's leafId/container fixture.
+  const listener = vi.fn(() =>
+    applyTerminalPaneAttentionToManager(createManager([pane1, pane2]) as never, 'tab-1')
+  )
+  const otherTab = vi.fn()
+  subscribeTerminalPaneAttention('tab-1', listener)
+  subscribeTerminalPaneAttention('tab-2', otherTab)
+  storeMock.state = { ...storeMock.state, agentStatusByPaneKey: { [paneKey]: entry } }
+  emitStoreChange()
+  expect(pane1.container.hasAttribute('data-agent-waiting')).toBe(true)
+  expect(pane2.container.hasAttribute('data-agent-waiting')).toBe(false)
+  expect(otherTab).not.toHaveBeenCalled()
+  storeMock.state = {
+    ...storeMock.state,
+    agentStatusByPaneKey: { [paneKey]: { ...entry, state: 'working' } }
+  }
+  emitStoreChange()
+  expect(pane1.container.hasAttribute('data-agent-waiting')).toBe(false)
+  storeMock.state = {
+    ...storeMock.state,
+    agentStatusByPaneKey: { [paneKey]: { ...entry, restoredUnconfirmed: true } }
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The attention application only needs the fixture's getPanes method.
+  applyTerminalPaneAttentionToManager(createManager([pane1]) as never, 'tab-1')
+  expect(pane1.container.hasAttribute('data-agent-waiting')).toBe(false)
 })

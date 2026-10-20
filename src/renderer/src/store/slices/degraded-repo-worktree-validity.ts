@@ -8,7 +8,7 @@ type WorktreeValidityCatalog = {
   repos: readonly Pick<Repo, 'id'>[]
   worktreesByRepo: Readonly<Record<string, readonly Pick<Worktree, 'id'>[]>>
   detectedWorktreesByRepo?: Readonly<
-    Record<string, Pick<DetectedWorktreeListResult, 'authoritative'> | undefined>
+    Record<string, Pick<DetectedWorktreeListResult, 'authoritative' | 'worktrees'> | undefined>
   >
 }
 
@@ -43,6 +43,12 @@ export function buildValidWorktreeIdsForSessionHydration(
   )
   const knownRepoIds = new Set(catalog.repos.map((repo) => repo.id))
   const detectedWorktreesByRepo = catalog.detectedWorktreesByRepo ?? {}
+  // Sidebar visibility does not retire a detected workspace's saved tabs.
+  for (const detected of Object.values(detectedWorktreesByRepo)) {
+    for (const worktree of detected?.worktrees ?? []) {
+      validWorktreeIds.add(worktree.id)
+    }
+  }
   const repoIdsWithLoadedWorktrees = new Set(
     Object.entries(worktreesByRepo)
       // Why (#1158): a metadata fallback can be non-empty yet partial (host-less metas are skipped on

@@ -1,3 +1,5 @@
+import type { GlobalSettings } from '../../shared/global-settings-types'
+import { prepareAccountSessionResume } from '../ai-vault/account-session-resume'
 import type {
   AiVaultPrepareSessionResumeArgs,
   AiVaultPrepareSessionResumeResult
@@ -14,10 +16,16 @@ type CodexAiVaultRuntimeHome = Pick<
 export function prepareCodexAiVaultSessionResume(
   args: AiVaultPrepareSessionResumeArgs,
   options: {
+    settings?: GlobalSettings
     runtimeHome: CodexAiVaultRuntimeHome | null
     systemCodexHomePath: string | undefined
   }
 ): Promise<AiVaultPrepareSessionResumeResult> {
+  if (args.accountId) {
+    if (!options.settings)
+      {return Promise.reject(new Error('Launch account settings are unavailable.'))}
+    return prepareAccountSessionResume(args, options.settings)
+  }
   return prepareLegacySharedCodexSessionResume(args, {
     isHostSystemDefaultRealHome: () => options.runtimeHome?.isHostSystemDefaultRealHome() === true,
     getSelectedHostAccountCodexHomePath: () =>

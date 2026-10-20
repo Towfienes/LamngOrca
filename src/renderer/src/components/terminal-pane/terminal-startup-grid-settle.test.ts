@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   waitForStableStartupGrid,
   type TerminalStartupGridDimensions
@@ -41,6 +41,29 @@ function createTimelineMeasure(timeline: (frame: number) => TerminalStartupGridD
 }
 
 describe('waitForStableStartupGrid', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('settles once when the compositor never delivers an animation frame', () => {
+    const scheduler = createFrameScheduler()
+    const onSettled = vi.fn()
+    waitForStableStartupGrid({
+      isAlive: () => true,
+      measure: () => ({ cols: 120, rows: 40 }),
+      onSettled,
+      requestFrame: scheduler.requestFrame,
+      cancelFrame: scheduler.cancelFrame
+    })
+
+    vi.advanceTimersByTime(1_000)
+
+    expect(onSettled).toHaveBeenCalledExactlyOnceWith({ cols: 120, rows: 40 })
+    expect(scheduler.pending()).toBe(0)
+    scheduler.run()
+    expect(onSettled).toHaveBeenCalledTimes(1)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('holds until the cap when the first measured grid stays stable', () => {
     const scheduler = createFrameScheduler()
     const onSettled = vi.fn()
@@ -213,9 +236,11 @@ describe('waitForStableStartupGrid', () => {
     })
 
     handle.cancel()
+    vi.advanceTimersByTime(1_000)
     scheduler.run()
 
     expect(scheduler.pending()).toBe(0)
     expect(onSettled).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

@@ -95,6 +95,8 @@ This keeps light/dark parity automatic.
 
 ## Radius
 
+Use `Button shape="circle"` with an icon size for circular toolbar actions; retain an accessible name and a tooltip.
+
 `--radius: 0.625rem` (10px) is the base; the rest are computed (`--radius-sm` = 0.6×, `--radius-md` = 0.8×, `--radius-lg` = 1×, `--radius-xl` = 1.4×, etc.). Buttons and inputs use `rounded-md`; the `Card` primitive uses `rounded-xl`; badges use `rounded-full`. Match the existing primitive's radius rather than introducing a new one.
 
 ## Elevation & shadows
@@ -124,11 +126,14 @@ Variants in priority order:
 | `default`     | The single affirmative action in a flow.                           |
 | `secondary`   | Lower-emphasis sibling next to a `default`.                        |
 | `outline`     | Toolbar / standalone actions where a filled button feels heavy.    |
+| `glass`       | Circular Deck sidebar actions; pair with `shape="circle"`.         |
 | `ghost`       | Icon buttons, list-row triggers, anywhere chrome should disappear. |
 | `link`        | Inline text actions inside paragraphs.                             |
 | `destructive` | Delete, discard, irreversible. Never for Cancel.                   |
 
 Sizes: `default` (36px), `sm` (32px), `xs` (24px), `lg` (40px), plus `icon`, `icon-xs`, `icon-sm`, `icon-lg`. Match the size to the surrounding row height — don't drop a `default` button into a 28px toolbar.
+
+The `sidebar-glass` utility is reserved for these small actions and the selected worktree surface. It uses sidebar tokens, a static highlight, `shadow-xs`, and a small blur; never apply it to the full sidebar or terminal canvas.
 
 ### Other primitives in this repo
 

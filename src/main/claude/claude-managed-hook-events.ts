@@ -78,7 +78,16 @@ const CLAUDE_SESSION_END_EVENT = {
   definition: { hooks: [{ type: 'command', command: '' }] }
 } as const
 
-export const CLAUDE_MANAGED_EVENTS = [...CLAUDE_EVENTS, CLAUDE_SESSION_END_EVENT] as const
+const CLAUDE_MODEL_SWITCH_EVENT = {
+  eventName: 'PostModelSwitch',
+  definition: { hooks: [{ type: 'command', command: '' }] }
+} as const
+
+export const CLAUDE_MANAGED_EVENTS = [
+  ...CLAUDE_EVENTS,
+  CLAUDE_SESSION_END_EVENT,
+  CLAUDE_MODEL_SWITCH_EVENT
+] as const
 
 export type ManagedHookEvent = {
   eventName: string

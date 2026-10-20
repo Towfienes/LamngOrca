@@ -1,3 +1,4 @@
+import type { WorktreeStartupLaunch } from '../../../shared/worktree/launch-types'
 import type { TerminalPaneSplitSource } from '../../../shared/feature-education-telemetry'
 
 export const TOGGLE_TERMINAL_PANE_EXPAND_EVENT = 'orca-toggle-terminal-pane-expand'
@@ -52,6 +53,7 @@ export type SplitTerminalPaneDetail = {
   paneRuntimeId: number
   direction: 'horizontal' | 'vertical'
   command?: string
+  startup?: WorktreeStartupLaunch
   sourceLeafId?: string
   sourcePtyId?: string
   telemetrySource?: TerminalPaneSplitSource

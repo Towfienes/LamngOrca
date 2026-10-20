@@ -8,9 +8,11 @@ import { openMarkdownDocumentInFloatingWorkspace } from '@/lib/open-markdown-in-
 import { extractIpcErrorMessage } from '@/lib/ipc-error'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import { createFloatingWorkspaceTerminalTab } from '@/lib/floating-workspace-tab-creation'
+import { getSimulatorTabForWorktree } from '@/lib/ensure-simulator-tab'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { FloatingTerminalPanelItems } from './use-floating-terminal-panel-items'
 import type { FloatingTerminalPanelLocalState } from './use-floating-terminal-panel-local-state'
 import type { FloatingTerminalPanelStoreState } from './use-floating-terminal-panel-store-state'
@@ -61,6 +63,26 @@ export function useFloatingTerminalCreateActions({
   const createFloatingTerminalTab = useCallback((shellOverride?: string) => {
     void createFloatingWorkspaceTerminalTab(useAppStore.getState(), shellOverride)
   }, [])
+
+  const createFloatingEmulatorTab = useCallback(() => {
+    const state = useAppStore.getState()
+    if (
+      state.settings?.mobileEmulatorEnabled === false ||
+      !ensureClientCreationActionAllowed(FLOATING_TERMINAL_WORKTREE_ID, 'mobile-emulator')
+    ) {
+      return
+    }
+    const existing = getSimulatorTabForWorktree(FLOATING_TERMINAL_WORKTREE_ID)
+    if (existing) {
+      state.activateTab(existing.id)
+      return
+    }
+    state.createUnifiedTab(FLOATING_TERMINAL_WORKTREE_ID, 'simulator', {
+      label: translate('auto.lib.ensure.simulator.tab.372d21d428', 'Mobile Emulator'),
+      targetGroupId: activeGroup?.id,
+      executionHostId: LOCAL_EXECUTION_HOST_ID
+    })
+  }, [activeGroup?.id])
 
   const createFloatingBrowserTab = useCallback(() => {
     if (!ensureClientCreationActionAllowed(FLOATING_TERMINAL_WORKTREE_ID, 'managed-browser')) {
@@ -123,6 +145,7 @@ export function useFloatingTerminalCreateActions({
   return {
     activateFloatingItem,
     createFloatingTerminalTab,
+    createFloatingEmulatorTab,
     createFloatingBrowserTab,
     createFloatingMarkdownTab,
     openFloatingMarkdownTab

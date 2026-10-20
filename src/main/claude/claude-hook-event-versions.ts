@@ -22,6 +22,9 @@ export const CLAUDE_HOOK_EVENT_FIRST_VERSIONS = {
   StopFailure: '2.1.78'
 } as const
 
+// Claude's hooks reference documents PostModelSwitch from 2.1.251.
+const CLAUDE_MODEL_SWITCH_FIRST_VERSION = '2.1.251'
+
 // Why: 1.0.49 through 1.0.66 also discard the whole file over an unknown top-level key, and
 // `statusLine` joined their schema only in 1.0.64. Pinned by the same fixture's topLevelSettings.
 export const CLAUDE_STATUS_LINE_FIRST_VERSION = '1.0.64'
@@ -51,9 +54,14 @@ function claudeKnowsSince(version: string | null | undefined, firstVersion: stri
 
 export function claudeKnowsHookEvent(
   version: string | null | undefined,
-  eventName: ClaudeHookEventName
+  eventName: ClaudeHookEventName | 'PostModelSwitch'
 ): boolean {
-  return claudeKnowsSince(version, CLAUDE_HOOK_EVENT_FIRST_VERSIONS[eventName])
+  return claudeKnowsSince(
+    version,
+    eventName === 'PostModelSwitch'
+      ? CLAUDE_MODEL_SWITCH_FIRST_VERSION
+      : CLAUDE_HOOK_EVENT_FIRST_VERSIONS[eventName]
+  )
 }
 
 export function claudeKnowsStatusLine(version: string | null | undefined): boolean {

@@ -1,3 +1,4 @@
+import { managedClaudeSessionRoots } from '../ai-vault/managed-claude-session-roots'
 import type { BrowserWindow } from 'electron'
 import { registerCoreHandlers } from '../ipc/register-core-handlers/register-core-handlers'
 import { attachMainWindowServices } from '../window/attach-main-window-services'
@@ -77,10 +78,12 @@ export function attachMainWindowCoreServices(
     state.crashReports ?? undefined,
     keybindings,
     {
+      getAdditionalAiVaultClaudeProjectsPaths: () => managedClaudeSessionRoots(store.getSettings()),
       getAdditionalAiVaultCodexHomePaths: () =>
         codexRuntimeHome.getHostCodexHomePathsForSessionDiscovery(),
       prepareAiVaultSessionResume: (args) =>
         prepareCodexAiVaultSessionResume(args, {
+          settings: store.getSettings(),
           runtimeHome: codexRuntimeHome,
           systemCodexHomePath: resolveHostCodexSessionSourceHome(store.getSettings())
         }),
@@ -111,7 +114,7 @@ export function attachMainWindowCoreServices(
     store,
     runtime,
     prepareCodexRuntimeHomeForLaunch,
-    (target) => claudeRuntimeAuth.prepareForClaudeLaunch(target),
+    (target, accountId) => claudeRuntimeAuth.prepareForClaudeLaunch(target, accountId),
     {
       prepareCodexSessionResume: prepareCodexSessionResumeForLaunch,
       awaitLocalPtyStartup: () => state.localPtyStartupReady,

@@ -1,3 +1,7 @@
+import {
+  appendSavedSessionRows,
+  selectSavedSessionsForWorktree
+} from './worktree-saved-session-rows'
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
@@ -108,6 +112,9 @@ export function useWorktreeAgentRows(worktreeId: string, active = true): Dashboa
       active ? selectPaneForegroundAgentsForWorktree(s, worktreeId) : EMPTY_PANE_FOREGROUND_AGENTS
     )
   )
+  const savedSessions = useAppStore(
+    useShallow((state) => (active ? selectSavedSessionsForWorktree(state, worktreeId) : []))
+  )
   const agentFreshnessSignature = useAppStore((s) =>
     active ? selectAgentFreshness(s) : EMPTY_WORKTREE_AGENT_FRESHNESS_SIGNATURE
   )
@@ -130,17 +137,27 @@ export function useWorktreeAgentRows(worktreeId: string, active = true): Dashboa
           ]
         : liveEntries
     return applyAgentRowLineage(
-      buildWorktreeAgentRows({
-        tabs: tabs ?? EMPTY_TABS,
-        entries,
-        retained,
-        runtimePaneTitlesByTabId,
-        ptyIdsByTabId,
+      appendSavedSessionRows(
+        buildWorktreeAgentRows({
+          tabs: tabs ?? EMPTY_TABS,
+          entries,
+          retained,
+          runtimePaneTitlesByTabId,
+          ptyIdsByTabId,
+          terminalLayoutsByTabId,
+          runtimeAgentOrchestrationByPaneKey,
+          paneForegroundAgentByPaneKey,
+          now
+        }),
+        savedSessions,
+        tabs ?? EMPTY_TABS,
         terminalLayoutsByTabId,
-        runtimeAgentOrchestrationByPaneKey,
-        paneForegroundAgentByPaneKey,
-        now
-      })
+        new Set(
+          Object.entries(paneForegroundAgentByPaneKey)
+            .filter(([, entry]) => entry.shellForeground)
+            .map(([key]) => key)
+        )
+      )
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -149,6 +166,7 @@ export function useWorktreeAgentRows(worktreeId: string, active = true): Dashboa
     liveEntries,
     migrationUnsupported,
     retained,
+    savedSessions,
     runtimePaneTitlesByTabId,
     ptyIdsByTabId,
     terminalLayoutsByTabId,

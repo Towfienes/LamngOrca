@@ -28,6 +28,7 @@ const AI_VAULT_CACHE_TTL_MS = 60_000
 // path — `orca serve` never runs that path, so sourcing it there would silently
 // drop managed-Codex sessions from remote/SSH results.
 export type AiVaultSessionSources = {
+  getAdditionalClaudeProjectsPaths?: () => readonly string[]
   getAdditionalCodexHomePaths?: () => readonly string[]
 }
 
@@ -58,13 +59,14 @@ export function configureAiVaultSessionSources(next: AiVaultSessionSources): voi
  */
 export async function localAiVaultScanRoots(): Promise<
   Required<Pick<AiVaultScanOptions, 'additionalCodexSessionsDirs' | 'wslHomeDirs'>> &
-    Pick<AiVaultScanOptions, 'executionHostId' | 'wslOpenCodeReaders'>
+    Pick<AiVaultScanOptions, 'executionHostId' | 'wslOpenCodeReaders' | 'additionalClaudeProjectsDirs'>
 > {
   const [additionalCodexHomes, wslHomeDirs] = await Promise.all([
     filterPathsToRunningWslDistrosAsync(configuredAdditionalCodexHomePaths()),
     getAiVaultWslHomeDirs()
   ])
   return {
+    additionalClaudeProjectsDirs: configuredAdditionalClaudeProjectsPaths(),
     additionalCodexSessionsDirs: additionalCodexHomes.map((homePath) => join(homePath, 'sessions')),
     wslHomeDirs,
     wslOpenCodeReaders: await prepareOpenCodeWslReaders(wslHomeDirs),
@@ -76,6 +78,10 @@ export async function localAiVaultScanRoots(): Promise<
 
 /** The extra Codex homes session discovery scans. Anything that decides what a listed row may be
  *  resumed from must read the same set, or a row can be listed and then refuse to resume. */
+export function configuredAdditionalClaudeProjectsPaths(): readonly string[] {
+  return sources.getAdditionalClaudeProjectsPaths?.() ?? []
+}
+
 export function configuredAdditionalCodexHomePaths(): readonly string[] {
   return sources.getAdditionalCodexHomePaths?.() ?? []
 }

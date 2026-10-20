@@ -1,3 +1,4 @@
+import type { ClaudeManagedAccount } from '../../../../shared/managed-account-types'
 import type { vi } from 'vitest'
 import type { AgentType } from '../../../../shared/agent-status-types'
 import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
@@ -61,6 +62,7 @@ export type StoreState = {
   transientClearedAgentStatusConnectionIds: Record<string, true>
   cacheTimerByKey: Record<string, number | null>
   settings: {
+    claudeManagedAccounts?: ClaudeManagedAccount[]
     theme?: 'system' | 'dark' | 'light'
     promptCacheTimerEnabled?: boolean
     activeRuntimeEnvironmentId?: string | null

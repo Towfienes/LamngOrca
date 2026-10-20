@@ -102,6 +102,7 @@ type CoreHandlerLifecycleOptions = {
   onBeforeRelaunch?: () => void | Promise<void>
   onOrcaProfileAuthMutation?: () => void
   onBeforeOrcaProfileSignOut?: () => void
+  getAdditionalAiVaultClaudeProjectsPaths?: () => readonly string[]
   getAdditionalAiVaultCodexHomePaths?: () => readonly string[]
   prepareAiVaultSessionResume?: (
     args: AiVaultPrepareSessionResumeArgs
@@ -230,6 +231,11 @@ export function registerCoreHandlers(
         runtime.ensureStructuredAgentSessionHost()
       ),
     getAdditionalCodexHomePaths: lifecycleOptions.getAdditionalAiVaultCodexHomePaths,
+    ...(lifecycleOptions.getAdditionalAiVaultClaudeProjectsPaths
+      ? {
+          getAdditionalClaudeProjectsPaths: lifecycleOptions.getAdditionalAiVaultClaudeProjectsPaths
+        }
+      : {}),
     prepareSessionResume: lifecycleOptions.prepareAiVaultSessionResume,
     getActiveRuntimeAiVaultHostInfos: () =>
       getSavedRuntimeAiVaultHostInfos(app.getPath('userData')),

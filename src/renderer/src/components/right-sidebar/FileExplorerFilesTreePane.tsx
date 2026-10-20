@@ -135,6 +135,7 @@ export function FileExplorerFilesTreePane({
 
   return (
     <ScrollArea
+      hideScrollbar
       className={cn(
         // Why: Radix ScrollArea.Root hard-sets inline `position: relative`,
         // defeating `absolute`; size by height so the viewport can overflow.

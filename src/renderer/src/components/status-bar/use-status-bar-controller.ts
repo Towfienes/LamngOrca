@@ -79,7 +79,10 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     setIsRefreshing(true)
     try {
       // Why: re-run PATH detection so a freshly-installed/removed CLI's bar appears/hides without restarting Orca.
-      await Promise.all([refreshRateLimits(), refreshDetectedAgents()])
+      void refreshDetectedAgents().catch((error) =>
+        console.error('Could not refresh detected agents:', error)
+      )
+      await refreshRateLimits()
     } finally {
       if (mountedRef.current) {
         setIsRefreshing(false)

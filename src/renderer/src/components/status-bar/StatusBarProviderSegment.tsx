@@ -266,21 +266,29 @@ export function ProviderSegment({
   p,
   compact,
   display,
-  mode = 'verbose'
+  mode = 'verbose',
+  showProviderName = false
 }: {
   p: ProviderRateLimits | null
   compact: boolean
   display: UsagePercentageDisplay
   mode?: StatusBarUsageMode
+  showProviderName?: boolean
 }): React.JSX.Element {
   const provider = p?.provider ?? 'claude'
   const statusLabel = p ? getProviderUsageStatusLabel(p) : ''
+  const providerLabel = (
+    <>
+      <ProviderIcon provider={provider} />
+      {showProviderName ? <span>{getProviderDisplayName(provider)}</span> : null}
+    </>
+  )
 
   // Idle / initial load
   if (!p || p.status === 'idle') {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
-        <ProviderIcon provider={provider} />
+        {providerLabel}
         <span className="animate-pulse">···</span>
       </span>
     )
@@ -292,7 +300,7 @@ export function ProviderSegment({
   if (p.status === 'fetching' && !tightest) {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
-        <ProviderIcon provider={provider} />
+        {providerLabel}
         <span className="animate-pulse">···</span>
       </span>
     )
@@ -302,7 +310,7 @@ export function ProviderSegment({
   if (p.status === 'unavailable') {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground/50">
-        <ProviderIcon provider={provider} /> --
+        {providerLabel} --
       </span>
     )
   }
@@ -311,9 +319,11 @@ export function ProviderSegment({
   if (p.status === 'error' && !tightest) {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
-        <ProviderIcon provider={provider} />
+        {providerLabel}
         <AlertTriangle size={11} className="text-muted-foreground/80" />
-        {!compact && <span className="text-[11px] font-medium">{statusLabel}</span>}
+        {(!compact || showProviderName) && (
+          <span className="text-[11px] font-medium">{statusLabel}</span>
+        )}
       </span>
     )
   }
@@ -323,7 +333,7 @@ export function ProviderSegment({
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <ProviderIcon provider={provider} />
+      {providerLabel}
       {mode === 'verbose' ? (
         <>
           {tightest && !compact ? (

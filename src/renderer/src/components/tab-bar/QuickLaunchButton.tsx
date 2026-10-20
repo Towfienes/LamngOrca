@@ -39,6 +39,7 @@ export type QuickLaunchAgentMenuItemsProps = {
   onPromptDelivered?: () => void
   /** A caller that owns pane placement can launch into that pane. */
   onLaunchAgent?: (agent: TuiAgent) => void
+  onChooseAccountAgent?: (agent: Extract<TuiAgent, 'claude' | 'codex' | 'antigravity'>) => void
 }
 
 function getCatalogEntry(agent: TuiAgent): { id: TuiAgent; label: string } | null {
@@ -106,7 +107,8 @@ function QuickLaunchAgentMenuItemsInner({
   promptDelivery,
   launchSource,
   onPromptDelivered,
-  onLaunchAgent
+  onLaunchAgent,
+  onChooseAccountAgent
 }: QuickLaunchAgentMenuItemsProps): React.JSX.Element | null {
   // Why: resolving only the SSH connectionId here made paired-runtime
   // worktrees fall back to LOCAL detection, listing the client's agents
@@ -135,6 +137,13 @@ function QuickLaunchAgentMenuItemsInner({
 
   const runLaunch = useCallback(
     (agent: TuiAgent) => {
+      if (
+        onChooseAccountAgent &&
+        (agent === 'claude' || agent === 'codex' || agent === 'antigravity')
+      ) {
+        onChooseAccountAgent(agent)
+        return
+      }
       if (onLaunchAgent) {
         onLaunchAgent(agent)
         return
@@ -194,7 +203,8 @@ function QuickLaunchAgentMenuItemsInner({
       promptDelivery,
       launchSource,
       onPromptDelivered,
-      onLaunchAgent
+      onLaunchAgent,
+      onChooseAccountAgent
     ]
   )
 

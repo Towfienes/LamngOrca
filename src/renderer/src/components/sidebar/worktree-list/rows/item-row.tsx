@@ -156,6 +156,7 @@ export function renderWorktreeItemRow(
       data-worktree-id={itemRow.worktree.id}
       data-worktree-host-identity={worktreeIdentity}
       data-worktree-row-key={itemRow.rowKey}
+      data-repo-worktree-tree={itemRow.repoTree}
       data-worktree-section-key={itemRow.sectionKey}
       data-worktree-drag-id={worktreeDragGroupKey ? itemRow.worktree.id : undefined}
       data-worktree-drag-group-key={worktreeDragGroupKey}

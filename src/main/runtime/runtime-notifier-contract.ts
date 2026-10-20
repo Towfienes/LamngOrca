@@ -87,6 +87,7 @@ export type RuntimeNotifier = {
     opts: {
       direction: 'horizontal' | 'vertical'
       command?: string
+      startup?: WorktreeStartupLaunch
       worktreeId?: string
       sourceLeafId?: string
       telemetrySource?: TerminalPaneSplitSource

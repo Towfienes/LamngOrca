@@ -10,6 +10,10 @@ import { extractToolFields, isNewTurnEvent } from '../provider-event-routing'
 import type { HookListenerState } from '../listener-state'
 import { mainAgentTurnInterrupted } from '../../agent-lead-status-fold'
 import { claudeMainAgentStatusForPayload } from './claude-roster-state'
+import { readString } from '../tool-input-preview'
+import { record } from '../../codex-rollout-jsonl-cursor'
+import { readLastTextFromTranscriptOnce } from '../transcript-reader'
+import { extractClaudeAssistantModelFromLine } from '../transcript-entry-text'
 
 export function buildClaudeStatusPayload(
   state: HookListenerState,
@@ -36,6 +40,25 @@ export function buildClaudeStatusPayload(
   // each caller. The normalizer clamps `interrupted` to done payloads, so a row held open by child
   // work drops it; the record keeps the verdict for the eventual done.
   const mainAgentRecord = state.claudeLeadStateByPaneKey.get(paneKey)
+  const previous = state.lastStatusByPaneKey.get(paneKey)
+  const sameSession =
+    previous?.payload.agentType === 'claude' &&
+    previous.providerSession?.id === readString(hookPayload, 'session_id')
+  const child = Boolean(readString(hookPayload, 'agent_id'))
+  const effort = record(hookPayload.effort)
+  const hookModel = child ? undefined : readString(hookPayload, 'model')
+  const knownModel =
+    hookModel ?? (eventName !== 'SessionStart' && sameSession ? previous?.payload.model : undefined)
+  const transcriptPath =
+    !child && !knownModel && (eventName === 'PostToolUse' || eventName === 'Stop')
+      ? readString(hookPayload, 'transcript_path')
+      : undefined
+  // Older sessions may have missed SessionStart; read the actual root response, never global defaults.
+  const model =
+    knownModel ??
+    (transcriptPath
+      ? readLastTextFromTranscriptOnce(transcriptPath, extractClaudeAssistantModelFromLine)
+      : undefined)
   // Why: validate directly — the JSON stringify/parse round trip other normalizers use is pure overhead on this hot per-hook path.
   return normalizeAgentStatusPayload({
     state: options.stateName,
@@ -45,6 +68,15 @@ export function buildClaudeStatusPayload(
       resetOnNewTurn: options.updateToolSnapshot && isNewTurnEvent('claude', eventName)
     }),
     agentType: 'claude',
+    model,
+    reasoningEffort:
+      (child ? undefined : readString(effort ?? hookPayload, effort ? 'level' : 'effort')) ??
+      (eventName !== 'SessionStart' &&
+      sameSession &&
+      (!readString(hookPayload, 'model') ||
+        readString(hookPayload, 'model') === previous?.payload.model)
+        ? previous?.payload.reasoningEffort
+        : undefined),
     toolName: snapshot.toolName,
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,

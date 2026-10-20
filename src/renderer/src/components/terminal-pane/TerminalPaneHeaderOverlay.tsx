@@ -259,22 +259,9 @@ export default function TerminalPaneHeaderOverlay({
                 )}
                 <DeckPaneIdentity
                   paneKey={makePaneKey(tabId, pane.leafId)}
-                  hasTitle={Boolean(title)}
+                  title={title}
+                  onEditTitle={() => onStartRename(pane.id)}
                 />
-                {title ? (
-                  <button
-                    type="button"
-                    className="pane-title-text"
-                    onClick={() => onStartRename(pane.id)}
-                    aria-label={translate(
-                      'auto.components.terminal.pane.TerminalPane.cc5a2dc706',
-                      'Edit pane title: {{value0}}',
-                      { value0: title }
-                    )}
-                  >
-                    {title}
-                  </button>
-                ) : null}
                 <div className="pane-title-actions ml-auto flex shrink-0 items-center gap-0">
                   {canContinueAgentSessionInNewSession && isActivePane ? (
                     <Tooltip>

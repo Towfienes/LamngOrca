@@ -60,6 +60,9 @@ export type SleepingAgentSessionRecord = {
   capturedAt: number
   updatedAt: number
   terminalTitle?: string
+  ptyId?: string
+  model?: string
+  reasoningEffort?: string
   lastAssistantMessage?: string
   interrupted?: boolean
   /** The main agent's own status when captured, copied with `interrupted` by `agentVerdictFields`;

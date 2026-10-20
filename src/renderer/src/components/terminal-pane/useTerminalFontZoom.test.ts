@@ -7,14 +7,21 @@ const mocks = vi.hoisted(() => ({
   captureScrollState: vi.fn(() => ({ wasAtBottom: true })),
   restoreScrollState: vi.fn(),
   safeFit: vi.fn(),
-  dispatchZoomLevelChanged: vi.fn()
+  dispatchZoomLevelChanged: vi.fn(),
+  unsubscribe: vi.fn(),
+  cleanups: new Array<() => void>()
 }))
 
 vi.mock('react', async (importOriginal) => {
   const actual = await importOriginal<typeof ReactModule>()
   return {
     ...actual,
-    useEffect: (effect: () => void | (() => void)) => effect()
+    useEffect: (effect: () => void | (() => void)) => {
+      const cleanup = effect()
+      if (cleanup) {
+        mocks.cleanups.push(cleanup)
+      }
+    }
   }
 })
 
@@ -30,17 +37,27 @@ vi.mock('@/lib/zoom-events', () => ({
 
 describe('useTerminalFontZoom', () => {
   let terminalZoomListeners: ((direction: 'in' | 'out' | 'reset') => void)[]
+  let frames: FrameRequestCallback[]
 
   beforeEach(() => {
+    mocks.cleanups.forEach((cleanup) => cleanup())
     terminalZoomListeners = []
+    frames = []
+    mocks.cleanups = []
     document.body.replaceChildren()
     vi.clearAllMocks()
-    vi.stubGlobal('window', {
-      api: {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback)
+      return frames.length
+    })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    Object.defineProperty(window, 'api', {
+      configurable: true,
+      value: {
         ui: {
           onTerminalZoom: vi.fn((listener: (direction: 'in' | 'out' | 'reset') => void) => {
             terminalZoomListeners.push(listener)
-            return () => {}
+            return mocks.unsubscribe
           })
         }
       }
@@ -49,6 +66,9 @@ describe('useTerminalFontZoom', () => {
 
   function useMountedTerminalFontZoom(activeElement: HTMLElement): {
     terminal: { options: { fontSize?: number } }
+    container: HTMLElement
+    secondContainer: HTMLElement
+    secondTerminal: { options: { fontSize?: number } }
     listener: (direction: 'in' | 'out' | 'reset') => void
   } {
     const container = document.createElement('div')
@@ -56,12 +76,20 @@ describe('useTerminalFontZoom', () => {
     container.appendChild(activeElement)
     activeElement.focus()
     const terminal = { options: { fontSize: 14 } }
+    const secondTerminal = { options: { fontSize: 14 } }
+    const secondContainer = document.createElement('div')
+    container.appendChild(secondContainer)
     useTerminalFontZoom({
       isActive: true,
       containerRef: { current: container },
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This fixture exposes the only manager methods read here; fitting is mocked.
       managerRef: {
         current: {
-          getActivePane: () => ({ id: 1, terminal })
+          getActivePane: () => ({ id: 1, terminal }),
+          getPanes: () => [
+            { id: 1, terminal, container: activeElement },
+            { id: 2, terminal: secondTerminal, container: secondContainer }
+          ]
         }
       } as never,
       paneFontSizesRef: { current: new Map() },
@@ -69,8 +97,98 @@ describe('useTerminalFontZoom', () => {
     })
     const listener = terminalZoomListeners.at(-1)
     expect(listener).toBeTypeOf('function')
-    return { terminal, listener: listener as (direction: 'in' | 'out' | 'reset') => void }
+    if (!listener) {
+      throw new Error('Missing zoom listener')
+    }
+    return {
+      terminal,
+      container,
+      secondContainer,
+      secondTerminal,
+      listener
+    }
   }
+
+  function wheelEvent(init: WheelEventInit): WheelEvent {
+    const event = new WheelEvent('wheel', init)
+    // Happy DOM's WheelEvent omits modifier keys.
+    Object.defineProperty(event, 'ctrlKey', { value: init.ctrlKey ?? false })
+    return event
+  }
+
+  function flushFrame(): void {
+    frames.splice(0).forEach((callback) => callback(0))
+  }
+
+  it('zooms only the pane under the pointer without changing keyboard focus', () => {
+    const input = document.createElement('textarea')
+    input.className = 'xterm-helper-textarea'
+    const { terminal, secondTerminal, secondContainer } = useMountedTerminalFontZoom(input)
+    const normalWheel = wheelEvent({ deltaY: -100, bubbles: true, cancelable: true })
+    secondContainer.dispatchEvent(normalWheel)
+    expect(normalWheel.defaultPrevented).toBe(false)
+    const wheel = wheelEvent({
+      ctrlKey: true,
+      deltaY: -100,
+      bubbles: true,
+      cancelable: true
+    })
+    secondContainer.dispatchEvent(wheel)
+    flushFrame()
+    expect(wheel.defaultPrevented).toBe(true)
+    expect(terminal.options.fontSize).toBe(14)
+    expect(secondTerminal.options.fontSize).toBe(15)
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('accumulates small pinch deltas and fits only once per frame', () => {
+    const { secondContainer, secondTerminal } = useMountedTerminalFontZoom(
+      document.createElement('button')
+    )
+    for (let i = 0; i < 10; i++) {
+      secondContainer.dispatchEvent(wheelEvent({ ctrlKey: true, deltaY: -10, bubbles: true }))
+    }
+    expect(frames).toHaveLength(1)
+    flushFrame()
+    expect(secondTerminal.options.fontSize).toBe(15)
+    expect(mocks.safeFit).toHaveBeenCalledTimes(1)
+  })
+
+  it('normalizes line wheels, enforces font bounds and preserves keyboard reset', () => {
+    const helper = document.createElement('textarea')
+    helper.className = 'xterm-helper-textarea'
+    const { listener, terminal, secondContainer, secondTerminal } =
+      useMountedTerminalFontZoom(helper)
+    secondContainer.dispatchEvent(
+      wheelEvent({ ctrlKey: true, deltaY: 3, deltaMode: 1, bubbles: true })
+    )
+    flushFrame()
+    expect(secondTerminal.options.fontSize).toBe(13)
+    for (let i = 0; i < 50; i++) {
+      listener('in')
+    }
+    expect(terminal.options.fontSize).toBe(32)
+    for (let i = 0; i < 50; i++) {
+      listener('out')
+    }
+    expect(terminal.options.fontSize).toBe(8)
+    listener('reset')
+    expect(terminal.options.fontSize).toBe(14)
+  })
+
+  it('removes its wheel listener and cancels pending work when unmounted', () => {
+    const { secondContainer, secondTerminal } = useMountedTerminalFontZoom(
+      document.createElement('button')
+    )
+    secondContainer.dispatchEvent(wheelEvent({ ctrlKey: true, deltaY: -100, bubbles: true }))
+    mocks.cleanups.forEach((cleanup) => cleanup())
+    expect(cancelAnimationFrame).toHaveBeenCalledTimes(1)
+    expect(mocks.unsubscribe).toHaveBeenCalledTimes(1)
+    frames = []
+    secondContainer.dispatchEvent(wheelEvent({ ctrlKey: true, deltaY: -100, bubbles: true }))
+    expect(frames).toHaveLength(0)
+    expect(secondTerminal.options.fontSize).toBe(14)
+  })
 
   it('ignores zoom events when terminal input no longer owns focus', () => {
     const button = document.createElement('button')

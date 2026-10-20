@@ -37,6 +37,72 @@ describe('AgentHookServer Codex subagent transcript polling', () => {
     dirs.length = 0
   })
 
+  it('publishes model and effort changes without a child or turn-state change', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'agent-hook-codex-model-'))
+    dirs.push(dir)
+    const parentPath = join(dir, 'rollout-parent.jsonl')
+    writeFileSync(
+      parentPath,
+      line({ type: 'turn_context', payload: { model: 'gpt-6.1-sol', effort: 'medium' } })
+    )
+    const server = new AgentHookServer()
+    await server.start({ env: 'production' })
+    try {
+      const env = server.buildPtyEnv()
+      const response = await fetch(`http://127.0.0.1:${env.ORCA_AGENT_HOOK_PORT}/hook/codex`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Orca-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+        },
+        body: JSON.stringify({
+          paneKey: PANE_KEY,
+          tabId: 'tab-1',
+          worktreeId: 'wt-1',
+          payload: {
+            hook_event_name: 'UserPromptSubmit',
+            session_id: 'root-session',
+            transcript_path: parentPath,
+            prompt: 'Review this change'
+          }
+        })
+      })
+      expect(response.status).toBe(204)
+      const initial = server.getStatusSnapshot()[0]
+      expect(initial).toMatchObject({
+        model: 'gpt-6.1-sol',
+        reasoningEffort: 'medium',
+        state: 'working'
+      })
+      appendFileSync(
+        parentPath,
+        line({ type: 'turn_context', payload: { model: 'gpt-6-astra', effort: 'high' } })
+      )
+      await vi.waitFor(
+        () => {
+          expect(server.getStatusSnapshot()[0]).toMatchObject({
+            model: 'gpt-6-astra',
+            reasoningEffort: 'high',
+            state: 'working',
+            prompt: initial?.prompt,
+            stateStartedAt: initial?.stateStartedAt
+          })
+        },
+        { timeout: 3_000, interval: 50 }
+      )
+      appendFileSync(
+        parentPath,
+        line({ type: 'turn_context', payload: { model: 'gpt-6-astra', effort: 'low' } })
+      )
+      await vi.waitFor(() => expect(server.getStatusSnapshot()[0]?.reasoningEffort).toBe('low'), {
+        timeout: 3_000,
+        interval: 50
+      })
+    } finally {
+      server.stop()
+    }
+  })
+
   it('publishes rollout-only children and removes them after their task completes', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'agent-hook-codex-subagent-'))
     dirs.push(dir)

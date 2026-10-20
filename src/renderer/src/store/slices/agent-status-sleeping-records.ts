@@ -10,6 +10,7 @@ import {
   type SleepingAgentLaunchConfig,
   type SleepingAgentSessionRecord
 } from '../../../../shared/agent-session-resume'
+import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { findTabForAgentEntry } from './agent-status-pane-key-tab-binding'
 
@@ -43,11 +44,18 @@ export function sleepingRecordFromEntry(args: {
     return null
   }
   const tab = args.tab ?? findTabForAgentEntry(args.state, args.worktreeId, args.entry)
+  const parsed = parsePaneKey(args.entry.paneKey)
+  const ptyId = parsed
+    ? args.state.terminalLayoutsByTabId[parsed.tabId]?.ptyIdsByLeafId?.[parsed.leafId]
+    : undefined
   return {
     paneKey: args.entry.paneKey,
     ...(tab ? { tabId: tab.id } : {}),
     worktreeId: args.worktreeId,
     agent,
+    ...(ptyId ? { ptyId } : {}),
+    ...(args.entry.model ? { model: args.entry.model } : {}),
+    ...(args.entry.reasoningEffort ? { reasoningEffort: args.entry.reasoningEffort } : {}),
     providerSession: args.entry.providerSession,
     ...(args.entry.connectionId !== undefined ? { connectionId: args.entry.connectionId } : {}),
     prompt: args.entry.prompt,

@@ -216,6 +216,7 @@ export function recordCodexPaneAccountForSpawn(args: {
   isDaemonHostSpawn: boolean
   isReattach: boolean
   pinnedByResume: boolean
+  pinnedForSession?: boolean
   launchCodexHomePath: string | null
   launchEnv?: NodeJS.ProcessEnv
   target: CodexAccountSelectionTarget
@@ -267,7 +268,10 @@ export function recordCodexPaneAccountForSpawn(args: {
     forgetCodexPaneAccount(args.ptyId)
     return
   }
-  recordCodexPaneAccount(args.ptyId, record)
+  recordCodexPaneAccount(args.ptyId, {
+    ...record,
+    ...(args.pinnedForSession ? { pinnedForSession: true } : {})
+  })
 }
 
 export function snapshotCodexPaneHomeRoutes(

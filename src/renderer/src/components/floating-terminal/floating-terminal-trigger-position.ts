@@ -69,11 +69,16 @@ export function getDefaultFloatingTerminalTriggerCommittedPosition(): FloatingTe
 }
 
 export function getDefaultFloatingTerminalTriggerPosition(): FloatingTerminalTriggerPosition {
-  return clampFloatingTerminalTriggerPosition(
-    resolveFloatingTerminalTriggerCommittedPosition(
-      getDefaultFloatingTerminalTriggerCommittedPosition()
-    )
+  const position = resolveFloatingTerminalTriggerCommittedPosition(
+    getDefaultFloatingTerminalTriggerCommittedPosition()
   )
+  const sidebarWidth =
+    typeof document === 'undefined'
+      ? 0
+      : (document
+          .querySelector('.deck-right-sidebar:has(.deck-usage-panel)')
+          ?.getBoundingClientRect().width ?? 0)
+  return clampFloatingTerminalTriggerPosition({ ...position, left: position.left - sidebarWidth })
 }
 
 export function clampFloatingTerminalTriggerPosition(

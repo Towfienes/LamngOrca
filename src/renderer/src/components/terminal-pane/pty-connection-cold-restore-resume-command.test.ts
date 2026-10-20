@@ -238,106 +238,129 @@ describe('connectPanePty', () => {
     }
   })
 
-  it('re-runs the resume command when a hibernated local session reattaches with no payload', async () => {
-    // Why: the daemon drops startup commands on reattach, so a passive hibernation record must replace a contentless adopted shell.
-    const pendingTimeouts: (() => void)[] = []
-    const originalSetTimeout = globalThis.setTimeout
-    globalThis.setTimeout = vi.fn((fn: () => void) => {
-      pendingTimeouts.push(fn)
-      return 999 as unknown as ReturnType<typeof setTimeout>
-    }) as unknown as typeof setTimeout
+  it.each(['codex', 'claude'] as const)(
+    're-runs %s with its original account after the local PTY is lost',
+    async (agent) => {
+      // Why: the daemon drops startup commands on reattach, so a passive hibernation record must replace a contentless adopted shell.
+      const pendingTimeouts: (() => void)[] = []
+      const originalSetTimeout = globalThis.setTimeout
+      globalThis.setTimeout = vi.fn((fn: () => void) => {
+        pendingTimeouts.push(fn)
+        return 999 as unknown as ReturnType<typeof setTimeout>
+      }) as unknown as typeof setTimeout
 
-    try {
-      const { connectPanePty } = await import('./pty-connection')
-      const paneKey = makePaneKey('tab-1', LEAF_2)
-      let activePtyId: string | null = 'restored-session'
-      const transport = createMockTransport('restored-session')
-      transport.getPtyId.mockImplementation(() => activePtyId)
-      transport.disconnect.mockImplementation(() => {
-        activePtyId = null
-      })
-      transport.connect.mockImplementation(async (opts: { sessionId?: string }) => {
-        if (opts.sessionId) {
-          activePtyId = opts.sessionId
-          return {
-            id: opts.sessionId,
-            isReattach: true,
-            snapshot: undefined,
-            replay: undefined,
-            coldRestore: undefined
-          }
-        }
-        activePtyId = 'fresh-resume-pty'
-        const onPtySpawn = createdTransportOptions[0]?.onPtySpawn as
-          | ((ptyId: string) => void)
-          | undefined
-        onPtySpawn?.('fresh-resume-pty')
-        return 'fresh-resume-pty'
-      })
-      transportFactoryQueue.push(transport)
-      mockStoreState = {
-        ...mockStoreState,
-        tabsByWorktree: { 'wt-1': [{ id: 'tab-1', ptyId: 'restored-session' }] },
-        settings: {
-          ...mockStoreState.settings,
-          agentCmdOverrides: {}
-        },
-        sleepingAgentSessionsByPaneKey: {
-          [paneKey]: {
-            paneKey,
-            tabId: 'tab-1',
-            worktreeId: 'wt-1',
-            agent: 'codex',
-            providerSession: { key: 'session_id', id: 'codex-session-1' },
-            prompt: 'finish the task',
-            // Mirrors the user's scenario: a stopped/completed agent that hibernated.
-            state: 'done',
-            origin: 'worktree-sleep',
-            capturedAt: 1,
-            updatedAt: 1
-          }
-        }
-      } as StoreState
-      const pane = createPane(2)
-      const manager = createManager(2)
-      const deps = createDeps({
-        restoredLeafId: LEAF_2,
-        restoredPtyIdByLeafId: { [LEAF_2]: 'restored-session' }
-      })
-      vi.mocked(window.api.pty.declarePendingPaneSerializer)
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2)
-
-      connectPanePty(pane as never, manager as never, deps as never)
-      await flushAsyncTicks(20)
-      for (const fn of pendingTimeouts) {
-        fn()
-      }
-      await flushAsyncTicks(10)
-
-      expect(transport.disconnect).toHaveBeenCalledTimes(1)
-      expect(transport.connect).toHaveBeenCalledTimes(2)
-      expect(transport.connect).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          command: "codex '--dangerously-bypass-approvals-and-sandbox' 'resume' 'codex-session-1'",
-          env: expect.objectContaining({
-            ORCA_PANE_KEY: paneKey,
-            ORCA_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
-          })
+      try {
+        const { connectPanePty } = await import('./pty-connection')
+        const paneKey = makePaneKey('tab-1', LEAF_2)
+        let activePtyId: string | null = 'restored-session'
+        const transport = createMockTransport('restored-session')
+        transport.getPtyId.mockImplementation(() => activePtyId)
+        transport.disconnect.mockImplementation(() => {
+          activePtyId = null
         })
-      )
-      // The dead session is not adopted as the pane's live PTY.
-      expect(deps.clearExitedPanePtyLayoutBinding).toHaveBeenCalledWith(2, 'restored-session')
-      expect(deps.clearTabPtyId).toHaveBeenCalledWith('tab-1', 'restored-session')
-      expect(deps.syncPanePtyLayoutBinding).not.toHaveBeenCalledWith(2, 'restored-session')
-      expect(deps.syncPanePtyLayoutBinding).toHaveBeenCalledWith(2, 'fresh-resume-pty')
-      expect(mockStoreState.clearSleepingAgentSession).toHaveBeenCalledWith(paneKey)
-      expect(window.api.pty.clearPendingPaneSerializer).toHaveBeenCalledWith(paneKey, 1)
-    } finally {
-      globalThis.setTimeout = originalSetTimeout
+        transport.connect.mockImplementation(async (opts: { sessionId?: string }) => {
+          if (opts.sessionId) {
+            activePtyId = opts.sessionId
+            return {
+              id: opts.sessionId,
+              isReattach: true,
+              snapshot: undefined,
+              replay: undefined,
+              coldRestore: undefined
+            }
+          }
+          activePtyId = 'fresh-resume-pty'
+          const onPtySpawn = createdTransportOptions[0]?.onPtySpawn as
+            | ((ptyId: string) => void)
+            | undefined
+          onPtySpawn?.('fresh-resume-pty')
+          return 'fresh-resume-pty'
+        })
+        transportFactoryQueue.push(transport)
+        mockStoreState = {
+          ...mockStoreState,
+          tabsByWorktree: { 'wt-1': [{ id: 'tab-1', ptyId: 'restored-session' }] },
+          settings: {
+            ...mockStoreState.settings,
+            agentCmdOverrides: {},
+            claudeManagedAccounts: [
+              {
+                id: 'owner',
+                email: 'owner@example.invalid',
+                managedAuthPath: '/managed/owner/auth',
+                authMethod: 'subscription-oauth',
+                createdAt: 1,
+                updatedAt: 1,
+                lastAuthenticatedAt: 1
+              }
+            ]
+          },
+          sleepingAgentSessionsByPaneKey: {
+            [paneKey]: {
+              paneKey,
+              tabId: 'tab-1',
+              worktreeId: 'wt-1',
+              agent,
+              launchConfig: { agentArgs: '--test-args', agentEnv: {} },
+              providerSession: {
+                key: 'session_id',
+                id: 'session-one',
+                transcriptPath: '/managed/owner/auth/projects/worktree/session-one.jsonl'
+              },
+              prompt: 'finish the task',
+              // Mirrors the user's scenario: a stopped/completed agent that hibernated.
+              state: 'done',
+              origin: 'worktree-sleep',
+              capturedAt: 1,
+              updatedAt: 1
+            }
+          }
+        } satisfies StoreState
+        const pane = createPane(2)
+        const manager = createManager(2)
+        const deps = createDeps({
+          restoredLeafId: LEAF_2,
+          restoredPtyIdByLeafId: { [LEAF_2]: 'restored-session' }
+        })
+        vi.mocked(window.api.pty.declarePendingPaneSerializer)
+          .mockResolvedValueOnce(1)
+          .mockResolvedValueOnce(2)
+
+        connectPanePty(pane as never, manager as never, deps as never)
+        await flushAsyncTicks(20)
+        for (const fn of pendingTimeouts) {
+          fn()
+        }
+        await flushAsyncTicks(10)
+
+        expect(transport.disconnect).toHaveBeenCalledTimes(1)
+        expect(transport.connect).toHaveBeenCalledTimes(2)
+        expect(transport.connect).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            command:
+              agent === 'claude'
+                ? "claude '--test-args' '--resume' 'session-one'"
+                : "codex '--test-args' 'resume' 'session-one'",
+            env: expect.objectContaining({
+              ORCA_PANE_KEY: paneKey,
+              ...(agent === 'claude' ? { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'owner' } : {}),
+              ORCA_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
+            })
+          })
+        )
+        // The dead session is not adopted as the pane's live PTY.
+        expect(deps.clearExitedPanePtyLayoutBinding).toHaveBeenCalledWith(2, 'restored-session')
+        expect(deps.clearTabPtyId).toHaveBeenCalledWith('tab-1', 'restored-session')
+        expect(deps.syncPanePtyLayoutBinding).not.toHaveBeenCalledWith(2, 'restored-session')
+        expect(deps.syncPanePtyLayoutBinding).toHaveBeenCalledWith(2, 'fresh-resume-pty')
+        expect(mockStoreState.clearSleepingAgentSession).toHaveBeenCalledWith(paneKey)
+        expect(window.api.pty.clearPendingPaneSerializer).toHaveBeenCalledWith(paneKey, 1)
+      } finally {
+        globalThis.setTimeout = originalSetTimeout
+      }
     }
-  })
+  )
 
   // Regression (#12320): a cold restore after reboot typed PowerShell single quotes into
   // cmd.exe tabs, so the agent CLI rejected the resume argv ("unexpected argument").

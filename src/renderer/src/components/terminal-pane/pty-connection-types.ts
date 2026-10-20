@@ -20,6 +20,7 @@ import type { DirectSshPaneRetryAttemptId } from '@/store/slices/direct-ssh-term
 import type { PtyPreconnectInputEntry } from './pty-preconnect-input-buffer'
 
 export type PtyPaneStartup = {
+  cwd?: string
   command: string
   /** Renderer-delivered startup input for callers that need xterm paste
    *  semantics before the submit Enter. */

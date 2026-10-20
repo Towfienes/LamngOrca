@@ -46,6 +46,7 @@ export function renderFloatingTerminalPanelSurface({
   closeToRight,
   closeToLeft,
   createFloatingTerminalTab,
+  createFloatingEmulatorTab,
   createFloatingBrowserTab,
   createFloatingMarkdownTab,
   openFloatingMarkdownTab,
@@ -67,6 +68,7 @@ export function renderFloatingTerminalPanelSurface({
   toggleMaximized,
   hasVisibleFloatingTabs,
   managedBrowserCreationEnabled,
+  mobileEmulatorCreationEnabled,
   cwd,
   panelViewportSettled,
   tabs,
@@ -158,6 +160,9 @@ export function renderFloatingTerminalPanelSurface({
               onNewTerminalTab={() => createFloatingTerminalTab()}
               onNewTerminalWithShell={createFloatingTerminalTab}
               onNewBrowserTab={createFloatingBrowserTab}
+              onNewSimulatorTab={
+                mobileEmulatorCreationEnabled ? createFloatingEmulatorTab : undefined
+              }
               onNewFileTab={createFloatingMarkdownTab}
               onOpenFileTab={openFloatingMarkdownTab}
               newTabMenuOrder="markdown-first"
@@ -308,6 +313,7 @@ export function renderFloatingTerminalPanelSurface({
               onOpenMarkdown={openFloatingMarkdownTab}
               onNewBrowser={createFloatingBrowserTab}
               showNewBrowser={managedBrowserCreationEnabled}
+              onNewEmulator={mobileEmulatorCreationEnabled ? createFloatingEmulatorTab : undefined}
               onClose={() => onOpenChange(false)}
               onFocusPanel={focusPanelForShortcuts}
               newTerminalShortcut={newTerminalShortcut}

@@ -3,6 +3,7 @@ import type { AgentSessionOwnerBinding } from '../../../../shared/agent-session-
 import { agentSessionOwnerBindingsEqual } from '../../../../shared/claimed-agent-pty-owner'
 import { addNodePtyRecoveryHint } from '../../../daemon/node-pty-error-hints'
 import { SessionNotFoundError } from '../../../daemon/daemon-errors'
+import { TerminalKilledError } from '../../../daemon/daemon-pty-lifecycle-errors'
 import type { Store } from '../../../persistence'
 import {
   isSshPtyAbsentFromRelayError,
@@ -77,7 +78,11 @@ export function isPtyAlreadyGoneError(err: unknown): boolean {
  * (docs/reference/ssh-execution-boundary.md).
  */
 export function isHostReportedPtyAbsenceError(err: unknown): boolean {
-  return isSshPtyAbsentFromRelayError(err) || err instanceof SessionNotFoundError
+  return (
+    isSshPtyAbsentFromRelayError(err) ||
+    err instanceof SessionNotFoundError ||
+    err instanceof TerminalKilledError
+  )
 }
 
 /**
@@ -92,7 +97,11 @@ export function isHostReportedPtyAbsenceError(err: unknown): boolean {
  * route (docs/reference/ssh-execution-boundary.md).
  */
 export function isObservedPtyExitEvidence(err: unknown): boolean {
-  return isSshPtyProvenExitedOnRelayError(err) || err instanceof SessionNotFoundError
+  return (
+    isSshPtyProvenExitedOnRelayError(err) ||
+    err instanceof SessionNotFoundError ||
+    err instanceof TerminalKilledError
+  )
 }
 
 export function delay(ms: number): Promise<void> {

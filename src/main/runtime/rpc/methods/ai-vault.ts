@@ -103,6 +103,7 @@ export const AI_VAULT_METHODS = [
     handler: async (params, { runtime }) => {
       const args: AiVaultPrepareSessionResumeArgs = {
         agent: params.agent,
+        ...(params.accountId ? { accountId: params.accountId } : {}),
         ...(params.sessionId ? { sessionId: params.sessionId } : {}),
         filePath: params.filePath,
         codexHome: params.codexHome,

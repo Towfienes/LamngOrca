@@ -1,6 +1,8 @@
 import { useAppStore } from '@/store'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status-types'
+import { isExplicitAgentStatusFresh } from '@/lib/agent-status'
 
 type TerminalPaneAttentionListener = () => void
 
@@ -10,6 +12,18 @@ const listenersByTabId = new Map<string, Set<TerminalPaneAttentionListener>>()
 let unsubscribeStore: (() => void) | null = null
 let previousUnreadTerminalPanes: TerminalPaneAttentionState['unreadTerminalPanes'] | null = null
 let previousAttentionEnabled = false
+let previousAgentEpoch = 0
+let previousAgentStatuses: TerminalPaneAttentionState['agentStatusByPaneKey'] | null = null
+
+function isWaitingForUser(
+  entry: TerminalPaneAttentionState['agentStatusByPaneKey'][string] | undefined
+): boolean {
+  return (
+    entry?.state === 'waiting' &&
+    !entry.restoredUnconfirmed &&
+    isExplicitAgentStatusFresh(entry, Date.now(), AGENT_STATUS_STALE_AFTER_MS)
+  )
+}
 
 function isTerminalAttentionEnabled(state: TerminalPaneAttentionState): boolean {
   return state.settings?.experimentalTerminalAttention === true
@@ -70,12 +84,17 @@ function ensureStoreSubscription(): void {
   const initial = useAppStore.getState()
   previousUnreadTerminalPanes = initial.unreadTerminalPanes
   previousAttentionEnabled = isTerminalAttentionEnabled(initial)
+  previousAgentEpoch = initial.agentStatusEpoch
+  previousAgentStatuses = initial.agentStatusByPaneKey
   unsubscribeStore = useAppStore.subscribe((state) => {
+    const freshnessChanged = state.agentStatusEpoch !== previousAgentEpoch
+    previousAgentEpoch = state.agentStatusEpoch
+    const statusesChanged = state.agentStatusByPaneKey !== previousAgentStatuses
     const nextUnreadTerminalPanes = state.unreadTerminalPanes
     const nextAttentionEnabled = isTerminalAttentionEnabled(state)
     const attentionChanged = nextAttentionEnabled !== previousAttentionEnabled
     const unreadChanged = nextUnreadTerminalPanes !== previousUnreadTerminalPanes
-    if (!attentionChanged && !unreadChanged) {
+    if (!attentionChanged && !unreadChanged && !statusesChanged && !freshnessChanged) {
       return
     }
 
@@ -86,16 +105,31 @@ function ensureStoreSubscription(): void {
 
     previousUnreadTerminalPanes = nextUnreadTerminalPanes
     previousAttentionEnabled = nextAttentionEnabled
+    if (statusesChanged) {
+      for (const tabId of listenersByTabId.keys()) {
+        const leaves = state.terminalLayoutsByTabId?.[tabId]?.ptyIdsByLeafId ?? {}
+        for (const leafId of Object.keys(leaves)) {
+          const paneKey = makePaneKey(tabId, leafId)
+          if (
+            isWaitingForUser(state.agentStatusByPaneKey?.[paneKey]) !==
+            isWaitingForUser(previousAgentStatuses?.[paneKey])
+          ) {
+            changedTabs.add(tabId)
+            break
+          }
+        }
+      }
+      previousAgentStatuses = state.agentStatusByPaneKey
+    }
 
-    if (attentionChanged) {
+    if (attentionChanged || freshnessChanged) {
       notifyAllTabs()
       return
     }
-    if (!nextAttentionEnabled) {
-      return
-    }
     for (const tabId of changedTabs) {
-      notifyTab(tabId)
+      if (nextAttentionEnabled || statusesChanged) {
+        notifyTab(tabId)
+      }
     }
   })
 }
@@ -125,6 +159,7 @@ export function subscribeTerminalPaneAttention(
       unsubscribeStore = null
       previousUnreadTerminalPanes = null
       previousAttentionEnabled = false
+      previousAgentStatuses = null
     }
   }
 }
@@ -135,6 +170,11 @@ export function applyTerminalPaneAttentionToManager(manager: PaneManager, tabId:
   const unreadTerminalPanes = state.unreadTerminalPanes
   for (const pane of manager.getPanes()) {
     const paneKey = makePaneKey(tabId, pane.leafId)
+    if (isWaitingForUser(state.agentStatusByPaneKey?.[paneKey])) {
+      pane.container.setAttribute('data-agent-waiting', '')
+    } else {
+      pane.container.removeAttribute('data-agent-waiting')
+    }
     if (enabled && unreadTerminalPanes[paneKey]) {
       pane.container.setAttribute('data-terminal-attention', '')
     } else {
@@ -149,4 +189,5 @@ export function resetTerminalPaneAttentionSubscriptionsForTests(): void {
   listenersByTabId.clear()
   previousUnreadTerminalPanes = null
   previousAttentionEnabled = false
+  previousAgentStatuses = null
 }

@@ -8,6 +8,7 @@ import { CLAUDE_AUTH_SWITCH_IN_PROGRESS_MESSAGE } from '../../../claude-accounts
 import { mintPtySessionId } from '../../../daemon/pty-session-id'
 import { resolveWslSessionContext } from '../../../daemon/wsl-session-context'
 import { LocalPtyProvider } from '../../../providers/local-pty-provider'
+import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
 import { normalizeWindowsTerminalCwd } from '../../../providers/windows-shell-args'
 import { wslUncDirectoryExistsAsync } from '../../../wsl'
 import { getCodexSelectionTargetForPty } from '../host-env/codex-home'
@@ -192,7 +193,11 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     }
   }
   ctx.isClaudeLaunch =
-    !ctx.preAdoptedStablePane && !args.connectionId && isClaudeLaunchCommand(args.command)
+    !ctx.preAdoptedStablePane &&
+    !args.connectionId &&
+    (isClaudeLaunchCommand(args.command) ||
+      (args.env?.[AGENT_LAUNCH_ACCOUNT_ENV] !== undefined &&
+        (args.launchAgent === 'claude' || args.launchAgent === 'claude-agent-teams')))
   if (ctx.isClaudeLaunch && isClaudeAuthSwitchInProgress()) {
     throw new Error(CLAUDE_AUTH_SWITCH_IN_PROGRESS_MESSAGE)
   }
@@ -229,7 +234,10 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
   )
   ctx.claudeAuth =
     ctx.isClaudeLaunch && ctx.deps.prepareClaudeAuth
-      ? await ctx.deps.prepareClaudeAuth(initialSelectionTarget)
+      ? await ctx.deps.prepareClaudeAuth(
+          initialSelectionTarget,
+          args.env?.[AGENT_LAUNCH_ACCOUNT_ENV]
+        )
       : null
   ctx.spawnTiming.mark('auth')
 }

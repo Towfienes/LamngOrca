@@ -18,3 +18,35 @@ describe('normalizeAgentStatusEvent', () => {
     expect(normalized?.lastAssistantMessageIsToolOutput).toBe(true)
   })
 })
+
+describe('host model metadata reaching the renderer', () => {
+  it('preserves reasoning effort across the IPC boundary', () => {
+    expect(
+      normalizeAgentStatusEvent({
+        paneKey: 'pane',
+        connectionId: null,
+        receivedAt: 1,
+        stateStartedAt: 1,
+        state: 'working',
+        prompt: 'Review',
+        agentType: 'codex',
+        model: 'gpt-6.1-sol',
+        reasoningEffort: 'high'
+      })
+    ).toMatchObject({ model: 'gpt-6.1-sol', reasoningEffort: 'high' })
+  })
+  it('accepts an older host without reasoning metadata', () => {
+    expect(
+      normalizeAgentStatusEvent({
+        paneKey: 'pane',
+        connectionId: null,
+        receivedAt: 1,
+        stateStartedAt: 1,
+        state: 'done',
+        prompt: 'Review',
+        agentType: 'claude',
+        model: 'claude-sonnet-5-5'
+      })
+    ).toMatchObject({ model: 'claude-sonnet-5-5', state: 'done' })
+  })
+})

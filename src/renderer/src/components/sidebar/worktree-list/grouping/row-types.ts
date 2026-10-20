@@ -31,6 +31,7 @@ export type GroupHeaderRow = {
 }
 
 export type WorktreeRow = {
+  repoTree?: 'root' | 'branch' | 'last'
   type: 'item'
   rowKey: string
   sectionKey: string

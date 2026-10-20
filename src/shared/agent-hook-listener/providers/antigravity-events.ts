@@ -71,6 +71,8 @@ export function normalizeAntigravityEvent(
       resetOnNewTurn: resetsTurn
     }),
     agentType: 'antigravity',
+    model: readFirstString(hookPayload, ['model', 'modelName']),
+    reasoningEffort: readFirstString(hookPayload, ['reasoningEffort', 'effort']),
     toolName: snapshot.toolName,
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,

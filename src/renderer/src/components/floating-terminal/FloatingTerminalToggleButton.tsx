@@ -64,6 +64,9 @@ export function FloatingTerminalToggleButton({
   onToggle: () => void
 }): React.JSX.Element {
   const shortcutLabel = useShortcutLabel('floatingTerminal.toggle')
+  const rightSidebarOpen = useAppStore((state) => state.rightSidebarOpen)
+  const rightSidebarWidth = useAppStore((state) => state.rightSidebarWidth)
+  const activityBarPosition = useAppStore((state) => state.activityBarPosition)
   // Why: show an attention dot while minimized (closed) when any floating-
   // workspace tab still has an unacknowledged bell or agent completion. Derived
   // from the shared unread maps, so it clears when the user engages with — or
@@ -127,10 +130,9 @@ export function FloatingTerminalToggleButton({
   }, [])
 
   useLayoutEffect(() => {
-    // Why: Electron can mount before the renderer has final viewport dimensions;
-    // default positions should re-anchor to bottom-right before first paint.
+    // Keep the default launcher outside the usage dock as the sidebar changes.
     reconcilePosition()
-  }, [reconcilePosition])
+  }, [reconcilePosition, rightSidebarOpen, rightSidebarWidth, activityBarPosition])
 
   useEffect(() => {
     const handleResize = (): void => reconcilePosition()

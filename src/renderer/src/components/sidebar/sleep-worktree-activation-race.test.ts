@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => {
       }
     }),
     tabsByWorktree: {} as Record<string, { id: string }[]>,
+    reconcileWorktreeTabModel: (worktreeId: string): { renderableTabCount: number } => ({
+      renderableTabCount: (state.tabsByWorktree[worktreeId] ?? []).length
+    }),
     ptyIdsByTabId: {} as Record<string, string[]>
   }
   const activateAndRevealWorktree = vi.fn()
@@ -89,6 +92,7 @@ describe('sleep flow vs slept-workspace activation', () => {
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledTimes(1)
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-parent', {
       navigationIntent: 'user-open',
+      providesInitialSurface: true,
       revealInSidebar: false
     })
 
@@ -104,6 +108,7 @@ describe('sleep flow vs slept-workspace activation', () => {
 
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-parent', {
       navigationIntent: 'user-open',
+      providesInitialSurface: true,
       revealInSidebar: false
     })
     expect(mocks.toastError).toHaveBeenCalledWith(

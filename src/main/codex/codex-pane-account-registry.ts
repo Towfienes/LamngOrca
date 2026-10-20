@@ -132,6 +132,7 @@ function parseRegistry(parsed: unknown): CodexPaneAccountRegistryFile {
       empty.panes[ptyId] = {
         selectionKey: record.selectionKey,
         accountId: record.accountId,
+        ...(record.pinnedForSession === true ? { pinnedForSession: true } : {}),
         ...(isPaneHomeRoute(record.homeRoute) ? { homeRoute: record.homeRoute } : {}),
         ...(isShellStartupHomeOverride(record.shellStartupHomeOverride)
           ? { shellStartupHomeOverride: record.shellStartupHomeOverride }

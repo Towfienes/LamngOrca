@@ -1,4 +1,6 @@
 import { useAppStore } from '@/store'
+import { claudeResumeAccountEnv } from '@/lib/claude-resume-account-env'
+import { CLIENT_PLATFORM } from '@/lib/new-workspace'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { resolveAgentResumeLaunchTarget } from '@/lib/agent-resume-launch-target'
@@ -88,10 +90,18 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
         launchConfig !== undefined
           ? launchConfig.agentArgs
           : resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
-      agentEnv:
-        launchConfig !== undefined
-          ? launchConfig.agentEnv
-          : resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
+      agentEnv: claudeResumeAccountEnv({
+        agent,
+        agentEnv:
+          launchConfig?.agentEnv ??
+          resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
+        transcriptPath: providerSession.transcriptPath,
+        accounts: state.settings?.claudeManagedAccounts,
+        local:
+          !session.connectionId &&
+          (!session.executionHostId || session.executionHostId === 'local') &&
+          resumeTarget.platform === CLIENT_PLATFORM
+      }),
       ...(launchConfig?.agentCommand ? { agentCommand: launchConfig.agentCommand } : {}),
       ...(launchConfig?.ompResumeFilePath
         ? { ompResumeFilePath: launchConfig.ompResumeFilePath }

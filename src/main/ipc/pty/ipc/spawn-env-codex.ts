@@ -18,6 +18,7 @@ import {
 import { promoteAgentTeamsShimPath } from '../host-env/path'
 import { clearProviderPtyState } from '../provider/state-cleanup'
 import type { PtyIpcSpawnState } from './spawn-state'
+import { resolvePinnedCodexLaunchHome } from '../host-env/codex-launch-account'
 
 export async function assemblePtyIpcSpawnCodexEnv(ctx: PtyIpcSpawnState): Promise<void> {
   const args = ctx.args
@@ -54,11 +55,15 @@ export async function assemblePtyIpcSpawnCodexEnv(ctx: PtyIpcSpawnState): Promis
   // Why: declared after the strip so a local-provider spawn cannot capture the
   // pre-strip env — only the daemon branch below re-derives this from baseEnv.
   ctx.env = ctx.baseEnv
+  const pinnedHome = ctx.preAdoptedStablePane
+    ? undefined
+    : resolvePinnedCodexLaunchHome(args, ctx.codexSelectionTarget, ctx.deps.getSettings?.())
   const selectLaunchCodexHome = async (): Promise<string | null> =>
     (await ctx.deps.getSelectedCodexHomePath?.(ctx.codexSelectionTarget, ctx.baseEnv)) ?? null
   ctx.selectedCodexHomePath =
     !ctx.preAdoptedStablePane && !args.connectionId
-      ? getCompatibleSelectedCodexHomePath(
+      ? (pinnedHome ??
+        getCompatibleSelectedCodexHomePath(
           ctx.codexSelectionTarget,
           codexResumeHome
             ? await ctx.deps.reconcileSharedRuntimeResumeHome(codexResumeHome, async () =>
@@ -68,13 +73,13 @@ export async function assemblePtyIpcSpawnCodexEnv(ctx: PtyIpcSpawnState): Promis
                 )
               )
             : await selectLaunchCodexHome()
-        )
+        ))
       : null
   if (!ctx.preAdoptedStablePane && args.launchAgent === 'codex' && args.sessionId === undefined) {
     const resolution = resolveCodexHomeAfterManagedAuthReadiness({
       selectedCodexHomePath: ctx.selectedCodexHomePath,
       getSettings: () => ctx.deps.getSettings?.(),
-      requiredCodexHomePath: codexResumeHome?.codexHomePath,
+      requiredCodexHomePath: pinnedHome ?? codexResumeHome?.codexHomePath,
       target: ctx.codexSelectionTarget,
       resolveCurrent: async () =>
         getCompatibleSelectedCodexHomePath(
@@ -96,7 +101,9 @@ export async function assemblePtyIpcSpawnCodexEnv(ctx: PtyIpcSpawnState): Promis
   }
   ctx.spawnTiming.mark('codex_home')
   ctx.codexResumeHomeSelected = Boolean(
-    codexResumeHome && codexHomePathsEqual(ctx.selectedCodexHomePath, codexResumeHome.codexHomePath)
+    pinnedHome ||
+    (codexResumeHome &&
+      codexHomePathsEqual(ctx.selectedCodexHomePath, codexResumeHome.codexHomePath))
   )
   ctx.skipCodexHomeEnv =
     ctx.isDaemonHostSpawn &&

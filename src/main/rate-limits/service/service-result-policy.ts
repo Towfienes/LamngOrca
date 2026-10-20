@@ -1,8 +1,6 @@
 import { RateLimitServiceFetchControl } from './service-fetch-control'
 import {
   MAX_ACTIVE_FAILURE_STREAK,
-  RATE_LIMITED_STALE_THRESHOLD_MS,
-  STALE_THRESHOLD_MS,
   type ActiveRateLimitProvider,
   type ProviderRateLimits
 } from './service-types'
@@ -42,16 +40,7 @@ export abstract class RateLimitServiceResultPolicy extends RateLimitServiceFetch
       return fresh
     }
 
-    // Previous data is too old — don't show stale data
-    const staleThresholdMs =
-      fresh.usageMetadata?.failureKind === 'rate-limited'
-        ? RATE_LIMITED_STALE_THRESHOLD_MS
-        : STALE_THRESHOLD_MS
-    if (Date.now() - previous.updatedAt > staleThresholdMs) {
-      return fresh
-    }
-
-    // Why: keep showing a recent snapshot through repeated transient failures until it ages out, so the bar doesn't flap to empty.
+    // Keep the last successful reading marked as stale; failures must not erase its windows.
     return {
       ...previous,
       error: fresh.error,

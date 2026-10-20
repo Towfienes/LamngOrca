@@ -34,6 +34,19 @@
    them visible while pointer devices preserve the reveal-on-hover behavior. */
 @custom-variant can-hover (@media (hover: hover));
 
+/* Small sidebar surfaces only; keep the workspace and terminal canvas opaque. */
+@utility sidebar-glass {
+  background-color: color-mix(in srgb, var(--sidebar) 80%, transparent);
+  background-image: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--sidebar-foreground) 10%, transparent),
+    transparent
+  );
+  border-color: color-mix(in srgb, var(--sidebar-foreground) 30%, var(--sidebar-border));
+  backdrop-filter: blur(8px);
+  @apply shadow-xs;
+}
+
 .theme-transition-disabled *,
 .theme-transition-disabled *::before,
 .theme-transition-disabled *::after {

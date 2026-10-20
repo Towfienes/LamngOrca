@@ -1,4 +1,4 @@
-import { FileText, Globe, Minus, TerminalSquare } from 'lucide-react'
+import { FileText, Globe, Minus, Smartphone, TerminalSquare } from 'lucide-react'
 import { ShortcutKeyCombo } from '@/components/ShortcutKeyCombo'
 import { Button } from '@/components/ui/button'
 import type { ShortcutKeyComboDetails } from '@/hooks/useShortcutLabel'
@@ -10,6 +10,7 @@ type FloatingTerminalEmptyStateProps = {
   onOpenMarkdown: () => void
   onNewBrowser: () => void
   showNewBrowser: boolean
+  onNewEmulator?: () => void
   onClose: () => void
   onFocusPanel: () => void
   newTerminalShortcut: ShortcutKeyComboDetails
@@ -25,6 +26,7 @@ export function FloatingTerminalEmptyState({
   onOpenMarkdown,
   onNewBrowser,
   showNewBrowser,
+  onNewEmulator,
   onClose,
   onFocusPanel,
   newTerminalShortcut,
@@ -103,6 +105,19 @@ export function FloatingTerminalEmptyState({
               )}
             </span>
             <FloatingEmptyStateShortcut shortcut={newBrowserShortcut} />
+          </Button>
+        ) : null}
+        {onNewEmulator ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="grid h-8 w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md px-3 py-0 text-sm font-normal text-foreground hover:bg-muted/40 hover:text-foreground"
+            onClick={onNewEmulator}
+          >
+            <Smartphone className="size-3.5 opacity-90" />
+            <span className="truncate text-left leading-none">
+              {translate('auto.components.tab.bar.TabBar.fd2b42aaa3', 'New Mobile Emulator')}
+            </span>
           </Button>
         ) : null}
         <Button

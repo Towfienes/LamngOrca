@@ -29,6 +29,7 @@ export function bindDeferredColdRestoreAndSnapshot(session: ConnectPanePtySessio
     const state = useAppStore.getState()
     state.registerAgentLaunchConfig(session.cacheKey, startup.launchConfig, {
       agentType: startup.agent,
+      providerSession: startup.resumeProviderSession,
       launchToken: startup.launchToken,
       tabId: session.deps.tabId,
       leafId: session.pane.leafId

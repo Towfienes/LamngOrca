@@ -1,4 +1,5 @@
 import { existsSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { AgentHookSource } from '../../shared/agent-hook-relay'
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
@@ -46,6 +47,7 @@ import {
   type ClaudeCompatibleHookSettings
 } from './hook-settings'
 import {
+  CLAUDE_MANAGED_EVENTS,
   getClaudeManagedHookPlan,
   OPENCLAUDE_MANAGED_HOOK_PLAN,
   type ClaudeManagedHookPlan
@@ -193,6 +195,45 @@ export class ClaudeHookService {
     }
     writeHooksJson(configPath, nextConfig)
     return this.getStatus(options)
+  }
+
+  syncManagedHooksToConfigDir(configDir: string): void {
+    const configPath = join(configDir, 'settings.json')
+    if (configPath === getConfigPath(this.options.settings)) {
+      return
+    }
+    const source = readHooksJson(getConfigPath(this.options.settings))
+    const target = readHooksJson(configPath)
+    if (!source || !target) {
+      throw new Error('Could not read Claude settings to prepare agent status hooks.')
+    }
+    const scriptPath = getManagedScriptPath(this.options.settings)
+    const hook = getManagedLifecycleHook(scriptPath, this.options.settings)
+    // The global installation already selected events compatible with this CLI.
+    const install = CLAUDE_MANAGED_EVENTS.filter((event) => {
+      const definitions = source.hooks?.[event.eventName]
+      return (
+        Array.isArray(definitions) &&
+        definitions.some(
+          (definition) =>
+            Array.isArray(definition?.hooks) &&
+            definition.hooks.some(
+              (entry) => entry?.type === 'command' && hasSameManagedHookInvocation(entry, hook)
+            )
+        )
+      )
+    })
+    if (install.length === 0) {
+      return
+    }
+    const next = applyManagedHooks(target, hook, getManagedScriptFileName(this.options.settings), {
+      install,
+      retire: [],
+      statusLine: 'leave'
+    })
+    if (JSON.stringify(next) !== JSON.stringify(target)) {
+      writeHooksJson(configPath, next)
+    }
   }
 
   // Why: the statusline feed is opportunistic (usage display, not agent status); a user who deleted the

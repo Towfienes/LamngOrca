@@ -293,7 +293,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         >
           {displayLabel}
         </span>
-        {model && (
+        {model && !rail && (
           <span
             className="max-w-24 shrink-0 truncate font-mono text-[10px] text-muted-foreground/70"
             title={model}
@@ -311,6 +311,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
           </span>
         )}
         <DashboardAgentRowTrailingControls
+          compact={rail}
           paneKey={agent.paneKey}
           relativeTimestamp={relativeTimestamp}
           childAgentCount={childAgentCount}

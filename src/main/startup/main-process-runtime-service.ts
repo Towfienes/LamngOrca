@@ -1,3 +1,4 @@
+import { managedClaudeSessionRoots } from '../ai-vault/managed-claude-session-roots'
 import {
   applySessionSearchSettingsChange,
   installChildSessionSearchService
@@ -74,7 +75,8 @@ export function initializeMainProcessRuntime(): OrcaRuntimeService {
   // `orca serve`, which never opens one, and the fleet path runs there too.
   const observedPaneIdentities = new AgentStatusObservedPaneIdentities()
   const runtime = new OrcaRuntimeService(store, stats, {
-    prepareClaudeAuth: (target) => state.claudeRuntimeAuth!.prepareForClaudeLaunch(target),
+    prepareClaudeAuth: (target, accountId) =>
+      state.claudeRuntimeAuth!.prepareForClaudeLaunch(target, accountId),
     agentSessionClaimSigner: loadAgentSessionClaimSigner(
       getProfileUserDataPath(),
       getProfileUserDataPath()
@@ -126,10 +128,12 @@ export function initializeMainProcessRuntime(): OrcaRuntimeService {
     getPairedDeviceName: (pairedDeviceId) =>
       state.runtimeRpc?.getDeviceRegistry()?.getDevice(pairedDeviceId)?.name ?? null,
     // Why: source codex-home here (runs in window AND serve) so aiVault.listSessions includes managed-Codex sessions; registerCoreHandlers is window-only.
+    getAdditionalAiVaultClaudeProjectsPaths: () => managedClaudeSessionRoots(store.getSettings()),
     getAdditionalAiVaultCodexHomePaths: () =>
       state.codexRuntimeHome?.getHostCodexHomePathsForSessionDiscovery() ?? [],
     prepareAiVaultSessionResume: (args) =>
       prepareCodexAiVaultSessionResume(args, {
+        settings: store.getSettings(),
         runtimeHome: state.codexRuntimeHome,
         systemCodexHomePath: resolveHostCodexSessionSourceHome(store.getSettings())
       }),

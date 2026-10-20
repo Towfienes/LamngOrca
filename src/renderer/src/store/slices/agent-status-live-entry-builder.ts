@@ -213,7 +213,18 @@ export function buildAgentStatusLiveEntry(
     ...(turnStartedAt !== undefined ? { turnStartedAt } : {}),
     agentType: identity.agentType,
     model:
-      payload.model ?? (existing?.agentType === identity.agentType ? existing.model : undefined),
+      payload.model ??
+      (existing?.agentType === identity.agentType && !providerSessionChanged
+        ? existing.model
+        : undefined),
+    ...(payload.reasoningEffort
+      ? { reasoningEffort: payload.reasoningEffort }
+      : existing?.agentType === identity.agentType &&
+          !providerSessionChanged &&
+          (!payload.model || payload.model === existing.model) &&
+          existing.reasoningEffort
+        ? { reasoningEffort: existing.reasoningEffort }
+        : {}),
     ...(payload.modelSwitchCommand ? { modelSwitchCommand: payload.modelSwitchCommand } : {}),
     paneKey,
     terminalHandle: statusTerminalHandle,

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { focusTerminalTabSurface } from './focus-terminal-tab-surface'
+import {
+  cancelPendingTerminalTabFocus,
+  focusTerminalTabSurface
+} from './focus-terminal-tab-surface'
 
 const mocks = vi.hoisted(() => ({
   refreshTerminalImeInputContext: vi.fn()
@@ -16,6 +19,17 @@ const GLOBAL_HELPER_SELECTOR =
   '[data-leaf-id]:not(:has(.native-chat-pane-shell)) .xterm-helper-textarea'
 
 describe('focusTerminalTabSurface', () => {
+  it('cancels queued terminal focus when another control claims focus', () => {
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn(() => 42)
+    )
+    const cancel = vi.fn()
+    vi.stubGlobal('cancelAnimationFrame', cancel)
+    focusTerminalTabSurface('tab-1')
+    cancelPendingTerminalTabFocus()
+    expect(cancel).toHaveBeenCalledWith(42)
+  })
   afterEach(() => {
     mocks.refreshTerminalImeInputContext.mockClear()
     vi.unstubAllGlobals()

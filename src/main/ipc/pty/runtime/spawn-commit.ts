@@ -1,3 +1,4 @@
+import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
 import { isValidTerminalTabId } from '../../../../shared/terminal-tab-id'
 import { ptyOwnership, ptyIncarnationById } from '../provider/ownership-state'
 import { ptySizes } from '../delivery/visibility-state'
@@ -222,6 +223,7 @@ export async function commitRuntimePtySpawn(ctx: RuntimePtySpawnState) {
     isDaemonHostSpawn: ctx.isDaemonHostSpawn,
     isReattach: ctx.result.isReattach === true,
     pinnedByResume: ctx.codexResumeHomeSelected,
+    pinnedForSession: args.env?.[AGENT_LAUNCH_ACCOUNT_ENV] !== undefined,
     launchCodexHomePath: ctx.selectedCodexHomePath,
     launchEnv: args.env,
     target: ctx.codexSelectionTarget,

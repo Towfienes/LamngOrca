@@ -6,6 +6,7 @@ import {
 } from './agent-session-resume'
 import { isValidTerminalTabId } from './terminal-tab-id'
 import { normalizeMainAgentStatusField } from './agent-status-types'
+import { normalizeOptionalField, AGENT_MODEL_MAX_LENGTH } from './agent-status-field-normalization'
 import { salvagingRecord } from './zod-salvage'
 
 const terminalTabIdSchema = z
@@ -95,6 +96,15 @@ const sleepingAgentSessionRecordSchema = z
     capturedAt: z.number().finite().positive(),
     updatedAt: z.number().finite().positive(),
     terminalTitle: z.string().optional(),
+    ptyId: z.string().min(1).optional(),
+    model: z
+      .unknown()
+      .transform((value) => normalizeOptionalField(value, AGENT_MODEL_MAX_LENGTH))
+      .optional(),
+    reasoningEffort: z
+      .unknown()
+      .transform((value) => normalizeOptionalField(value, AGENT_MODEL_MAX_LENGTH))
+      .optional(),
     lastAssistantMessage: z.string().optional(),
     interrupted: z.boolean().optional(),
     // A malformed value drops the field, never the record.

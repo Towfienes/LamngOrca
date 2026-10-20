@@ -212,7 +212,10 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
             tooltipSide="right"
           />
           {!hideIcon && (
-            <span className="inline-flex shrink-0" title={formatAgentTypeLabel(agent.agentType)}>
+            <span
+              className="inline-flex shrink-0"
+              title={[formatAgentTypeLabel(agent.agentType), model].filter(Boolean).join(' · ')}
+            >
               <AgentIcon agent={agentTypeToIconAgent(agent.agentType)} size={13} />
             </span>
           )}
@@ -229,17 +232,6 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
             )}
           </span>
         </>
-      )}
-      {model && (
-        <span
-          className={cn(
-            'min-w-0 max-w-24 truncate font-mono text-[10px]',
-            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/70'
-          )}
-          title={model}
-        >
-          {model}
-        </span>
       )}
       {hasChildDisclosure && !childAgentsExpanded && (
         <span

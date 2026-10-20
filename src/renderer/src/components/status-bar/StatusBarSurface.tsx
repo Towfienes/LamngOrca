@@ -1,6 +1,5 @@
 import { PanelsTopLeft, RefreshCw } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
-import { useAppStore } from '@/store'
+import React from 'react'
 import { createPortal } from 'react-dom'
 import { usesDeckTitlebarStatus } from '@/app-shell/app-window-chrome'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
@@ -56,12 +55,6 @@ export type StatusBarProps = {
 export function StatusBarSurface({
   floatingTerminalOpen
 }: StatusBarProps): React.JSX.Element | null {
-  const rightSidebarTab = useAppStore((state) => state.rightSidebarTab)
-  const rightSidebarOpen = useAppStore((state) => state.rightSidebarOpen)
-  const [usageHost, setUsageHost] = useState<HTMLElement | null>(null)
-  useEffect(() => {
-    setUsageHost(document.getElementById('deck-usage-roster'))
-  }, [rightSidebarTab, rightSidebarOpen])
   const controller = useStatusBarController(floatingTerminalOpen)
   if (!controller) {
     return null
@@ -156,11 +149,10 @@ export function StatusBarSurface({
                 <button
                   type="button"
                   className="inline-flex max-w-full flex-wrap items-center gap-3 rounded px-1 py-0.5 hover:bg-accent/70"
-                  aria-label={
-                    usageHost
-                      ? 'View subscription limits'
-                      : translate('auto.components.status.bar.UsageRosterPanel.title', 'Usage')
-                  }
+                  aria-label={translate(
+                    'auto.components.status.bar.UsageRosterPanel.title',
+                    'Usage'
+                  )}
                 >
                   {rosterProviders.map((p) => (
                     // Why: collapsed chips leave the row but stay measurable, so the density hook can bring them back.
@@ -168,10 +160,8 @@ export function StatusBarSurface({
                       key={p.provider}
                       data-usage-chip={p.provider}
                       data-usage-urgent={getUsageTone(p) === 'urgent'}
-                      data-usage-collapsed={
-                        !usageHost && collapsedUsageProviders.includes(p.provider)
-                      }
-                      aria-hidden={!usageHost && collapsedUsageProviders.includes(p.provider)}
+                      data-usage-collapsed={collapsedUsageProviders.includes(p.provider)}
+                      aria-hidden={collapsedUsageProviders.includes(p.provider)}
                       className="inline-flex data-[usage-collapsed=true]:invisible data-[usage-collapsed=true]:absolute"
                     >
                       <ProviderSegment
@@ -182,7 +172,7 @@ export function StatusBarSurface({
                       />
                     </span>
                   ))}
-                  {!usageHost && collapseUsage ? (
+                  {collapseUsage ? (
                     <UsageOverflowChip
                       hidden={rosterProviders.filter((p) =>
                         collapsedUsageProviders.includes(p.provider)
@@ -350,11 +340,7 @@ export function StatusBarSurface({
       ref={barRef}
       className="deck-status-bar flex items-center h-6 min-h-[24px] px-3 gap-4 overflow-clip [overflow-clip-margin:3px] whitespace-nowrap border-t border-border bg-[var(--bg-titlebar,var(--card))] text-xs select-none shrink-0 relative"
     >
-      {usageHost
-        ? createPortal(usageControls, usageHost)
-        : !usesDeckTitlebarStatus
-          ? usageControls
-          : null}
+      {!usesDeckTitlebarStatus ? usageControls : null}
       {titlebarStatusHost ? createPortal(attentionControls, titlebarStatusHost) : attentionControls}
     </div>
   )

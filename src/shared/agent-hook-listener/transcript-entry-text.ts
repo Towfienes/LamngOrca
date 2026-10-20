@@ -1,4 +1,19 @@
 import { parseAgentHookJson } from './request-body'
+import { record } from '../codex-rollout-jsonl-cursor'
+import { normalizeOptionalField } from '../agent-status-field-normalization'
+import { AGENT_MODEL_MAX_LENGTH } from '../agent-status-types'
+
+export function extractClaudeAssistantModelFromLine(line: string): string | undefined {
+  try {
+    const entry = record(parseAgentHookJson(line))
+    if (entry?.type !== 'assistant') {
+      return undefined
+    }
+    return normalizeOptionalField(record(entry.message)?.model, AGENT_MODEL_MAX_LENGTH)
+  } catch {
+    return undefined
+  }
+}
 
 export function extractAssistantTextFromLine(line: string): string | undefined {
   let entry: unknown

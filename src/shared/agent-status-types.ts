@@ -101,6 +101,7 @@ export type AgentStatusEntry = {
   agentType?: AgentType
   /** Provider model currently used by this session. */
   model?: string
+  reasoningEffort?: string
   /** Command installed by the running OMP extension; absent on older hosts. */
   modelSwitchCommand?: 'orca-model'
   /** Composite key: `${tabId}:${leafId}` where leafId is a stable UUID layout leaf. */
@@ -175,6 +176,7 @@ export type AgentStatusPayload = {
   prompt?: string
   agentType?: AgentType
   model?: string
+  reasoningEffort?: string
   modelSwitchCommand?: 'orca-model'
   toolName?: string
   toolInput?: string
@@ -223,6 +225,7 @@ export function pickParsedAgentStatusPayload(
     prompt: row.prompt,
     ...(row.agentType !== undefined ? { agentType: row.agentType } : {}),
     ...(row.model !== undefined ? { model: row.model } : {}),
+    ...(row.reasoningEffort !== undefined ? { reasoningEffort: row.reasoningEffort } : {}),
     ...(row.modelSwitchCommand ? { modelSwitchCommand: row.modelSwitchCommand } : {}),
     ...(row.toolName !== undefined ? { toolName: row.toolName } : {}),
     ...(row.toolInput !== undefined ? { toolInput: row.toolInput } : {}),
@@ -322,6 +325,9 @@ function normalizeAgentStatusObject(parsed: unknown): ParsedAgentStatusPayload |
     // Why: normalize like the other single-line fields so embedded newlines (e.g. `agentType: "claude\nrogue"`) can't break single-line UI and equality checks.
     agentType: normalizeOptionalField(obj.agentType, AGENT_TYPE_MAX_LENGTH),
     model: normalizeOptionalField(obj.model, AGENT_MODEL_MAX_LENGTH),
+    ...(normalizeOptionalField(obj.reasoningEffort, AGENT_MODEL_MAX_LENGTH)
+      ? { reasoningEffort: normalizeOptionalField(obj.reasoningEffort, AGENT_MODEL_MAX_LENGTH) }
+      : {}),
     ...(obj.modelSwitchCommand === 'orca-model'
       ? { modelSwitchCommand: 'orca-model' as const }
       : {}),

@@ -15,6 +15,7 @@ export type CodexPaneAccountRecord = {
   selectionKey: string
   /** Managed account id, or null for the system-default account. */
   accountId: string | null
+  pinnedForSession?: true
   /** Absent only on records written before route provenance was introduced. */
   homeRoute?: CodexPaneHomeRoute
   /** Rechecked when CODEX_HOME came from process-global shell startup. */

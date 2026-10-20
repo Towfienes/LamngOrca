@@ -6,13 +6,15 @@ import {
 import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 
 export async function prepareAiVaultSessionForResume(
-  session: AiVaultSession
+  session: AiVaultSession,
+  accountId?: string
 ): Promise<AiVaultSession> {
-  if (session.structuredSession || !aiVaultSessionNeedsResumePreparation(session)) {
+  if (session.structuredSession || (!accountId && !aiVaultSessionNeedsResumePreparation(session))) {
     return session
   }
   const result = await window.api.aiVault.prepareSessionResume({
     agent: session.agent,
+    ...(accountId ? { accountId } : {}),
     sessionId: session.sessionId,
     filePath: session.filePath,
     codexHome: session.codexHome,

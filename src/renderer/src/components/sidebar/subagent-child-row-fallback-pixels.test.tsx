@@ -143,7 +143,7 @@ describe('sidebar child rows from a legacy subagents snapshot', () => {
     expect([...stale, ...lost]).toMatchSnapshot()
   })
 
-  it('render the full rows exactly as before', () => {
+  it('renders full child rows with Deck styling', () => {
     expect(fullMarkup(parentWith(SUBAGENTS), true)).toMatchSnapshot()
     expect(fullMarkup(parentWith(SUBAGENTS.slice(0, 2)), false)).toMatchSnapshot()
   })

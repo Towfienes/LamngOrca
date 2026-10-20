@@ -154,6 +154,25 @@ describe('DashboardAgentRow', () => {
     expect(classTokens(markup)).toContain('font-mono')
   })
 
+  it('hides inline sidebar models and reserves a stable close-control slot', () => {
+    const markup = renderToStaticMarkup(
+      <TooltipProvider>
+        <DashboardAgentRow
+          agent={makeAgent({}, { model: 'claude-sonnet-4-6', agentType: 'claude' })}
+          onDismiss={vi.fn()}
+          onActivate={vi.fn()}
+          now={NOW}
+          rail
+        />
+      </TooltipProvider>
+    )
+    expect(markup).toContain('title="Claude · claude-sonnet-4-6"')
+    expect(markup).not.toContain('>claude-sonnet-4-6</span>')
+    expect(markup).not.toContain('data-deck-agent-model')
+    expect(markup).toContain('data-agent-row-controls')
+    expect(classTokens(markup)).toContain('w-5')
+  })
+
   it('uses the hover background as the focused-pane row highlight', () => {
     const markup = renderToStaticMarkup(
       <TooltipProvider>

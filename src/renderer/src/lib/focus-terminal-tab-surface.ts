@@ -37,7 +37,7 @@ function focusTerminalHelper(helper: HTMLElement, options: FocusTerminalTabSurfa
   }
 }
 
-function cancelPendingFocusFrames(): void {
+export function cancelPendingTerminalTabFocus(): void {
   if (typeof cancelAnimationFrame === 'function') {
     for (const frameId of pendingFocusFrameIds) {
       cancelAnimationFrame(frameId)
@@ -60,7 +60,7 @@ export function focusTerminalTabSurface(
   leafId?: string | null,
   options: FocusTerminalTabSurfaceOptions = {}
 ): void {
-  cancelPendingFocusFrames()
+  cancelPendingTerminalTabFocus()
   const firstFrameId = requestAnimationFrame(() => {
     pendingFocusFrameIds = pendingFocusFrameIds.filter((frameId) => frameId !== firstFrameId)
     const secondFrameId = requestAnimationFrame(() => {

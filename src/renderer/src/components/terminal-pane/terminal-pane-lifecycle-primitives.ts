@@ -1,3 +1,4 @@
+import type { WorktreeStartupLaunch } from '../../../../shared/worktree/launch-types'
 import type { Terminal } from '@xterm/xterm'
 import type { TerminalLayoutSnapshot, TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { PtyPaneStartup } from './pty-connection-types'
@@ -152,7 +153,7 @@ export function resolvePaneSeedCwd(splitPaneCwd: string | undefined, fallbackCwd
   return splitPaneCwd ?? fallbackCwd
 }
 
-export type SplitStartupPayload = { command: string; env?: Record<string, string> }
+export type SplitStartupPayload = WorktreeStartupLaunch
 
 export function resolveTerminalHomePathFromEnv(
   env: Record<string, string> | undefined

@@ -26,7 +26,6 @@ export function RightSidebarPanelContent({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <Suspense fallback={null}>
         {effectiveTab === 'explorer' && <FileExplorer />}
-        {effectiveTab === 'usage' && <DeckUsagePanel />}
         {effectiveTab === 'source-control' && <SourceControl />}
         {effectiveTab === 'checks' && <ChecksPanel />}
         {/* Why: SSH port forwarding still depends on the raw ports.detect data,
@@ -51,6 +50,7 @@ export function RightSidebarPanelContent({
           <PluginPanel key={effectiveTab} tabKey={effectiveTab} />
         )}
       </Suspense>
+      <DeckUsagePanel />
     </div>
   )
 }

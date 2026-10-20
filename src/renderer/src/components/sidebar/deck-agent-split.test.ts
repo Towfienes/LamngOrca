@@ -6,14 +6,16 @@ const fixture = vi.hoisted(() => {
     environmentId: null,
     activeWorktreeId: 'wt-1'
   }
-  return { owner, call: vi.fn(), focus: vi.fn(), plan: vi.fn() }
+  return { setLayout: vi.fn(), owner, call: vi.fn(), focus: vi.fn(), plan: vi.fn() }
 })
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => ({
       settings: {},
       activeWorktreeId: fixture.owner.activeWorktreeId,
-      activeTabId: 'tab-1'
+      activeTabId: 'tab-1',
+      terminalLayoutsByTabId: { 'tab-1': { root: { type: 'leaf', leafId: 'new-leaf' } } },
+      setTabLayout: fixture.setLayout
     })
   }
 }))
@@ -75,6 +77,7 @@ describe('Deck agent pane launch', () => {
         terminal: 'source-handle',
         direction: 'vertical',
         command: 'agent --configured',
+        launchAgent: 'codex',
         env: { AGENT_MODE: 'test' },
         telemetrySource: 'context_menu'
       },
@@ -101,6 +104,24 @@ describe('Deck agent pane launch', () => {
     expect(fixture.plan).toHaveBeenCalledWith(expect.objectContaining({ isRemote: true }))
   })
 
+  it('passes only the chosen account into the new split and declares its CLI', async () => {
+    fixture.plan.mockImplementation((args) => ({ launchCommand: 'custom-cli', env: args.agentEnv }))
+    await launchDeckAgentInPane('wt-1', pane, 'codex', { accountId: 'account-b' })
+    expect(fixture.call.mock.calls[1][2]).toMatchObject({
+      command: 'custom-cli',
+      launchAgent: 'codex',
+      env: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' }
+    })
+  })
+
+  it('refuses to send a local account to a paired host', async () => {
+    fixture.owner.environmentId = 'remote-1'
+    await expect(
+      launchDeckAgentInPane('wt-1', pane, 'codex', { accountId: 'account-b' })
+    ).rejects.toThrow('host')
+    expect(fixture.call).not.toHaveBeenCalled()
+  })
+
   it('does not launch into a different pane if the selected leaf disappeared', async () => {
     fixture.call.mockReset().mockRejectedValueOnce(new Error('terminal_handle_stale'))
     await expect(launchDeckAgentInPane('wt-1', pane, 'codex')).rejects.toThrow(
@@ -115,4 +136,20 @@ describe('Deck agent pane launch', () => {
     await launchDeckAgentInPane('wt-1', pane, 'codex')
     expect(fixture.focus).not.toHaveBeenCalled()
   })
+})
+
+it('keeps the chosen history title on the new pane, without renaming its sibling', async () => {
+  fixture.call
+    .mockReset()
+    .mockResolvedValueOnce({ terminal: { handle: 'source' } })
+    .mockResolvedValueOnce({ split: { leafId: 'new-leaf' } })
+  fixture.owner.environmentId = null
+  await launchDeckAgentInPane('wt-1', pane, 'claude', {
+    startup: { command: 'claude --resume saved' },
+    sessionTitle: 'Yesterday review'
+  })
+  expect(fixture.setLayout).toHaveBeenCalledWith(
+    'tab-1',
+    expect.objectContaining({ titlesByLeafId: { 'new-leaf': 'Yesterday review' } })
+  )
 })

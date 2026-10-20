@@ -205,6 +205,11 @@ export const TerminalCreateParams = z.object({
 })
 
 export const TerminalSplit = TerminalHandle.extend({
+  cwd: OptionalString,
+  envToDelete: TerminalCreateParams.shape.envToDelete,
+  resumeProviderSession: TerminalCreateParams.shape.resumeProviderSession,
+  launchConfig: TerminalCreateParams.shape.launchConfig,
+  launchAgent: TerminalCreateParams.shape.launchAgent,
   direction: z
     .unknown()
     .transform((v) => (v === 'vertical' || v === 'horizontal' ? v : undefined))

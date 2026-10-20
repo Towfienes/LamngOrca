@@ -1,7 +1,7 @@
 import { validatePathExistenceBatch } from '../../shared/path-existence-batch'
 import { ipcMain, shell, dialog } from 'electron'
 import { constants, copyFile, readFile, stat } from 'node:fs/promises'
-import { basename, extname, isAbsolute, normalize, posix, win32 } from 'node:path'
+import { basename, dirname, extname, isAbsolute, normalize, posix, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type {
   ShellOpenExternalEditorRequest,
@@ -62,8 +62,11 @@ async function openInFileManager(
     return target
   }
   try {
-    // Why: the file-manager action uses reveal semantics, matching the
-    // previous sidebar behavior while still validating the path per click.
+    if (process.platform === 'linux') {
+      // FileManager1 can belong to a different app than the user's default folder handler.
+      const error = await shell.openPath(dirname(target.path))
+      return error ? { ok: false, reason: 'launch-failed' } : { ok: true }
+    }
     shell.showItemInFolder(target.path)
     return { ok: true }
   } catch {

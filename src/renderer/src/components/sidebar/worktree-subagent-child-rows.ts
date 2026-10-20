@@ -100,6 +100,7 @@ export function buildSubagentChildRows(args: {
   /** Freshness of the parent's hook stream. A stale parent means active child
    *  states are equally unverifiable. */
   parentIsFresh: boolean
+  includeSettled?: boolean
 }): DashboardAgentRow[] {
   const { parentEntry } = args
   const context = agentChildRowContextForParent(parentEntry, args.parentIsFresh)
@@ -113,7 +114,8 @@ export function buildSubagentChildRows(args: {
     .filter(
       (row) =>
         row.kind === 'agent' &&
-        agentChildWorkIsRunning({ settled: row.settled, ownsLiveWork: ownsLiveWork(row) })
+        (args.includeSettled ||
+          agentChildWorkIsRunning({ settled: row.settled, ownsLiveWork: ownsLiveWork(row) }))
     )
     .map((row) => childDashboardRow(row, parentEntry, args.tab))
 }

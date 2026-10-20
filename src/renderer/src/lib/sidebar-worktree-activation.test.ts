@@ -92,20 +92,23 @@ describe('sidebar worktree activation', () => {
     expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
   })
 
-  it('requests a chooser for an empty workspace without creating a terminal', async () => {
-    const dispatchEvent = vi.fn()
-    vi.stubGlobal('window', { dispatchEvent })
-    mocks.getState.mockReturnValue({
-      activeWorktreeId: 'wt-empty',
-      reconcileWorktreeTabModel: () => ({ renderableTabCount: 0 }),
-      ensureWorktreeRootGroup: mocks.ensureWorktreeRootGroup
-    })
-    await activateWorktreeFromSidebar('wt-empty')
-    expect(mocks.ensureWorktreeRootGroup).toHaveBeenCalledWith('wt-empty')
-    expect(dispatchEvent.mock.calls[0][0].type).toBe('orca-workspace-launch-picker')
-    await activateWorktreeFromSidebar('wt-empty')
-    expect(dispatchEvent).toHaveBeenCalledTimes(2)
-  })
+  it.each(['wt-empty', 'folder:folder-workspace-1'])(
+    'selects empty workspace %s without opening a launcher',
+    async (worktreeId) => {
+      const dispatchEvent = vi.fn()
+      vi.stubGlobal('window', { dispatchEvent })
+      mocks.getState.mockReturnValue({
+        activeWorktreeId: worktreeId,
+        reconcileWorktreeTabModel: () => ({ renderableTabCount: 0 }),
+        ensureWorktreeRootGroup: mocks.ensureWorktreeRootGroup
+      })
+      await activateWorktreeFromSidebar(worktreeId)
+      expect(mocks.ensureWorktreeRootGroup).toHaveBeenCalledWith(worktreeId)
+      expect(mocks.gate).toHaveBeenCalledWith(worktreeId)
+      await activateWorktreeFromSidebar(worktreeId)
+      expect(dispatchEvent).not.toHaveBeenCalled()
+    }
+  )
 
   it('keeps existing editor/browser/agent surfaces and declined activations unchanged', async () => {
     const dispatchEvent = vi.fn()

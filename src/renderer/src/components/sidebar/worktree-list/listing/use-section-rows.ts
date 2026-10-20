@@ -12,6 +12,7 @@ import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import { folderWorkspaceKey } from '../../../../../../shared/workspace-scope'
 import { getHostDisplayLabelOverrides } from '../../../../../../shared/host-setting-overrides'
 import { buildRows } from '../grouping/build-rows'
+import { withRepoWorktreeTree } from '../grouping/repo-worktree-tree'
 import type { ProjectGroupingModel } from '../grouping/project-grouping'
 import type { PinnedWorktreeDisplayPolicy, Row, WorktreeGroupBy } from '../grouping/row-types'
 import { getLogicalRepoOrderRankById } from '../../project-header-drop'
@@ -141,56 +142,55 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
     [hostOptions]
   )
 
-  const rows: Row[] = useMemo(
-    () =>
-      buildRows(
-        args.groupBy,
-        worktrees,
-        repoMap,
-        args.prCache,
-        effectiveCollapsedGroups,
-        repoOrder,
-        args.workspaceStatuses,
-        args.projectOrderBy,
-        args.worktreeLineageById,
-        args.worktreeMap,
-        true,
-        args.settings,
-        args.visibleProjectGroupsForRows,
-        placeholderRepoIds,
-        args.importedWorktreesByRepo,
-        args.newExternalWorktreesInboxByRepo,
-        pendingCreations,
-        args.projectGrouping,
-        args.visibleFolderWorkspacesForRows,
-        hostLabelById,
-        defaultHostId,
-        args.pinnedDisplayPolicy
-      ),
-    [
+  const rows: Row[] = useMemo(() => {
+    const built = buildRows(
       args.groupBy,
       worktrees,
       repoMap,
       args.prCache,
       effectiveCollapsedGroups,
-      defaultHostId,
       repoOrder,
       args.workspaceStatuses,
       args.projectOrderBy,
       args.worktreeLineageById,
       args.worktreeMap,
+      true,
       args.settings,
-      args.projectGrouping,
       args.visibleProjectGroupsForRows,
-      args.visibleFolderWorkspacesForRows,
       placeholderRepoIds,
       args.importedWorktreesByRepo,
       args.newExternalWorktreesInboxByRepo,
       pendingCreations,
+      args.projectGrouping,
+      args.visibleFolderWorkspacesForRows,
       hostLabelById,
+      defaultHostId,
       args.pinnedDisplayPolicy
-    ]
-  )
+    )
+    return args.groupBy === 'repo' ? withRepoWorktreeTree(built) : built
+  }, [
+    args.groupBy,
+    worktrees,
+    repoMap,
+    args.prCache,
+    effectiveCollapsedGroups,
+    defaultHostId,
+    repoOrder,
+    args.workspaceStatuses,
+    args.projectOrderBy,
+    args.worktreeLineageById,
+    args.worktreeMap,
+    args.settings,
+    args.projectGrouping,
+    args.visibleProjectGroupsForRows,
+    args.visibleFolderWorkspacesForRows,
+    placeholderRepoIds,
+    args.importedWorktreesByRepo,
+    args.newExternalWorktreesInboxByRepo,
+    pendingCreations,
+    hostLabelById,
+    args.pinnedDisplayPolicy
+  ])
   const orderedHostOptions = useMemo(
     () => orderHostSectionOptions(hostOptions, workspaceHostOrder),
     [hostOptions, workspaceHostOrder]

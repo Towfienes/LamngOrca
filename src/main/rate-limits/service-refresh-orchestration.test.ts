@@ -242,6 +242,22 @@ describe('RateLimitService', () => {
     expect(state.claude?.error).toBe('still failing')
   })
 
+  it('keeps an older reading visibly stale through a transient refresh failure', async () => {
+    const service = new RateLimitService()
+    const recordedAt = Date.now() - 31 * 60_000
+    vi.mocked(fetchClaudeRateLimits)
+      .mockResolvedValueOnce(okProvider('claude', 33, recordedAt))
+      .mockResolvedValueOnce(errorProvider('claude', 'temporary failure'))
+    await service.refresh()
+    await service.refresh()
+    expect(service.getState().claude).toMatchObject({
+      status: 'error',
+      updatedAt: recordedAt,
+      error: 'temporary failure',
+      session: { usedPercent: 33 }
+    })
+  })
+
   it('bypasses the debounce for explicit manual refreshes', async () => {
     const service = new RateLimitService()
 

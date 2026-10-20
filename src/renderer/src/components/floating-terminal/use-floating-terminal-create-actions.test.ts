@@ -37,6 +37,48 @@ describe('floating "+" New Terminal', () => {
     vi.clearAllMocks()
   })
 
+  it.each([true, false])(
+    'opens one local emulator without changing the main workspace (enabled=%s)',
+    async (enabled) => {
+      const store = createTestStore()
+      storeBox.store = store
+      seedStore(store, {
+        settings: { ...getDefaultSettings('/tmp'), mobileEmulatorEnabled: enabled },
+        worktreesByRepo: {
+          repo1: [makeWorktree({ id: MAIN_WORKTREE_ID, repoId: 'repo1', path: '/path/wt1' })]
+        },
+        activeWorktreeId: MAIN_WORKTREE_ID
+      })
+      const mainTerminal = store.getState().createTab(MAIN_WORKTREE_ID)
+      const { useFloatingTerminalCreateActions } =
+        await import('./use-floating-terminal-create-actions')
+      const state = store.getState()
+      const { createFloatingEmulatorTab } = useFloatingTerminalCreateActions({
+        activateTab: state.activateTab,
+        setActiveTab: state.setActiveTab,
+        createBrowserTab: state.createBrowserTab,
+        browserDefaultUrl: state.browserDefaultUrl,
+        openFile: state.openFile,
+        activeGroup: null,
+        groupTabs: [],
+        markdownCwd: null
+      })
+      createFloatingEmulatorTab()
+      createFloatingEmulatorTab()
+      const tabs = store.getState().unifiedTabsByWorktree[FLOATING_TERMINAL_WORKTREE_ID] ?? []
+      expect(tabs).toHaveLength(enabled ? 1 : 0)
+      if (enabled) {
+        expect(tabs[0].contentType).toBe('simulator')
+        expect(tabs[0].executionHostId).toBe('local')
+        expect(
+          store.getState().groupsByWorktree[FLOATING_TERMINAL_WORKTREE_ID]?.[0]?.activeTabId
+        ).toBe(tabs[0].id)
+      }
+      expect(store.getState().activeWorktreeId).toBe(MAIN_WORKTREE_ID)
+      expect(store.getState().activeTabId).toBe(mainTerminal.id)
+    }
+  )
+
   it('selects the new tab in the floating panel without moving the main window', async () => {
     const store = createTestStore()
     storeBox.store = store

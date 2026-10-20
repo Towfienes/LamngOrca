@@ -44,6 +44,47 @@ function grokMonthlyLimits(status: ProviderRateLimits['status']): ProviderRateLi
 }
 
 describe('ProviderSegment monthly window', () => {
+  it('names Antigravity and summarizes its tightest model pool in the sidebar', async () => {
+    const { ProviderSegment } = await import('./StatusBarProviderSegment')
+    const limits: ProviderRateLimits = {
+      provider: 'antigravity',
+      session: null,
+      weekly: null,
+      buckets: [
+        { ...windowOf(20, 300), name: 'Gemini Models' },
+        { ...windowOf(65, 300), name: 'Claude and GPT models' }
+      ],
+      updatedAt: Date.now(),
+      error: null,
+      status: 'ok'
+    }
+    const markup = renderToStaticMarkup(
+      <ProviderSegment p={limits} compact display="remaining" mode="compact" showProviderName />
+    )
+    expect(markup).toContain('Antigravity')
+    expect(markup).toContain('35% left')
+    expect(markup).not.toContain('80% left')
+    expect(markup).not.toContain('data-usage-bar')
+  })
+
+  it('keeps a named sidebar provider failure readable without a quota', async () => {
+    const { ProviderSegment } = await import('./StatusBarProviderSegment')
+    const limits: ProviderRateLimits = {
+      provider: 'antigravity',
+      session: null,
+      weekly: null,
+      updatedAt: Date.now(),
+      error: 'Usage unavailable',
+      status: 'error'
+    }
+    const markup = renderToStaticMarkup(
+      <ProviderSegment p={limits} compact display="remaining" mode="compact" showProviderName />
+    )
+    expect(markup).toContain('Antigravity')
+    expect(markup).toContain('text-[11px] font-medium')
+    expect(markup).not.toContain('% left')
+  })
+
   it('renders a monthly-only snapshot in the chip instead of a bare icon', async () => {
     const { ProviderSegment } = await import('./StatusBar')
 

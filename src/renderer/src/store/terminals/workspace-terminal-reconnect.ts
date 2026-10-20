@@ -4,6 +4,7 @@ import { buildByIdIndex, buildWorktreeByIdIndex } from '../slices/worktree-by-id
 import { getRepoIdFromWorktreeId } from '../../../../shared/worktree/id'
 import type { TerminalSlice, TerminalStoreGet, TerminalStoreSet } from './terminal-state'
 import { isCurrentDirectSshAuthority } from './terminal-pty-identities'
+import { restoreWorkspacePaneIdentities } from './restore-workspace-pane-identities'
 
 export function createWorkspaceTerminalReconnectActions(
   set: TerminalStoreSet,
@@ -175,6 +176,9 @@ export function createWorkspaceTerminalReconnectActions(
         pendingReconnectTabByWorktree: remainingReconnectTabByWorktree,
         pendingReconnectPtyIdByTabId: remainingReconnectPtyIdByTabId,
         deferredSshSessionIdsByTabId
+      })
+      void restoreWorkspacePaneIdentities(get, ids, signal).catch((error) => {
+        console.error('[startup] Could not inspect restored pane identities:', error)
       })
     }
   }

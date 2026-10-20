@@ -1,4 +1,5 @@
 // @ts-nocheck -- mechanically split from OrcaRuntimeService; behavior is covered by AST equivalence and characterization tests.
+import type { AgentProviderSessionMetadata, SleepingAgentLaunchConfig } from '../../shared/agent-session-resume'
 import { OrcaRuntimeWithSplitTerminal } from './orca-runtime-split-terminal'
 import type { RuntimePtyWorktreeRecord } from './runtime-terminal-state-records'
 import type { TerminalPaneSplitSource } from '../../shared/feature-education-telemetry'
@@ -8,13 +9,18 @@ import { recordPtySurface, spawnSurfaceClaimSequence } from './pty-recorded-surf
 import { randomUUID } from 'node:crypto'
 import { REJECTED_SPLIT_PTY_STOP_TIMEOUT_MS, ownerSurfacing } from './orca-runtime-core'
 import type { Worktree } from '../../shared/worktree/types'
+import type { TuiAgent } from '../../shared/tui-agent'
 
 export class OrcaRuntimeWithSplitPtyBackedTerminal extends OrcaRuntimeWithSplitTerminal {
   protected async splitPtyBackedTerminal(
     pty: RuntimePtyWorktreeRecord,
     opts: {
       direction?: 'horizontal' | 'vertical'
+      cwd?: string
+      resumeProviderSession?: AgentProviderSessionMetadata
       command?: string
+      launchAgent?: TuiAgent
+      launchConfig?: SleepingAgentLaunchConfig
       env?: Record<string, string>
       envToDelete?: string[]
       activate?: boolean
@@ -58,8 +64,10 @@ export class OrcaRuntimeWithSplitPtyBackedTerminal extends OrcaRuntimeWithSplitT
     const result = await this.ptyController.spawn({
       cols: 120,
       rows: 40,
-      cwd: workspace.path,
+      cwd: opts.cwd ?? workspace.path,
+      ...(opts.resumeProviderSession ? { resumeProviderSession: opts.resumeProviderSession } : {}),
       command: opts.command,
+      ...(opts.launchAgent ? { launchAgent: opts.launchAgent } : {}),
       commandDelivery: 'provider',
       env: this.buildTerminalWorkspaceEnv(workspace, opts.env ?? {}, paneKey, parentTabId),
       envToDelete: opts.envToDelete,
@@ -112,6 +120,8 @@ export class OrcaRuntimeWithSplitPtyBackedTerminal extends OrcaRuntimeWithSplitT
       await this.notifier?.revealTerminalSession?.(workspace.id, {
         ptyId: result.id,
         title: null,
+        ...(opts.launchAgent ? { launchAgent: opts.launchAgent } : {}),
+        ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {}),
         activate: opts.activate !== false,
         ...ownerSurfacing(opts.surfaceOwner !== false),
         tabId: parentTabId,
@@ -163,6 +173,8 @@ export class OrcaRuntimeWithSplitPtyBackedTerminal extends OrcaRuntimeWithSplitT
           tabId: parentTabId,
           leafId,
           title: null,
+          ...(opts.launchAgent ? { launchAgent: opts.launchAgent } : {}),
+          ...(opts.launchConfig ? { launchConfig: opts.launchConfig } : {}),
           activate: opts.activate !== false,
           split: { splitFromLeafId: parsedPaneKey.leafId, direction }
         })

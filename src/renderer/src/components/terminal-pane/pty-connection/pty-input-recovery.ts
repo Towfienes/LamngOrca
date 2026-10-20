@@ -42,7 +42,7 @@ export function installPtyInputRecovery(session: ConnectPanePtySession): void {
   session.transportOptions = {
     terminalKittyKeyboardProtocol:
       session.pane.terminal.options.vtExtensions?.kittyKeyboard === true,
-    cwd: session.deps.cwd,
+    cwd: session.paneStartup?.cwd ?? session.deps.cwd,
     ...(session.deps.cwdPromise ||
     session.deps.preconnectInput?.length ||
     session.buffersInputOnlyForReattach

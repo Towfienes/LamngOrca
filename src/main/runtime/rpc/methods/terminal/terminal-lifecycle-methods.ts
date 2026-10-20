@@ -87,6 +87,11 @@ export const TERMINAL_LIFECYCLE_METHODS = [
     params: TerminalSplit,
     handler: async (params, { runtime }) => ({
       split: await runtime.splitTerminal(params.terminal, {
+        ...(params.cwd ? { cwd: params.cwd } : {}),
+        ...(params.envToDelete ? { envToDelete: params.envToDelete } : {}),
+        ...(params.resumeProviderSession ? { resumeProviderSession: params.resumeProviderSession } : {}),
+        ...(params.launchAgent ? { launchAgent: params.launchAgent } : {}),
+        ...(params.launchConfig ? { launchConfig: params.launchConfig } : {}),
         direction: params.direction,
         command: params.command,
         env: params.env,

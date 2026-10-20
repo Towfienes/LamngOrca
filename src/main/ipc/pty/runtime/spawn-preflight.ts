@@ -1,3 +1,5 @@
+import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
+import { resolvePinnedCodexLaunchHome } from '../host-env/codex-launch-account'
 import { inheritOmpLaunchEnvironment } from '../host-env/omp-launch-environment'
 import { getAppEnvironment } from '../../../../shared/app-environment'
 import type { PtySpawnResult } from '../../../providers/types'
@@ -68,7 +70,11 @@ export async function prepareRuntimePtySpawn(
     await freshSpawnRecovery
   }
   ctx.isClaudeLaunch =
-    !ctx.preAdoptedStablePane && !args.connectionId && isClaudeLaunchCommand(args.command)
+    !ctx.preAdoptedStablePane &&
+    !args.connectionId &&
+    (isClaudeLaunchCommand(args.command) ||
+      (args.env?.[AGENT_LAUNCH_ACCOUNT_ENV] !== undefined &&
+        (args.launchAgent === 'claude' || args.launchAgent === 'claude-agent-teams')))
   if (ctx.isClaudeLaunch && isClaudeAuthSwitchInProgress()) {
     throw new Error(CLAUDE_AUTH_SWITCH_IN_PROGRESS_MESSAGE)
   }
@@ -147,7 +153,10 @@ export async function prepareRuntimePtySpawn(
   ctx.launchCommand = codexResumeLaunch.command
   ctx.claudeAuth =
     ctx.isClaudeLaunch && ctx.deps.prepareClaudeAuth
-      ? await ctx.deps.prepareClaudeAuth(ctx.codexSelectionTarget)
+      ? await ctx.deps.prepareClaudeAuth(
+          ctx.codexSelectionTarget,
+          args.env?.[AGENT_LAUNCH_ACCOUNT_ENV]
+        )
       : null
   if (ctx.isClaudeLaunch && isClaudeAuthSwitchInProgress()) {
     throw new Error(CLAUDE_AUTH_SWITCH_IN_PROGRESS_MESSAGE)
@@ -185,11 +194,15 @@ export async function prepareRuntimePtySpawn(
   if (args.preAllocatedHandle) {
     ctx.env = { ...ctx.env, ORCA_TERMINAL_HANDLE: args.preAllocatedHandle }
   }
+  const pinnedHome = ctx.preAdoptedStablePane
+    ? undefined
+    : resolvePinnedCodexLaunchHome(args, ctx.codexSelectionTarget, ctx.deps.getSettings?.())
   const selectLaunchCodexHome = async (): Promise<string | null> =>
     (await ctx.deps.getSelectedCodexHomePath?.(ctx.codexSelectionTarget, ctx.env)) ?? null
   ctx.selectedCodexHomePath =
     !ctx.preAdoptedStablePane && !args.connectionId
-      ? getCompatibleSelectedCodexHomePath(
+      ? (pinnedHome ??
+        getCompatibleSelectedCodexHomePath(
           ctx.codexSelectionTarget,
           codexResumeHome
             ? await ctx.deps.reconcileSharedRuntimeResumeHome(codexResumeHome, async () =>
@@ -199,7 +212,7 @@ export async function prepareRuntimePtySpawn(
                 )
               )
             : await selectLaunchCodexHome()
-        )
+        ))
       : null
   if (
     !ctx.preAdoptedStablePane &&
@@ -209,7 +222,7 @@ export async function prepareRuntimePtySpawn(
     const resolution = resolveCodexHomeAfterManagedAuthReadiness({
       selectedCodexHomePath: ctx.selectedCodexHomePath,
       getSettings: () => ctx.deps.getSettings?.(),
-      requiredCodexHomePath: codexResumeHome?.codexHomePath,
+      requiredCodexHomePath: pinnedHome ?? codexResumeHome?.codexHomePath,
       target: ctx.codexSelectionTarget,
       resolveCurrent: async () =>
         getCompatibleSelectedCodexHomePath(
@@ -230,7 +243,9 @@ export async function prepareRuntimePtySpawn(
     await ensureCodexStateDbBackfillRecoveryStarted(ctx.selectedCodexHomePath)
   }
   ctx.codexResumeHomeSelected = Boolean(
-    codexResumeHome && codexHomePathsEqual(ctx.selectedCodexHomePath, codexResumeHome.codexHomePath)
+    pinnedHome ||
+    (codexResumeHome &&
+      codexHomePathsEqual(ctx.selectedCodexHomePath, codexResumeHome.codexHomePath))
   )
   ctx.skipCodexHomeEnv =
     ctx.isDaemonHostSpawn &&

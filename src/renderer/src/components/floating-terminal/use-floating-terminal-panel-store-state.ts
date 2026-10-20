@@ -29,6 +29,12 @@ export function useFloatingTerminalPanelStoreState() {
       getClientCreationActionPolicy(state, FLOATING_TERMINAL_WORKTREE_ID)['managed-browser']
         .state === 'enabled'
   )
+  const mobileEmulatorCreationEnabled = useAppStore(
+    (state) =>
+      state.settings?.mobileEmulatorEnabled !== false &&
+      getClientCreationActionPolicy(state, FLOATING_TERMINAL_WORKTREE_ID)['mobile-emulator']
+        .state === 'enabled'
+  )
 
   return {
     tabs,
@@ -53,7 +59,8 @@ export function useFloatingTerminalPanelStoreState() {
     browserDefaultUrl,
     floatingTerminalCwd,
     generatedTabTitlesEnabled,
-    managedBrowserCreationEnabled
+    managedBrowserCreationEnabled,
+    mobileEmulatorCreationEnabled
   }
 }
 

@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { getAiVaultWslHomeDirs } from '../ai-vault/cached-session-list'
+import { configuredAdditionalClaudeProjectsPaths, getAiVaultWslHomeDirs } from '../ai-vault/cached-session-list'
 import { listAiVaultSubagentSessionsInBackground } from '../ai-vault/session-scanner-background'
 import { claudeProjectsRootDirs, ompSessionsRootDirs } from '../ai-vault/session-scanner-roots'
 import { isPathInsideOrEqual } from '../../shared/cross-platform-path'
@@ -39,7 +39,7 @@ export async function listAiVaultSubagentSessions(
   const wslHomeDirs = await getAiVaultWslHomeDirs()
   const roots =
     args.agent === 'claude'
-      ? claudeProjectsRootDirs({ wslHomeDirs })
+      ? claudeProjectsRootDirs({ wslHomeDirs, additionalClaudeProjectsDirs: configuredAdditionalClaudeProjectsPaths() })
       : ompSessionsRootDirs({ wslHomeDirs })
   if (!roots.some((root) => isPathInsideOrEqual(resolve(root), parentFilePath))) {
     return { sessions: [], issues: [] }

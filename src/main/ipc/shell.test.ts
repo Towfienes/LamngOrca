@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { normalize, resolve } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { dirname, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const {
@@ -93,6 +93,7 @@ function createSshTarget(overrides: Partial<SshTarget> = {}): SshTarget {
 }
 
 describe('registerShellHandlers', () => {
+  const originalPlatform = process.platform
   const settings = { activeRuntimeEnvironmentId: null as string | null }
   const sshTargets = new Map<string, SshTarget>()
   const store = {
@@ -101,6 +102,7 @@ describe('registerShellHandlers', () => {
   }
 
   beforeEach(() => {
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
     handleMock.mockReset()
     getSpawnArgsForWindowsMock.mockReset()
     openPathMock.mockReset()
@@ -119,6 +121,9 @@ describe('registerShellHandlers', () => {
     }))
     spawnMock.mockReturnValue(createSpawnedProcess())
     statMock.mockResolvedValue({ isDirectory: () => true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true })
   })
 
   function getHandler(channel: string): (event: unknown, ...args: unknown[]) => Promise<unknown> {
@@ -210,6 +215,35 @@ describe('registerShellHandlers', () => {
   })
 
   describe('shell:openInFileManager', () => {
+    it.each(['shell:openPath', 'shell:openInFileManager'])(
+      '%s respects the default Linux folder application instead of the active reveal service',
+      async (channel) => {
+        Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+        const filePath = resolve('workspace', 'file.txt')
+        await getHandler(channel)({}, filePath)
+        expect(openPathMock).toHaveBeenCalledWith(dirname(filePath))
+        expect(showItemInFolderMock).not.toHaveBeenCalled()
+      }
+    )
+    it('reports failures from the default Linux folder application', async () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+      openPathMock.mockResolvedValueOnce('Could not launch file manager')
+      await expect(
+        getHandler('shell:openInFileManager')({}, resolve('workspace'))
+      ).resolves.toEqual({
+        ok: false,
+        reason: 'launch-failed'
+      })
+    })
+    it('preserves Windows reveal behavior', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
+      const workspacePath = resolve('workspace')
+      await expect(getHandler('shell:openInFileManager')({}, workspacePath)).resolves.toEqual({
+        ok: true
+      })
+      expect(showItemInFolderMock).toHaveBeenCalledWith(workspacePath)
+      expect(openPathMock).not.toHaveBeenCalled()
+    })
     it('rejects relative paths', async () => {
       const handler = getHandler('shell:openInFileManager')
 

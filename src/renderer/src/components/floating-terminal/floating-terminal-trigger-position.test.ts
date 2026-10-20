@@ -59,6 +59,19 @@ describe('floating terminal trigger position', () => {
     ).toEqual({ left: 1140, top: 692 })
   })
 
+  it('keeps the default launcher outside a usage sidebar without moving saved placements', () => {
+    stubViewport(1200, 800)
+    const querySelector = vi.fn().mockReturnValue({ getBoundingClientRect: () => ({ width: 348 }) })
+    vi.stubGlobal('document', { querySelector })
+    expect(getDefaultFloatingTerminalTriggerPosition()).toEqual({ left: 792, top: 692 })
+    expect(resolveFloatingTerminalTriggerPosition({ left: 1100, top: 500 }, 'user')).toEqual({
+      left: 1100,
+      top: 500
+    })
+    querySelector.mockReturnValue(null)
+    expect(getDefaultFloatingTerminalTriggerPosition()).toEqual({ left: 1140, top: 692 })
+  })
+
   it('clamps parked positions into the viewport', () => {
     stubViewport(640, 480)
 

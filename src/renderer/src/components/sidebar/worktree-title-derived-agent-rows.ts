@@ -1,6 +1,7 @@
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
 import { formatAgentTypeLabel, isClaudeManagementTitle } from '@/lib/agent-status'
 import { isCursorAgentTitle } from '../../../../shared/agent-title-core'
+import { titleShowsNoAgent } from '../../../../shared/agent-detection'
 import { classifyTitleActivity, resolveTitleActivityLabel } from '@/lib/pane-agent-evidence'
 import { tabHasLivePty } from '@/lib/tab-has-live-pty'
 import type {
@@ -60,6 +61,8 @@ export function buildTitleDerivedAgentRows(args: {
       continue
     }
     const layout = terminalLayoutsByTabId[tab.id]
+    const leafIds = collectRuntimePaneLeafIds(layout?.root ?? null)
+    const activeLeafId = layout?.activeLeafId ?? leafIds[0]
     const paneTitles = runtimePaneTitlesByTabId[tab.id]
     const paneTitleEntries =
       paneTitles && Object.keys(paneTitles).length > 0
@@ -70,10 +73,10 @@ export function buildTitleDerivedAgentRows(args: {
             return isLiveA !== paneIdB >= FIRST_PANE_ID ? (isLiveA ? -1 : 1) : paneIdA - paneIdB
           })
         : []
+    const observedLeaves = new Set<string>()
 
     if (paneTitleEntries.length > 0) {
       // Why: hoisted per tab — the leaf lists are layout-derived, not pane-derived.
-      const leafIds = collectRuntimePaneLeafIds(layout?.root ?? null)
       const liveSlotIds = paneTitleEntries
         .map(([paneId]) => Number(paneId))
         .filter((paneId) => paneId >= FIRST_PANE_ID)
@@ -95,6 +98,7 @@ export function buildTitleDerivedAgentRows(args: {
         if (!leafId) {
           continue
         }
+        observedLeaves.add(leafId)
         const row = buildTitleDerivedAgentRow({
           tab,
           leafId,
@@ -110,27 +114,42 @@ export function buildTitleDerivedAgentRows(args: {
         rows.push(row)
         args.seenPaneKeys.add(row.paneKey)
       }
-      continue
     }
 
-    const leafId = layout?.activeLeafId ?? collectRuntimePaneLeafIds(layout?.root ?? null)[0]
-    if (!leafId) {
-      continue
+    for (const leafId of leafIds) {
+      const paneKey = makePaneKey(tab.id, leafId)
+      const foreground = paneForegroundAgentByPaneKey[paneKey]
+      const processAgent =
+        foreground?.agentEvidence === 'process-read' && !foreground.shellForeground
+          ? foreground.agent
+          : null
+      if (
+        observedLeaves.has(leafId) ||
+        args.seenPaneKeys.has(paneKey) ||
+        (!processAgent && (paneTitleEntries.length > 0 || leafId !== activeLeafId))
+      ) {
+        continue
+      }
+      // A fresh read identifies an unmounted pane even if its saved tab title is still the shell default.
+      const title =
+        processAgent && titleShowsNoAgent(tab.title, tab.defaultTitle)
+          ? formatAgentTypeLabel(processAgent)
+          : tab.title
+      const row = buildTitleDerivedAgentRow({
+        tab,
+        leafId,
+        title,
+        ownerAgentType: resolveTitleDerivedPaneOwner(tab, layout, leafId),
+        paneForegroundAgentByPaneKey,
+        now: args.now,
+        runtimeAgentOrchestrationByPaneKey: args.runtimeAgentOrchestrationByPaneKey
+      })
+      if (!row) {
+        continue
+      }
+      rows.push(row)
+      args.seenPaneKeys.add(row.paneKey)
     }
-    const row = buildTitleDerivedAgentRow({
-      tab,
-      leafId,
-      title: tab.title,
-      ownerAgentType: resolveTitleDerivedPaneOwner(tab, layout, leafId),
-      paneForegroundAgentByPaneKey,
-      now: args.now,
-      runtimeAgentOrchestrationByPaneKey: args.runtimeAgentOrchestrationByPaneKey
-    })
-    if (!row || args.seenPaneKeys.has(row.paneKey)) {
-      continue
-    }
-    rows.push(row)
-    args.seenPaneKeys.add(row.paneKey)
   }
 
   return rows

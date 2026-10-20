@@ -2,6 +2,7 @@ import { toSshExecutionHostId } from '../../../../shared/execution-host'
 import { closeStartupQueryAuthorityForPty, getRelayPtyId } from '../provider/registry'
 import { createTerminalSessionStateSaveFailureMessage } from '../../../../shared/terminal-session-state-save-failure'
 import { recordCodexPaneAccountForSpawn } from '../host-env/codex-home'
+import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
 import { persistAdmittedStablePaneBinding } from '../pane/stable-owner'
 import { claimSshPaneLease } from '../pane/ssh-pane-lease-claim'
 import {
@@ -93,6 +94,7 @@ export function publishPtyIpcSpawnCommit(ctx: PtyIpcSpawnState, committedSize: P
     reattach: ctx.result.isReattach ?? false
   })
   recordCodexPaneAccountForSpawn({
+    pinnedForSession: args.env?.[AGENT_LAUNCH_ACCOUNT_ENV] !== undefined,
     ptyId: ctx.result.id,
     isDaemonHostSpawn: ctx.isDaemonHostSpawn,
     isReattach: ctx.result.isReattach === true,

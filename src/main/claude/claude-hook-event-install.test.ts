@@ -184,4 +184,13 @@ describe('Claude managed hook events by resolved version', () => {
     expect(install({ hooks: {} }, '2.1.260').hooks?.SessionEnd).toBeUndefined()
     expect(install({ hooks: {} }, '2.1.261').hooks?.SessionEnd).toEqual([{ hooks: [managedHook] }])
   })
+
+  it('installs model-switch reports only on supported Claude versions', () => {
+    expect(install({ hooks: {} }, '2.1.250').hooks?.PostModelSwitch).toBeUndefined()
+    expect(install({ hooks: {} }, '2.1.251').hooks?.PostModelSwitch).toEqual([
+      { hooks: [managedHook] }
+    ])
+    const current = install({ hooks: {} }, '2.1.251')
+    expect(install(current, '2.1.250').hooks?.PostModelSwitch).toBeUndefined()
+  })
 })

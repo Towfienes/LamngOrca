@@ -1,7 +1,7 @@
 import type { SleepingAgentSessionRecord } from '../../../../shared/agent-session-resume'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { WorkspaceSessionState } from '../../../../shared/workspace-session-state-types'
-import { isTerminalLeafId, makePaneKey } from '../../../../shared/stable-pane-id'
+import { isTerminalLeafId, makePaneKey, parsePaneKey } from '../../../../shared/stable-pane-id'
 import {
   collectReleasedLeafIds,
   hydrateWorkspaceTerminalRows
@@ -60,9 +60,17 @@ export function buildWorkspaceTerminalRowPlan(
       .map((tab) => tab.id)
   )
   let sleepingAgentSessionsByPaneKey = Object.fromEntries(
-    Object.entries(session.sleepingAgentSessionsByPaneKey ?? {}).filter(([, record]) =>
-      validWorktreeIds.has(record.worktreeId)
-    )
+    Object.entries(session.sleepingAgentSessionsByPaneKey ?? {})
+      .filter(([, record]) => validWorktreeIds.has(record.worktreeId))
+      .map(([paneKey, record]) => {
+        const parsed = parsePaneKey(paneKey)
+        const ptyId =
+          record.ptyId ??
+          (parsed
+            ? session.terminalLayoutsByTabId[parsed.tabId]?.ptyIdsByLeafId?.[parsed.leafId]
+            : undefined)
+        return [paneKey, ptyId ? { ...record, ptyId } : record]
+      })
   )
 
   // Dropped rows never reach retirement, so remove their otherwise-stranded sleeping records.

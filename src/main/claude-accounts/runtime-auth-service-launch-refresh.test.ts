@@ -16,6 +16,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isOauthTokenExpiring, refreshClaudeOauthCredentials } from './oauth-refresh'
+import { writeActiveClaudeKeychainCredentials } from './keychain'
+import { getManagedLifecycleHook, getManagedScriptPath } from '../claude/hook-settings'
 
 vi.mock('electron', () => createElectronMock())
 
@@ -38,6 +40,96 @@ describe('ClaudeRuntimeAuthService', () => {
 
   afterEach(() => {
     cleanupRuntimeAuthTestState()
+  })
+
+  it('prepares a different account for one CLI without changing the default or live credentials', async () => {
+    const original = createClaudeCredentialsJson('one@example.com', 'original')
+    const alternate = createClaudeCredentialsJson('two@example.com', 'alternate')
+    const first = createManagedClaudeAuth(testState.userDataDir, 'account-1', original)
+    const second = createManagedClaudeAuth(testState.userDataDir, 'account-2', alternate)
+    const store = createStore(
+      createSettings({
+        claudeManagedAccounts: [
+          createClaudeAccount('account-1', first),
+          createClaudeAccount('account-2', second)
+        ],
+        activeClaudeManagedAccountId: 'account-1'
+      })
+    )
+    const { ClaudeRuntimeAuthService } = await import('./runtime-auth-service')
+    const service = new ClaudeRuntimeAuthService(store as never)
+    await service.syncForCurrentSelection()
+    const runtimePath = join(testState.fakeHomeDir, '.claude', '.credentials.json')
+    const before = readFileSync(runtimePath, 'utf8')
+    vi.mocked(writeActiveClaudeKeychainCredentials).mockImplementationOnce(
+      async (_credentials, configDir) => {
+        expect(configDir).toBe(second)
+      }
+    )
+
+    const preparation = await service.prepareForClaudeLaunch({ runtime: 'host' }, 'account-2')
+
+    expect(preparation.envPatch.CLAUDE_CONFIG_DIR).toBe(second)
+    expect(preparation.stripAuthEnv).toBe(true)
+    expect(
+      JSON.parse(readFileSync(join(second, '.claude.json'), 'utf8')).oauthAccount.accountUuid
+    ).toBe('account-2')
+    expect(store.getSettings().activeClaudeManagedAccountId).toBe('account-1')
+    expect(readFileSync(runtimePath, 'utf8')).toBe(before)
+    await expect(service.prepareForClaudeLaunch({ runtime: 'host' }, 'missing')).rejects.toThrow(
+      'not available'
+    )
+    expect(store.getSettings().activeClaudeManagedAccountId).toBe('account-1')
+  })
+
+  it('prepares the selected account with Orca hooks while keeping its own settings', async () => {
+    vi.mocked(writeActiveClaudeKeychainCredentials).mockResolvedValue(undefined)
+    const authPath = createManagedClaudeAuth(
+      testState.userDataDir,
+      'account-1',
+      createClaudeCredentialsJson('one@example.com', 'original')
+    )
+    const store = createStore(
+      createSettings({ claudeManagedAccounts: [createClaudeAccount('account-1', authPath)] })
+    )
+    const hook = getManagedLifecycleHook(getManagedScriptPath())
+    const source = JSON.stringify({
+      hooks: {
+        SessionStart: [{ hooks: [hook] }],
+        UserPromptSubmit: [{ hooks: [hook] }],
+        PostModelSwitch: [{ hooks: [hook] }]
+      }
+    })
+    const globalSettings = join(testState.fakeHomeDir, '.claude', 'settings.json')
+    writeFileSync(globalSettings, source)
+    const target = join(authPath, 'settings.json')
+    const userHook = { type: 'command', command: 'echo user-owned-hook' }
+    writeFileSync(
+      target,
+      JSON.stringify({
+        permissions: { allow: ['Read'] },
+        statusLine: { type: 'command', command: 'echo my-statusline' },
+        hooks: { UserPromptSubmit: [{ hooks: [userHook] }] }
+      })
+    )
+    const { ClaudeRuntimeAuthService } = await import('./runtime-auth-service')
+    const service = new ClaudeRuntimeAuthService(store as never)
+    await service.prepareForClaudeLaunch({ runtime: 'host' }, 'account-1')
+    const configured = JSON.parse(readFileSync(target, 'utf8'))
+    expect(configured.permissions).toEqual({ allow: ['Read'] })
+    expect(configured.statusLine.command).toBe('echo my-statusline')
+    expect(configured.hooks.UserPromptSubmit).toContainEqual({ hooks: [userHook] })
+    expect(configured.hooks.SessionStart).toContainEqual({ hooks: [hook] })
+    expect(configured.hooks.PostModelSwitch).toContainEqual({ hooks: [hook] })
+    expect(readFileSync(globalSettings, 'utf8')).toBe(source)
+    expect(store.getSettings().activeClaudeManagedAccountId).toBeNull()
+    const once = readFileSync(target, 'utf8')
+    await service.prepareForClaudeLaunch({ runtime: 'host' }, 'account-1')
+    expect(readFileSync(target, 'utf8')).toBe(once)
+    store.updateSettings({ agentStatusHooksEnabled: false })
+    writeFileSync(target, '{}')
+    await service.prepareForClaudeLaunch({ runtime: 'host' }, 'account-1')
+    expect(readFileSync(target, 'utf8')).toBe('{}')
   })
 
   it('does not clobber fresh Claude credentials after clearLastWrittenCredentialsJson', async () => {

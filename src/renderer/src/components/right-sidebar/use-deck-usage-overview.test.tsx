@@ -78,3 +78,26 @@ it('ignores a late response after the period changes', async () => {
   })
   expect(result.current.overview.estimatedCostUsd).toBe(20)
 })
+
+it('keeps its settled totals while refreshing and after a transient failure', async () => {
+  const { result, rerender } = renderHook(({ revision }) => useDeckUsageOverview('all', revision), {
+    initialProps: { revision: 0 }
+  })
+  await waitFor(() => expect(result.current.loading).toBe(false))
+  let fail: ((error: Error) => void) | undefined
+  codex.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        fail = reject
+      })
+  )
+  rerender({ revision: 1 })
+  expect(result.current.loading).toBe(true)
+  expect(result.current.overview.estimatedCostUsd).toBe(20)
+  await act(async () => {
+    fail?.(new Error('Temporary failure'))
+  })
+  await waitFor(() => expect(result.current.loading).toBe(false))
+  expect(result.current.overview.estimatedCostUsd).toBe(20)
+  expect(result.current.error).toContain('unavailable')
+})

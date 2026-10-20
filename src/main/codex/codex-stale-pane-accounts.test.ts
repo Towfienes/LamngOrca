@@ -347,6 +347,24 @@ describe('codex pane account registry', () => {
 })
 
 describe('listStaleCodexPanes', () => {
+  it('keeps an explicitly chosen session account when the Orca default changes', () => {
+    recordCodexPaneAccount('pty-pinned', {
+      selectionKey: 'host',
+      accountId: 'account-a',
+      homeRoute: 'account-home',
+      pinnedForSession: true
+    })
+    _internals.resetCache()
+    expect(getCodexPaneAccount('pty-pinned')?.pinnedForSession).toBe(true)
+    expect(
+      listStaleCodexPanes({
+        ptyIds: ['pty-pinned'],
+        settings: settingsWithSelection('account-b'),
+        activeHostHomeRoute: 'shared-home'
+      })
+    ).toEqual([])
+  })
+
   it('reports a pane launched under a now-deselected account', () => {
     recordCodexPaneAccount('pty-1', { selectionKey: 'host', accountId: 'account-a' })
 

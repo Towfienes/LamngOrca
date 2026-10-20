@@ -27,7 +27,7 @@ import { bindHiddenRestoreStateAndSshProbe } from './hidden-restore-state-and-ss
 import { bindParkRevealSnapshotVerdictActions } from './park-reveal-snapshot-verdict'
 
 export function installRunDeferredConnect(session: ConnectPanePtySession): void {
-  const cwdPromise = session.deps.cwdPromise
+  const cwdPromise = session.paneStartup?.cwd ? undefined : session.deps.cwdPromise
   let cwdPromiseSettled = cwdPromise === undefined
   let cwdPromiseWaitStarted = false
   let wakeWaitStarted = false

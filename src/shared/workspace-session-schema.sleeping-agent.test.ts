@@ -21,6 +21,9 @@ describe('parseWorkspaceSession sleeping agents', () => {
           capturedAt: 10,
           updatedAt: 9,
           terminalTitle: 'Codex',
+          ptyId: 'pty-one',
+          model: 'gpt-6.1-sol',
+          reasoningEffort: 'high',
           lastAssistantMessage: 'done',
           launchConfig: {
             agentArgs: '',
@@ -32,6 +35,11 @@ describe('parseWorkspaceSession sleeping agents', () => {
     })
     expect(result.ok).toBe(true)
     if (result.ok) {
+      expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']).toMatchObject({
+        ptyId: 'pty-one',
+        model: 'gpt-6.1-sol',
+        reasoningEffort: 'high'
+      })
       expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']?.agent).toBe('codex')
       expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']?.origin).toBe('live')
       expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']?.launchConfig).toEqual({

@@ -9,9 +9,7 @@ import type { ExecutionHostId } from '../../../shared/execution-host'
 import { useAppStore } from '@/store'
 import { gateWorktreeAgentActivation } from '@/lib/worktree-agent-activation-gate'
 
-export const WORKSPACE_LAUNCH_PICKER_EVENT = 'orca-workspace-launch-picker'
-
-async function requestEmptyWorkspaceLaunch(worktreeId: string): Promise<void> {
+async function restoreEmptyWorkspaceSessions(worktreeId: string): Promise<void> {
   const state = useAppStore.getState()
   if (
     state.activeWorktreeId !== worktreeId ||
@@ -20,16 +18,7 @@ async function requestEmptyWorkspaceLaunch(worktreeId: string): Promise<void> {
     return
   }
   state.ensureWorktreeRootGroup(worktreeId)
-  const outcome = await gateWorktreeAgentActivation(worktreeId)
-  const current = useAppStore.getState()
-  if (
-    outcome !== 'empty' ||
-    current.activeWorktreeId !== worktreeId ||
-    current.reconcileWorktreeTabModel(worktreeId).renderableTabCount > 0
-  ) {
-    return
-  }
-  window.dispatchEvent(new Event(WORKSPACE_LAUNCH_PICKER_EVENT))
+  await gateWorktreeAgentActivation(worktreeId)
 }
 
 export async function activateWorktreeFromSidebar(
@@ -44,7 +33,7 @@ export async function activateWorktreeFromSidebar(
       ...(executionHostId ? { executionHostId } : {})
     })
     if (result !== false) {
-      void requestEmptyWorkspaceLaunch(worktreeId)
+      void restoreEmptyWorkspaceSessions(worktreeId)
     }
     return
   }
@@ -58,7 +47,7 @@ export async function activateWorktreeFromSidebar(
   if (result === false) {
     return
   }
-  void requestEmptyWorkspaceLaunch(worktreeId)
+  void restoreEmptyWorkspaceSessions(worktreeId)
 
   if (typeof window !== 'undefined' && window.api?.ephemeralVm?.resumeWorkspace) {
     try {

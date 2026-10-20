@@ -58,7 +58,10 @@ export function transcriptPollUpdate<T extends AgentHookEventPayload>(
   const leadChanged =
     polled.payload.mainAgent?.state !== original.payload.mainAgent?.state ||
     polled.payload.mainAgent?.outcome !== original.payload.mainAgent?.outcome
-  return subagentsChanged || leadChanged
+  const modelChanged =
+    polled.payload.model !== original.payload.model ||
+    polled.payload.reasoningEffort !== original.payload.reasoningEffort
+  return subagentsChanged || leadChanged || modelChanged
     ? { ...polled, hasExplicitPrompt: undefined, hookEventName: undefined }
     : undefined
 }

@@ -1,3 +1,4 @@
+import type { WorktreeStartupLaunch } from '../../shared/worktree/launch-types'
 import { ipcRenderer } from 'electron'
 import type { TerminalPaneSplitSource } from '../../shared/feature-education-telemetry'
 import type { TerminalTabCreateReply } from '../../shared/terminal-reveal-identity'
@@ -98,6 +99,7 @@ export const uiTerminalAndSessionTabsApi = {
       paneRuntimeId: number
       direction: 'horizontal' | 'vertical'
       command?: string
+      startup?: WorktreeStartupLaunch
       worktreeId?: string
       sourceLeafId?: string
       telemetrySource?: TerminalPaneSplitSource
@@ -111,6 +113,7 @@ export const uiTerminalAndSessionTabsApi = {
         paneRuntimeId: number
         direction: 'horizontal' | 'vertical'
         command?: string
+        startup?: WorktreeStartupLaunch
         worktreeId?: string
         sourceLeafId?: string
         telemetrySource?: TerminalPaneSplitSource

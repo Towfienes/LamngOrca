@@ -4,7 +4,7 @@ export type AiVaultPrepareSessionResumeArgs = Pick<
   AiVaultSession,
   'agent' | 'filePath' | 'codexHome' | 'executionHostId'
 > &
-  Partial<Pick<AiVaultSession, 'sessionId'>>
+  Partial<Pick<AiVaultSession, 'sessionId'>> & { accountId?: string }
 
 export type AiVaultPrepareSessionResumeResult = {
   useRealCodexHome: boolean

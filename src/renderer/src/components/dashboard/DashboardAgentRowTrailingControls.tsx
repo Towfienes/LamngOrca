@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { DashboardAgentChildDisclosure } from './DashboardAgentChildDisclosure'
 
 type DashboardAgentRowTrailingControlsProps = {
+  compact?: boolean
   childAgentCount?: number
   childAgentsExpanded?: boolean
   onToggleChildAgents?: () => void
@@ -22,6 +23,7 @@ type DashboardAgentRowTrailingControlsProps = {
 }
 
 export function DashboardAgentRowTrailingControls({
+  compact = false,
   childAgentCount,
   childAgentsExpanded = false,
   onToggleChildAgents,
@@ -75,9 +77,10 @@ export function DashboardAgentRowTrailingControls({
 
   return (
     <span
+      data-agent-row-controls
       className={cn(
         'relative ml-auto flex shrink-0 items-center justify-end',
-        hasChildDisclosure ? 'h-5 gap-1' : 'h-3.5 w-12'
+        hasChildDisclosure ? 'h-5 gap-1' : compact ? 'h-5 w-5' : 'h-3.5 w-12'
       )}
     >
       {(sendTargetStatus === 'eligible' || sendTargetStatus === 'sending') && (
@@ -105,35 +108,67 @@ export function DashboardAgentRowTrailingControls({
           <span>{translate('auto.components.dashboard.DashboardAgentRow.912e136cd9', 'Send')}</span>
         </button>
       )}
-      {!hasChildDisclosure && !sendTargetStatus && hideDismiss && relativeTimestamp !== null && (
-        <span
-          className="pointer-events-none shrink-0 text-[10px] leading-none text-muted-foreground/60"
-          aria-hidden
-        >
-          {relativeTimestamp}
-        </span>
-      )}
-      {/* Why: timestamp and dismiss-X share one slot. On no-hover devices the X
-          is visible by default, so the timestamp must yield there too. */}
-      {!hasChildDisclosure && !sendTargetStatus && !hideDismiss && relativeTimestamp !== null && (
-        <span className="relative grid grid-cols-1 grid-rows-1 shrink-0 items-center justify-items-end">
+      {!compact &&
+        !hasChildDisclosure &&
+        !sendTargetStatus &&
+        hideDismiss &&
+        relativeTimestamp !== null && (
           <span
-            className={cn(
-              '[grid-area:1/1] pointer-events-none text-[10px] leading-none text-muted-foreground/60',
-              'transition-opacity duration-150',
-              'group-hover/agent-row:opacity-0 [@media(hover:none)]:opacity-0'
-            )}
+            className="pointer-events-none shrink-0 text-[10px] leading-none text-muted-foreground/60"
             aria-hidden
           >
             {relativeTimestamp}
           </span>
+        )}
+      {/* Why: timestamp and dismiss-X share one slot. On no-hover devices the X
+          is visible by default, so the timestamp must yield there too. */}
+      {!compact &&
+        !hasChildDisclosure &&
+        !sendTargetStatus &&
+        !hideDismiss &&
+        relativeTimestamp !== null && (
+          <span className="relative grid grid-cols-1 grid-rows-1 shrink-0 items-center justify-items-end">
+            <span
+              className={cn(
+                '[grid-area:1/1] pointer-events-none text-[10px] leading-none text-muted-foreground/60',
+                'transition-opacity duration-150',
+                'group-hover/agent-row:opacity-0 [@media(hover:none)]:opacity-0'
+              )}
+              aria-hidden
+            >
+              {relativeTimestamp}
+            </span>
+            <button
+              type="button"
+              onClick={handleDismiss}
+              onMouseDown={stopMouseDown}
+              onKeyDown={stopKeyDown}
+              className={cn(
+                '[grid-area:1/1] inline-flex items-center justify-center text-muted-foreground/70 hover:text-foreground',
+                'can-hover:opacity-0 transition-opacity duration-150',
+                'group-hover/agent-row:opacity-100 focus-visible:opacity-100'
+              )}
+              aria-label={translate(
+                'auto.components.dashboard.DashboardAgentRow.b06e13fcf7',
+                'Dismiss agent'
+              )}
+              title={translate('auto.components.dashboard.DashboardAgentRow.5ae84475cc', 'Dismiss')}
+            >
+              <X className="size-3.5" />
+            </button>
+          </span>
+        )}
+      {!sendTargetStatus &&
+        !hideDismiss &&
+        (compact || hasChildDisclosure || relativeTimestamp === null) && (
           <button
             type="button"
             onClick={handleDismiss}
             onMouseDown={stopMouseDown}
             onKeyDown={stopKeyDown}
             className={cn(
-              '[grid-area:1/1] inline-flex items-center justify-center text-muted-foreground/70 hover:text-foreground',
+              'inline-flex shrink-0 items-center justify-center text-muted-foreground/70 hover:text-foreground',
+              compact && 'size-5',
               'can-hover:opacity-0 transition-opacity duration-150',
               'group-hover/agent-row:opacity-100 focus-visible:opacity-100'
             )}
@@ -145,28 +180,7 @@ export function DashboardAgentRowTrailingControls({
           >
             <X className="size-3.5" />
           </button>
-        </span>
-      )}
-      {!sendTargetStatus && !hideDismiss && (hasChildDisclosure || relativeTimestamp === null) && (
-        <button
-          type="button"
-          onClick={handleDismiss}
-          onMouseDown={stopMouseDown}
-          onKeyDown={stopKeyDown}
-          className={cn(
-            'inline-flex shrink-0 items-center justify-center text-muted-foreground/70 hover:text-foreground',
-            'can-hover:opacity-0 transition-opacity duration-150',
-            'group-hover/agent-row:opacity-100 focus-visible:opacity-100'
-          )}
-          aria-label={translate(
-            'auto.components.dashboard.DashboardAgentRow.b06e13fcf7',
-            'Dismiss agent'
-          )}
-          title={translate('auto.components.dashboard.DashboardAgentRow.5ae84475cc', 'Dismiss')}
-        >
-          <X className="size-3.5" />
-        </button>
-      )}
+        )}
       {hasChildDisclosure && (
         <DashboardAgentChildDisclosure
           childAgentCount={childAgentCount}

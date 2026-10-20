@@ -226,10 +226,40 @@ function createHarness(
 }
 
 describe('remote runtime terminal split authority', () => {
+  it('forwards the declared CLI and its account environment into the new PTY', async () => {
+    const harness = createHarness()
+    await harness.runtime.splitTerminal(harness.handle, {
+      command: 'custom-cli',
+      launchAgent: 'codex',
+      cwd: '/original-cwd',
+      envToDelete: ['OLD_AUTH'],
+      resumeProviderSession: { key: 'session_id', id: 'resume-id' },
+      env: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' }
+    })
+    expect(harness.spawn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: 'custom-cli',
+        launchAgent: 'codex',
+        cwd: '/original-cwd',
+        envToDelete: ['OLD_AUTH'],
+        resumeProviderSession: { key: 'session_id', id: 'resume-id' },
+        env: expect.objectContaining({ ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' })
+      })
+    )
+  })
+
   it('addresses a graph-backed split by stable leaf identity across a parked remount', async () => {
     const harness = createHarness(true, { rendererMounted: true, graphOnlySource: true })
 
-    const split = harness.runtime.splitTerminal(harness.handle, { direction: 'vertical' })
+    const split = harness.runtime.splitTerminal(harness.handle, {
+      direction: 'vertical',
+      command: 'custom-cli',
+      launchAgent: 'codex',
+      cwd: '/original-cwd',
+      envToDelete: ['OLD_AUTH'],
+      resumeProviderSession: { key: 'session_id', id: 'resume-id' },
+      env: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' }
+    })
 
     const newLeafId = harness.rendererSplitTerminal.mock.calls[0]?.[2]?.newLeafId
     expect(newLeafId).toEqual(expect.any(String))
@@ -238,7 +268,17 @@ describe('remote runtime terminal split authority', () => {
     }
     expect(harness.rendererSplitTerminal).toHaveBeenCalledWith(TAB_ID, 1, {
       direction: 'vertical',
-      command: undefined,
+      command: 'custom-cli',
+      startup: {
+        command: 'custom-cli',
+        launchAgent: 'codex',
+        launchConfig: undefined,
+        cwd: '/original-cwd',
+        envToDelete: ['OLD_AUTH'],
+        resumeProviderSession: { key: 'session_id', id: 'resume-id' },
+        env: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'account-b' },
+        startupCommandDelivery: 'shell-ready'
+      },
       worktreeId: WORKTREE_ID,
       sourceLeafId: SOURCE_LEAF_ID,
       telemetrySource: undefined,

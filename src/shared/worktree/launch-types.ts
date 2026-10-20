@@ -1,6 +1,9 @@
 import type { StartupCommandDelivery } from '../codex-startup-delivery'
 import type { AgentKind, LaunchSource, RequestKind } from '../telemetry-events'
-import type { SleepingAgentLaunchConfig } from '../agent-session-resume'
+import type {
+  AgentProviderSessionMetadata,
+  SleepingAgentLaunchConfig
+} from '../agent-session-resume'
 import type { SetupRunnerShell } from '../setup-runner-command'
 import type { OrcaDefaultTabTemplate } from '../orca-yaml-hook-types'
 import type { TuiAgent } from '../tui-agent'
@@ -16,6 +19,9 @@ export type WorktreeSetupLaunch = {
 export type WorktreeStartupLaunch = {
   command: string
   env?: Record<string, string>
+  cwd?: string
+  envToDelete?: string[]
+  resumeProviderSession?: AgentProviderSessionMetadata
   launchConfig?: SleepingAgentLaunchConfig
   launchToken?: string
   launchAgent?: TuiAgent

@@ -11,10 +11,12 @@ const CLAUDE_PROJECTS_DIR = join(homedir(), '.claude', 'projects')
 // Claude session files by path use these roots to reject arbitrary paths.
 export function claudeProjectsRootDirs(args: {
   claudeProjectsDir?: string
+  additionalClaudeProjectsDirs?: readonly string[]
   wslHomeDirs?: readonly string[]
 }): string[] {
   return [
     args.claudeProjectsDir ?? CLAUDE_PROJECTS_DIR,
+    ...(args.additionalClaudeProjectsDirs ?? []),
     ...(args.wslHomeDirs ?? []).map((homeDir) => join(homeDir, '.claude', 'projects'))
   ]
 }

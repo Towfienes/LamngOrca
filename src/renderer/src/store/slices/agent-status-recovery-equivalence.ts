@@ -36,6 +36,9 @@ export function sleepingRecordsEquivalentIgnoringCaptureTime(
     existing.tabId === next.tabId &&
     existing.worktreeId === next.worktreeId &&
     existing.agent === next.agent &&
+    existing.ptyId === next.ptyId &&
+    existing.model === next.model &&
+    existing.reasoningEffort === next.reasoningEffort &&
     agentProviderSessionsEqual(existing.agent, existing.providerSession, next.providerSession) &&
     existing.prompt === next.prompt &&
     existing.state === next.state &&
@@ -59,6 +62,9 @@ export function recoveryRecordMatches(
   return (
     existing.origin === next.origin &&
     existing.agent === next.agent &&
+    existing.ptyId === next.ptyId &&
+    existing.model === next.model &&
+    existing.reasoningEffort === next.reasoningEffort &&
     existing.worktreeId === next.worktreeId &&
     existing.tabId === next.tabId &&
     existing.state === next.state &&

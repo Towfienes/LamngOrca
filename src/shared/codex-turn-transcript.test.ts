@@ -30,3 +30,31 @@ describe('Codex root turn evidence', () => {
     expect(turn.interrupted).toBe(false)
   })
 })
+
+describe('Codex current model and reasoning', () => {
+  it('reads root turn context and keeps it across tool events', () => {
+    const turn: CodexTranscriptTurn = { interrupted: false }
+    reconcileCodexTranscriptTurn(turn, [
+      { type: 'turn_context', payload: { model: 'gpt-6.1-sol', effort: 'high' } }
+    ])
+    reconcileCodexTranscriptTurn(turn, [event({ type: 'task_started', turn_id: 'next' })])
+    expect(turn).toMatchObject({
+      model: 'gpt-6.1-sol',
+      reasoningEffort: 'high',
+      interrupted: false
+    })
+    reconcileCodexTranscriptTurn(turn, [
+      { type: 'turn_context', payload: { model: 'gpt-6-astra' } }
+    ])
+    expect(turn.model).toBe('gpt-6-astra')
+    expect(turn.reasoningEffort).toBeUndefined()
+  })
+
+  it('rejects malformed model and effort without changing turn state', () => {
+    const turn: CodexTranscriptTurn = { interrupted: true }
+    reconcileCodexTranscriptTurn(turn, [
+      { type: 'turn_context', payload: { model: {}, effort: 2 } }
+    ])
+    expect(turn).toEqual({ interrupted: true, model: undefined, reasoningEffort: undefined })
+  })
+})

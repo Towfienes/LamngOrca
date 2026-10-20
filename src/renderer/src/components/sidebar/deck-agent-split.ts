@@ -8,6 +8,9 @@ import { toHostSessionTabId } from '@/runtime/web-terminal-surface-id'
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
 import { paneIsCoveredByNativeChat } from '@/components/terminal-pane/native-chat-covered-pane'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
+import { FOCUS_TERMINAL_PANE_EVENT, type FocusTerminalPaneDetail } from '@/constants/terminal'
+import type { WorktreeStartupLaunch } from '../../../../shared/worktree/launch-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type {
   RuntimeTerminalResolvePane,
@@ -59,7 +62,13 @@ export function resolveDeckAgentSplitTarget(
 export async function launchDeckAgentInPane(
   worktreeId: string,
   pane: DeckAgentSplitTarget,
-  agent: TuiAgent
+  agent: TuiAgent,
+  launch?: {
+    accountId?: string
+    commandOverride?: string
+    startup?: WorktreeStartupLaunch
+    sessionTitle?: string
+  }
 ): Promise<void> {
   const state = useAppStore.getState()
   const context = resolveAgentLaunchExecutionContext(state, { worktreeId })
@@ -67,6 +76,9 @@ export async function launchDeckAgentInPane(
     return
   }
   const environmentId = getRuntimeEnvironmentIdForWorktree(state, worktreeId)
+  if (launch?.accountId && (context.isRemote || environmentId)) {
+    throw new Error('Launch accounts on the host that owns this workspace.')
+  }
   const target: RuntimeClientTarget = environmentId
     ? { kind: 'environment', environmentId }
     : { kind: 'local' }
@@ -75,18 +87,23 @@ export async function launchDeckAgentInPane(
         expectedEnvironmentPairingRevision: captureRuntimeEnvironmentRequestRevision(environmentId)
       }
     : {}
-  const startup = buildAgentStartupPlan({
-    agent,
-    prompt: '',
-    allowEmptyPromptLaunch: true,
-    cmdOverrides: state.settings?.agentCmdOverrides ?? {},
-    agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
-    agentEnv: resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
-    platform: context.resolvedLaunchPlatform,
-    shell: context.queuedShell,
-    isRemote: context.isRemote || Boolean(environmentId)
-  })
-  if (!startup) {
+  const startup = launch?.startup
+    ? null
+    : buildAgentStartupPlan({
+        agent,
+        prompt: '',
+        allowEmptyPromptLaunch: true,
+        cmdOverrides: state.settings?.agentCmdOverrides ?? {},
+        agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
+        agentEnv: {
+          ...resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
+          ...(launch?.accountId ? { [AGENT_LAUNCH_ACCOUNT_ENV]: launch.accountId } : {})
+        },
+        platform: context.resolvedLaunchPlatform,
+        shell: context.queuedShell,
+        isRemote: context.isRemote || Boolean(environmentId)
+      })
+  if (!startup && !launch?.startup) {
     throw new Error('Could not build the agent launch command.')
   }
   // The host resolves the durable leaf; a closed pane must never fall back to a sibling.
@@ -105,18 +122,38 @@ export async function launchDeckAgentInPane(
     {
       terminal: terminal.handle,
       direction: pane.direction,
-      command: startup.launchCommand,
-      ...(startup.env ? { env: startup.env } : {}),
+      ...(launch?.startup ?? {
+        command: launch?.commandOverride ?? startup?.launchCommand,
+        ...(startup?.launchConfig && !launch?.commandOverride
+          ? { launchConfig: startup.launchConfig }
+          : {}),
+        ...(startup?.env ? { env: startup.env } : {})
+      }),
+      launchAgent: agent,
       telemetrySource: 'context_menu'
     },
     options
   )
   const current = useAppStore.getState()
+  if (launch?.sessionTitle && split.leafId && !environmentId && !context.isRemote) {
+    const layout = current.terminalLayoutsByTabId[pane.tabId]
+    if (layout) {
+      current.setTabLayout(pane.tabId, {
+        ...layout,
+        titlesByLeafId: { ...layout.titlesByLeafId, [split.leafId]: launch.sessionTitle }
+      })
+    }
+  }
   if (
     current.activeWorktreeId === worktreeId &&
     current.activeTabId === pane.tabId &&
     split.leafId
   ) {
     activateTabAndFocusPane(pane.tabId, split.leafId)
+    // The reveal reply already confirms this leaf is mounted, including in hidden renderers.
+    if (typeof window !== 'undefined') {
+      const detail: FocusTerminalPaneDetail = { tabId: pane.tabId, leafId: split.leafId }
+      window.dispatchEvent(new CustomEvent(FOCUS_TERMINAL_PANE_EVENT, { detail }))
+    }
   }
 }

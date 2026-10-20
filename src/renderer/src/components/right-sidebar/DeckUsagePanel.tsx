@@ -21,11 +21,21 @@ export default function DeckUsagePanel(): React.JSX.Element {
   const [range, setRange] = useState<CodexUsageRange>('all')
   const [revision, setRevision] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
-  const { overview, loading, error } = useDeckUsageOverview(range, revision)
+  const scanRevision = useAppStore(
+    (state) =>
+      (state.claudeUsageScanState?.lastScanCompletedAt ?? 0) +
+      (state.codexUsageScanState?.lastScanCompletedAt ?? 0) +
+      (state.openCodeUsageScanState?.lastScanCompletedAt ?? 0) +
+      (state.museUsageScanState?.lastScanCompletedAt ?? 0)
+  )
+  const { overview, loading, error } = useDeckUsageOverview(range, revision + scanRevision)
   const openSettingsPage = useAppStore((state) => state.openSettingsPage)
   const providers = overview.providers.filter((provider) => provider.enabled || provider.hasData)
 
   const refresh = async (): Promise<void> => {
+    if (refreshing) {
+      return
+    }
     setRefreshing(true)
     try {
       const state = useAppStore.getState()
@@ -51,13 +61,29 @@ export default function DeckUsagePanel(): React.JSX.Element {
 
   return (
     <div
-      className="deck-usage-panel flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 scrollbar-sleek"
+      className="deck-usage-panel min-h-0 max-h-[50%] shrink space-y-3 overflow-y-auto border-t border-sidebar-border bg-sidebar p-3 text-sidebar-foreground scrollbar-sleek"
       aria-label="Usage panel"
+      aria-busy={loading || refreshing}
     >
-      <section
-        className="deck-usage-cost rounded-lg bg-card p-4 text-card-foreground"
-        aria-label="Estimated API cost"
+      <ToggleGroup
+        type="single"
+        size="xs"
+        value={range}
+        onValueChange={(value) => {
+          if (value === '7d' || value === '30d' || value === '90d' || value === 'all') {
+            setRange(value)
+          }
+        }}
+        aria-label="Usage period"
+        className="mb-3 w-full"
       >
+        {RANGES.map((option) => (
+          <ToggleGroupItem key={option.value} value={option.value} className="flex-1">
+            {option.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      <section className="deck-usage-cost text-popover-foreground" aria-label="Estimated API cost">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Estimated API cost</span>
           <Tooltip>
@@ -79,13 +105,13 @@ export default function DeckUsagePanel(): React.JSX.Element {
           className="deck-usage-total mt-1 text-3xl leading-tight font-semibold tabular-nums"
           aria-live="polite"
         >
-          {loading ? '…' : formatUsageCost(overview.estimatedCostUsd)}
+          {formatUsageCost(overview.estimatedCostUsd)}
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground">
           API equivalent, not your subscription bill
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground">From local agent logs</p>
-        <div className="mt-5 space-y-5">
+        <div className="mt-4 space-y-4">
           {providers.map((provider) => {
             const share =
               overview.estimatedCostUsd && provider.estimatedCostUsd !== null
@@ -138,26 +164,6 @@ export default function DeckUsagePanel(): React.JSX.Element {
             {error}
           </p>
         )}
-        <div className="mt-5">
-          <ToggleGroup
-            type="single"
-            size="xs"
-            value={range}
-            onValueChange={(value) => {
-              if (value === '7d' || value === '30d' || value === '90d' || value === 'all') {
-                setRange(value)
-              }
-            }}
-            aria-label="Usage period"
-            className="w-full"
-          >
-            {RANGES.map((option) => (
-              <ToggleGroupItem key={option.value} value={option.value} className="flex-1">
-                {option.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
         <Button
           variant="link"
           size="xs"
@@ -169,10 +175,6 @@ export default function DeckUsagePanel(): React.JSX.Element {
         >
           Usage settings
         </Button>
-      </section>
-      <section aria-label="Subscription limits">
-        <h3 className="mb-2 text-xs font-medium">Subscription limits</h3>
-        <div id="deck-usage-roster" />
       </section>
     </div>
   )

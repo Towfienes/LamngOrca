@@ -25,6 +25,7 @@ const DEFAULT_STABLE_FRAMES = 2
 const DEFAULT_MAX_FRAMES = 12
 // Why: ten settle windows tolerate slow split layout without permitting permanent polling.
 const DEFAULT_MAX_READINESS_WAIT_FRAMES = DEFAULT_MAX_FRAMES * 10
+const FRAME_FALLBACK_MS = 50
 
 function usableDimensions(
   dimensions: TerminalStartupGridDimensions | null
@@ -55,24 +56,42 @@ export function waitForStableStartupGrid(
   let latestUsable: TerminalStartupGridDimensions | null = null
   let observedGridChange = false
   let pendingFrame: number | null = null
+  let pendingTimer: ReturnType<typeof setTimeout> | null = null
   let cancelled = false
   let readyFrame = 0
   let latestReadinessWaitUsable: TerminalStartupGridDimensions | null = null
   const usesReadinessGate = options.isReadyToSettle !== undefined
+
+  const cancelPendingTick = (): void => {
+    if (pendingFrame !== null) {
+      options.cancelFrame(pendingFrame)
+      pendingFrame = null
+    }
+    if (pendingTimer !== null) {
+      clearTimeout(pendingTimer)
+      pendingTimer = null
+    }
+  }
+
+  const scheduleTick = (): void => {
+    // Wayland and hidden windows can stop animation frames while a restart waits to spawn.
+    pendingTimer = setTimeout(tick, FRAME_FALLBACK_MS)
+    pendingFrame = options.requestFrame(tick)
+  }
 
   const settle = (dimensions: TerminalStartupGridDimensions | null): void => {
     if (cancelled) {
       return
     }
     cancelled = true
-    pendingFrame = null
+    cancelPendingTick()
     if (options.isAlive()) {
       options.onSettled(dimensions)
     }
   }
 
   const tick = (): void => {
-    pendingFrame = null
+    cancelPendingTick()
     if (cancelled || !options.isAlive()) {
       return
     }
@@ -93,7 +112,7 @@ export function waitForStableStartupGrid(
       previous = null
       stableFrameCount = 0
       observedGridChange = false
-      pendingFrame = options.requestFrame(tick)
+      scheduleTick()
       return
     }
 
@@ -122,18 +141,15 @@ export function waitForStableStartupGrid(
       return
     }
 
-    pendingFrame = options.requestFrame(tick)
+    scheduleTick()
   }
 
-  pendingFrame = options.requestFrame(tick)
+  scheduleTick()
 
   return {
     cancel: () => {
       cancelled = true
-      if (pendingFrame !== null) {
-        options.cancelFrame(pendingFrame)
-        pendingFrame = null
-      }
+      cancelPendingTick()
     }
   }
 }

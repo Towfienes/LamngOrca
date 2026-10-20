@@ -1,5 +1,7 @@
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
+import { claudeResumeAccountEnv } from './claude-resume-account-env'
+import { CLIENT_PLATFORM } from './new-workspace'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import { reconcileTabOrder } from '@/components/tab-bar/reconcile-order'
@@ -77,10 +79,18 @@ export function launchSleepingAgentSession(
       launchConfig !== undefined
         ? launchConfig.agentArgs
         : resolveTuiAgentLaunchArgs(record.agent, state.settings?.agentDefaultArgs),
-    agentEnv:
-      launchConfig !== undefined
-        ? launchConfig.agentEnv
-        : resolveTuiAgentLaunchEnv(record.agent, state.settings?.agentDefaultEnv),
+    agentEnv: claudeResumeAccountEnv({
+      agent: record.agent,
+      agentEnv:
+        launchConfig?.agentEnv ??
+        resolveTuiAgentLaunchEnv(record.agent, state.settings?.agentDefaultEnv),
+      transcriptPath: record.providerSession.transcriptPath,
+      accounts: state.settings?.claudeManagedAccounts,
+      local:
+        !record.connectionId &&
+        getExecutionHostIdForWorktree(state, record.worktreeId) === 'local' &&
+        resumeTarget.platform === CLIENT_PLATFORM
+    }),
     ...(launchConfig?.agentCommand ? { agentCommand: launchConfig.agentCommand } : {}),
     ...(launchConfig?.ompResumeFilePath
       ? { ompResumeFilePath: launchConfig.ompResumeFilePath }

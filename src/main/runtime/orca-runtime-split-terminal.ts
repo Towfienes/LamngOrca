@@ -1,16 +1,22 @@
 // @ts-nocheck -- mechanically split from OrcaRuntimeService; behavior is covered by AST equivalence and characterization tests.
+import type { AgentProviderSessionMetadata, SleepingAgentLaunchConfig } from '../../shared/agent-session-resume'
 import { OrcaRuntimeWithStopExplicitlyClosedTabPtys } from './orca-runtime-stop-explicitly-closed-tab-ptys'
 import type { TerminalPaneSplitSource } from '../../shared/feature-education-telemetry'
 import type { RuntimeTerminalSplit } from '../../shared/runtime-types'
 import { randomUUID } from 'node:crypto'
 import type { Worktree } from '../../shared/worktree/types'
+import type { TuiAgent } from '../../shared/tui-agent'
 
 export class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopExplicitlyClosedTabPtys {
   async splitTerminal(
     handle: string,
     opts: {
       direction?: 'horizontal' | 'vertical'
+      cwd?: string
+      resumeProviderSession?: AgentProviderSessionMetadata
       command?: string
+      launchAgent?: TuiAgent
+      launchConfig?: SleepingAgentLaunchConfig
       env?: Record<string, string>
       envToDelete?: string[]
       activate?: boolean
@@ -35,6 +41,20 @@ export class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopExplicitlyC
     this.notifier?.splitTerminal(leaf.tabId, leaf.paneRuntimeId, {
       direction,
       command: opts.command,
+      ...(opts.command
+        ? {
+            startup: {
+              command: opts.command,
+              env: opts.env,
+              cwd: opts.cwd,
+              envToDelete: opts.envToDelete,
+              resumeProviderSession: opts.resumeProviderSession,
+              launchAgent: opts.launchAgent,
+              launchConfig: opts.launchConfig,
+              startupCommandDelivery: 'shell-ready' as const
+            }
+          }
+        : {}),
       worktreeId: leaf.worktreeId,
       sourceLeafId: leaf.leafId,
       telemetrySource: opts.telemetrySource,

@@ -243,3 +243,31 @@ it('drops terminal-free chrome when an authoritative scan proves deletion', () =
   expect(state.openFiles).toEqual([])
   expect(state.browserTabsByWorktree[WORKTREE_ID]).toBeUndefined()
 })
+
+it('restores tabs for a detected workspace hidden from the sidebar', () => {
+  const store = createTestStore()
+  const hidden = makeWorktree({ id: WORKTREE_ID, repoId: 'repo1', path: '/path/worktree' })
+  store.setState({
+    repos: [{ id: 'repo1', path: '/repo1', displayName: 'Repo 1', badgeColor: '#000', addedAt: 0 }],
+    worktreesByRepo: { repo1: [] },
+    detectedWorktreesByRepo: {
+      repo1: {
+        repoId: 'repo1',
+        authoritative: true,
+        source: 'git',
+        worktrees: [{ ...hidden, ownership: 'external', selectedCheckout: false, visible: false }]
+      }
+    }
+  })
+  const session = makeDegradedRepoSession()
+  store.getState().hydrateWorkspaceSession(session)
+  store.getState().hydrateTabsSession(session)
+  store.getState().hydrateEditorSession(session)
+  store.getState().hydrateBrowserSession(session)
+
+  const state = store.getState()
+  expect(state.activeWorktreeId).toBe(WORKTREE_ID)
+  expect(state.tabsByWorktree[WORKTREE_ID]?.map((tab) => tab.id)).toEqual([TERMINAL_ID])
+  expect(state.openFiles.map((file) => file.id)).toEqual([EDITOR_FILE_ID])
+  expect(state.browserTabsByWorktree[WORKTREE_ID]?.map((tab) => tab.id)).toEqual([BROWSER_ID])
+})

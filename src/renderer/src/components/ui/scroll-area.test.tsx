@@ -17,6 +17,24 @@ afterEach(() => {
 })
 
 describe('ScrollArea sizing footgun', () => {
+  it('hides the scrollbar while keeping the viewport scrollable', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    roots.push(root)
+    await act(async () => {
+      root.render(
+        <ScrollArea type="always" hideScrollbar>
+          <div />
+        </ScrollArea>
+      )
+    })
+    const viewport = container.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]')
+    const scrollbar = container.querySelector('[data-slot="scroll-area-scrollbar"]')
+    expect(scrollbar?.classList.contains('hidden')).toBe(true)
+    expect(viewport?.style.overflowY).toBe('scroll')
+  })
+
   // Why: Radix Root's inline `position: relative` always beats an `absolute` class,
   // so the ScrollArea must be sized by height (h-full), not absolute — locked here.
   it('keeps Radix inline position:relative even when given an absolute className', async () => {

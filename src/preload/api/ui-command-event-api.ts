@@ -186,6 +186,7 @@ export type UiCommandEventApi = {
       paneRuntimeId: number
       direction: 'horizontal' | 'vertical'
       command?: string
+      startup?: WorktreeStartupLaunch
       worktreeId?: string
       sourceLeafId?: string
       telemetrySource?: TerminalPaneSplitSource
