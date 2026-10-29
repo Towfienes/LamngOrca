@@ -3,7 +3,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import type { ActiveRightSidebarTab } from '@/store/slices/editor'
 import { isPluginPanelTabKey } from '../../../../shared/plugins/plugin-manifest'
 import DeckUsagePanel from './DeckUsagePanel'
-import { GlobalNotesPanel } from './GlobalNotesPanel'
+import { PinnedPromptsPanel } from './PinnedPromptsPanel'
 
 const FileExplorer = lazy(() => import('./FileExplorer'))
 const SourceControl = lazy(() => import('./SourceControl'))
@@ -47,7 +47,7 @@ export function RightSidebarPanelContent({
           )}
         </Suspense>
       </div>
-      {effectiveTab === 'explorer' && <GlobalNotesPanel />}
+      {effectiveTab === 'explorer' && <PinnedPromptsPanel />}
       <DeckUsagePanel />
     </div>
   )
