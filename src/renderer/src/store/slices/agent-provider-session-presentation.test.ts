@@ -28,22 +28,20 @@ it('preserves account, title and PTY through repeated idle provider heartbeats',
       { agentArgs: '', agentEnv: { ORCA_AGENT_LAUNCH_ACCOUNT_ID: 'chosen' } },
       { agentType: 'claude', providerSession }
     )
-  store
-    .getState()
-    .setAgentStatus(
-      paneKey,
-      {
-        state: 'working',
-        agentType: 'claude',
-        prompt: 'Review yesterday changes',
-        model: 'claude-sonnet-4-6',
-        reasoningEffort: 'high'
-      },
-      'Review yesterday changes',
-      { updatedAt: 10 },
-      { worktreeId: 'wt', tabId: 'tab-1' },
-      { providerSession }
-    )
+  store.getState().setAgentStatus(
+    paneKey,
+    {
+      state: 'working',
+      agentType: 'claude',
+      prompt: 'Review yesterday changes',
+      model: 'claude-sonnet-4-6',
+      reasoningEffort: 'high'
+    },
+    'Review yesterday changes',
+    { updatedAt: 10 },
+    { worktreeId: 'wt', tabId: 'tab-1' },
+    { providerSession }
+  )
   for (const updatedAt of [20, 30]) {
     store
       .getState()

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { getDefaultSettings } from '../../../shared/constants'
 import { useAppStore } from '@/store'
+import { setLocalRuntimeCapabilitiesForTests } from '@/runtime/local-runtime-capabilities'
 import {
   emptyWorkspaceDefaultChatAwaitsDetection,
   loadEmptyWorkspaceDefaultChatDetection,
@@ -11,7 +12,8 @@ import {
 const mocks = vi.hoisted(() => ({
   launchAgentInNewTab: vi.fn(),
   planAgentSessionLaunch: vi.fn(),
-  detectionTargetKey: vi.fn<() => string | undefined>()
+  detectionTargetKey: vi.fn<() => string | undefined>(),
+  seedShell: vi.fn(() => true)
 }))
 
 vi.mock('@/lib/launch-agent-in-new-tab', () => ({
@@ -33,7 +35,6 @@ function seedSettings(settings: Partial<GlobalSettings>): void {
     settings: {
       ...getDefaultSettings('/tmp'),
       experimentalNativeChat: true,
-      openAgentTabsInChatByDefault: true,
       defaultTuiAgent: 'codex',
       disabledTuiAgents: [],
       ...settings
@@ -45,46 +46,27 @@ beforeEach(() => {
   mocks.detectionTargetKey.mockReturnValue('local')
   mocks.planAgentSessionLaunch.mockReturnValue({ route: 'structured-native-chat' })
   mocks.launchAgentInNewTab.mockReturnValue({
-    surface: { kind: 'local-agent-session', tabId: 'chat-tab', sessionId: 's-1' }
+    surface: { kind: 'host-published' }
   })
 })
 
 afterEach(() => {
   vi.useRealTimers()
   vi.clearAllMocks()
+  setLocalRuntimeCapabilitiesForTests(null)
   useAppStore.setState(initialAppStoreState, true)
 })
 
 describe('openDefaultAgentChatInEmptyWorkspace', () => {
-  it('launches the default agent as a chat', () => {
+  it("seeds a plain shell, not the agent's terminal, when the host declines the chat", () => {
     seedSettings({})
 
-    expect(openDefaultAgentChatInEmptyWorkspace('wt-1')).toEqual({ primaryTabId: 'chat-tab' })
-    expect(mocks.launchAgentInNewTab).toHaveBeenCalledWith(
-      expect.objectContaining({ agent: 'codex', worktreeId: 'wt-1', pendingActivationSpawn: true })
-    )
-  })
+    openDefaultAgentChatInEmptyWorkspace('wt-1', mocks.seedShell)
+    const onDeclined = mocks.launchAgentInNewTab.mock.calls[0]?.[0]?.onStructuredHostDeclined
 
-  it('does nothing unless new agent tabs open as chat', () => {
-    seedSettings({ openAgentTabsInChatByDefault: false })
-
-    expect(openDefaultAgentChatInEmptyWorkspace('wt-1')).toBeNull()
-    expect(mocks.launchAgentInNewTab).not.toHaveBeenCalled()
-  })
-
-  it('respects a Blank Terminal default agent', () => {
-    seedSettings({ defaultTuiAgent: 'blank' })
-
-    expect(openDefaultAgentChatInEmptyWorkspace('wt-1')).toBeNull()
-    expect(mocks.launchAgentInNewTab).not.toHaveBeenCalled()
-  })
-
-  it('does not start an agent that could only open as a terminal here', () => {
-    seedSettings({})
-    mocks.planAgentSessionLaunch.mockReturnValue({ route: 'terminal-tui' })
-
-    expect(openDefaultAgentChatInEmptyWorkspace('wt-1')).toBeNull()
-    expect(mocks.launchAgentInNewTab).not.toHaveBeenCalled()
+    expect(mocks.seedShell).not.toHaveBeenCalled()
+    expect(onDeclined()).toEqual({ opened: true })
+    expect(mocks.seedShell).toHaveBeenCalledOnce()
   })
 
   it('reads the agents detected on the workspace SSH host', () => {
@@ -92,26 +74,18 @@ describe('openDefaultAgentChatInEmptyWorkspace', () => {
     mocks.detectionTargetKey.mockReturnValue('ssh:conn-1')
     useAppStore.setState({ remoteDetectedAgentIds: { 'conn-1': ['claude'] } })
 
-    openDefaultAgentChatInEmptyWorkspace('wt-1')
+    openDefaultAgentChatInEmptyWorkspace('wt-1', mocks.seedShell)
 
     expect(mocks.launchAgentInNewTab).toHaveBeenCalledWith(
       expect.objectContaining({ agent: 'claude' })
     )
-  })
-
-  it('treats a workspace whose host is unresolved as unknown', () => {
-    seedSettings({})
-    mocks.detectionTargetKey.mockReturnValue(undefined)
-
-    expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(false)
-    expect(openDefaultAgentChatInEmptyWorkspace('wt-1')).toBeNull()
-    expect(mocks.launchAgentInNewTab).not.toHaveBeenCalled()
   })
 })
 
 describe('agent detection for the default chat', () => {
   it('waits only while chat is the default and the host list has not loaded', () => {
     seedSettings({})
+    setLocalRuntimeCapabilitiesForTests([])
     mocks.detectionTargetKey.mockReturnValue('ssh:conn-1')
     useAppStore.setState({ remoteDetectedAgentIds: {} })
     expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(true)
@@ -119,17 +93,8 @@ describe('agent detection for the default chat', () => {
     useAppStore.setState({ remoteDetectedAgentIds: { 'conn-1': [] } })
     expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(false)
 
-    seedSettings({ openAgentTabsInChatByDefault: false })
+    seedSettings({ experimentalNativeChat: false })
     useAppStore.setState({ remoteDetectedAgentIds: {} })
-    expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(false)
-  })
-
-  // Why: Blank Terminal opens a shell whatever the host has, so waiting only delays that shell.
-  it('does not wait when the default agent is Blank Terminal', () => {
-    seedSettings({ defaultTuiAgent: 'blank' })
-    mocks.detectionTargetKey.mockReturnValue('ssh:conn-1')
-    useAppStore.setState({ remoteDetectedAgentIds: {} })
-
     expect(emptyWorkspaceDefaultChatAwaitsDetection('wt-1')).toBe(false)
   })
 

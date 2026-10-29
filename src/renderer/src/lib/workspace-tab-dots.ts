@@ -1,5 +1,5 @@
 import type { Tab, TabContentType, TabGroupLayoutNode } from '../../../shared/tab-types'
-import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TerminalAgent } from '../../../shared/terminal-agent'
 import { makePaneKey } from '../../../shared/stable-pane-id'
 import type { TerminalPaneLayoutNode } from '../../../shared/terminal-tab-types'
 import { resolveUnifiedTabLabel } from '../../../shared/tab-title-resolution'
@@ -12,7 +12,7 @@ import {
 
 export type WorkspaceTabPane = {
   leafId: string
-  agent: TuiAgent | null
+  agent: TerminalAgent | null
   attention: DeckAgentAttention
 }
 
@@ -25,7 +25,7 @@ export type WorkspaceTabDot = {
   /** Terminal tab whose pane layout the hover preview draws; null for non-terminal tabs. */
   previewTabId: string | null
   /** Drawn inside the dot (caelestia-style): the tab's agent, else its content type. */
-  agent: TuiAgent | null
+  agent: TerminalAgent | null
   contentType: TabContentType
   attention: DeckAgentAttention
   /** Terminal panes in layout order, one icon each (caelestia shows a workspace's windows). */

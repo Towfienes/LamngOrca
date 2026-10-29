@@ -103,7 +103,7 @@ it('keeps foreign-host and other-agent sessions out while switching workspace sc
     sessions: [
       session(0),
       session(1, { cwd: '/other', agent: 'opencode2' }),
-      session(2, { agent: 'dsh' }),
+      session(2, { agent: 'kiro' }),
       session(3, { executionHostId: 'ssh:other' })
     ],
     issues: [],

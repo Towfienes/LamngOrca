@@ -1,7 +1,7 @@
 import { useAppStore } from '@/store'
 import { buildAgentStartupPlan } from '@/lib/tui-agent-startup'
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
 import {
   resolveTuiAgentLaunchArgs,
@@ -30,9 +30,10 @@ export function deckAccountLaunchIsLocal(worktreeId: string): boolean {
   const state = useAppStore.getState()
   const context = resolveAgentLaunchExecutionContext(state, { worktreeId })
   return (
+    context !== null &&
     !context.isRemote &&
     context.worktreeSshConnectionId !== undefined &&
-    !getRuntimeEnvironmentIdForWorktree(state, worktreeId) &&
+    !runtimeEnvironmentIdOrLocalUnlessTwin(state, worktreeId) &&
     !(context.resolvedLaunchPlatform === 'linux' && navigator.userAgent.includes('Windows'))
   )
 }
@@ -55,14 +56,17 @@ export async function launchDeckAccountAgent(
     return split.tabId
   }
   const context = resolveAgentLaunchExecutionContext(state, { worktreeId })
+  if (!context) {
+    throw new Error('This workspace is not available.')
+  }
   const startup = buildAgentStartupPlan({
     agent,
     prompt: '',
     allowEmptyPromptLaunch: true,
     cmdOverrides: state.settings?.agentCmdOverrides ?? {},
-    agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
+    agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings),
     agentEnv: {
-      ...resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
+      ...resolveTuiAgentLaunchEnv(agent, state.settings),
       ...(accountId ? { [AGENT_LAUNCH_ACCOUNT_ENV]: accountId } : {})
     },
     platform: context.resolvedLaunchPlatform,

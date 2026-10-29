@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, realpath } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import type {
@@ -9,12 +8,12 @@ import type {
   AiVaultPrepareSessionResumeResult
 } from '../../shared/ai-vault-resume-preparation'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
-import { resolveOwnedClaudeManagedAuthPath } from '../claude-accounts/managed-auth-path'
 import { resolvePinnedCodexLaunchHome } from '../ipc/pty/host-env/codex-launch-account'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../shared/agent-launch-account'
 import { getSystemCodexHomePath } from '../codex/codex-home-paths'
 import { configuredAdditionalCodexHomePaths } from './cached-session-list'
 import { managedClaudeSessionRoots } from './managed-claude-session-roots'
+import { claudeSharedProjectsRoot } from './claude-shared-projects-root'
 import { copySessionFileWithoutOverwrite } from '../codex/codex-session-backfill-copy'
 import { reconcileAccountSession } from './account-session-reconciliation'
 
@@ -44,12 +43,11 @@ export async function prepareAccountSessionResume(
     const account = settings.claudeManagedAccounts.find(
       (a) => a.id === args.accountId && a.managedAuthRuntime !== 'wsl'
     )
-    const home = account && resolveOwnedClaudeManagedAuthPath(account.id, account.managedAuthPath)
-    if (!home) {
+    if (!account) {
       throw new Error('The chosen Claude account is unavailable.')
     }
-    targetRoot = join(home, 'projects')
-    sourceRoots = [join(homedir(), '.claude', 'projects'), ...managedClaudeSessionRoots(settings)]
+    targetRoot = claudeSharedProjectsRoot()
+    sourceRoots = [targetRoot, ...managedClaudeSessionRoots(settings)]
   } else {
     throw new Error('This agent does not use Orca-managed launch accounts.')
   }

@@ -14,7 +14,7 @@ import type { FileContent } from './editor-panel-content-types'
 import { canUseChangesModeForFile } from './editor-panel-file-mode'
 import { getMarkdownRenderMode, type MarkdownRenderState } from './markdown-render-mode'
 import { getCachedMarkdownRichModeEligibility } from './markdown-rich-mode-eligibility-cache'
-import { canRenderMarkdownAtSize } from './markdown-rich-size-limit'
+import { exceedsMarkdownRichModeSizeLimit } from './markdown-rich-size-limit'
 
 type StoreState = ReturnType<typeof useAppStore.getState>
 
@@ -54,16 +54,15 @@ export function getEditorPanelRenderModel({
       activeFile.diffSource === 'combined-uncommitted' ||
       activeFile.diffSource === 'combined-branch' ||
       activeFile.diffSource === 'combined-commit')
+  // Why: diff drafts vanish on save, so shebang detection there would flicker; diffs stay name-based.
   const resolvedLanguage =
     activeFile.mode === 'diff'
       ? detectLanguage(activeFile.relativePath)
-      : detectLanguage(activeFile.filePath)
-  // Why: an AI Vault View Log tab must show the exact raw bytes read-only. A
-  // rich/preview/mermaid/csv/notebook renderer would depart from raw text (and
-  // can look editable), so neutralize specialized viewers + view-mode chrome
-  // for read-only tabs. `resolvedLanguage` still drives read-only Monaco
-  // tokenization (e.g. jsonl stays colorized); only viewer selection is forced
-  // to a plain source rendering here.
+      : detectLanguage(
+          activeFile.filePath,
+          editorDrafts[activeFile.id] ?? fileContents[activeFile.id]?.content
+        )
+  // Read-only artifact tabs require raw source viewers; retain real-language tokenization while suppressing rich/preview modes and their editing affordances.
   const rawReadOnly = activeFile.mode === 'edit' && activeFile.readOnly === true
   const viewerLanguage = rawReadOnly ? 'plaintext' : resolvedLanguage
   const worktreeEntries = gitStatusEntries ?? []
@@ -165,16 +164,19 @@ export function getEditorPanelRenderModel({
       fileContents[activeFile.id] !== undefined &&
       fileContents[activeFile.id]?.isBinary !== true &&
       !fileContents[activeFile.id]?.loadError &&
-      canRenderMarkdownAtSize(
+      !exceedsMarkdownRichModeSizeLimit(
         editorDrafts[activeFile.markdownPreviewSourceFileId ?? activeFile.filePath] ??
-          fileContents[activeFile.id].content,
-        markdownRichModeSizeOverridden
+          fileContents[activeFile.id].content
       )) ||
       (activeFile.mode === 'edit' &&
         fileContents[activeFile.id] !== undefined &&
         !isChangesMode &&
         inlineMarkdownRenderState !== null &&
         inlineMarkdownRenderState.renderMode !== 'source' &&
+        (inlineMarkdownRenderState.renderMode !== 'preview' ||
+          !exceedsMarkdownRichModeSizeLimit(
+            editorDrafts[activeFile.id] ?? fileContents[activeFile.id].content
+          )) &&
         fileContents[activeFile.id]?.isBinary !== true &&
         !fileContents[activeFile.id]?.loadError &&
         activeFile.conflict?.conflictStatus !== 'unresolved'))
@@ -189,9 +191,7 @@ export function getEditorPanelRenderModel({
     isMermaid: viewerLanguage === 'mermaid',
     isCsv: viewerLanguage === 'csv' || viewerLanguage === 'tsv',
     isNotebook: viewerLanguage === 'notebook',
-    // Why: the preview renders the on-disk file, so diff surfaces only get it
-    // when the modified side still exists on disk (canOpen excludes deleted
-    // files and commit diffs whose content may not match the working tree).
+    // Preview reads disk; exclude deleted modified sides and historical commit snapshots that may not match it.
     canOpenPreviewToSide:
       canOpenWorkspaceFileBrowser &&
       canPreviewLanguage(viewerLanguage) &&

@@ -4,9 +4,6 @@ import opencodeUrl from '../../../../../resources/opencode.webp?url'
 import gremlinUrl from '../../../../../resources/gremlin.webp?url'
 import { translate } from '@/i18n/i18n'
 
-// Why: bundled defaults so the overlay always has something to render when the
-// user hasn't uploaded a custom image. Vite's `?url` import hashes each asset
-// at build time so they participate in the normal caching pipeline.
 export const DEFAULT_PET_ID = 'claude-the-mage'
 export const DEEPSEEK_PET_ID = 'deepseek-the-whale'
 export const OPENCODE_PET_ID = 'opencode-the-rogue'

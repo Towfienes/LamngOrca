@@ -23,29 +23,33 @@ let prCache: Record<string, unknown> = {}
 let workspacePortScan: WorkspacePortScanResult | null = null
 let settings: Partial<GlobalSettings> | null = null
 
-vi.mock('@/store', () => ({
-  useAppStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      deleteStateByWorktreeId: {},
-      fetchHostedReviewForBranch,
-      fetchIssue,
-      fetchLinearIssue,
-      gitConflictOperationByWorktree: {},
-      hostedReviewCache,
-      issueCache,
-      linearIssueCache: {},
-      openModal,
-      prCache,
-      projectGroups: [],
-      remoteBranchConflictByWorktreeId: {},
-      settings,
-      sshConnectionStates: new Map(),
-      sshTargetLabels: new Map(),
-      updateWorktreeMeta,
-      workspacePortScan,
-      worktreeCardProperties
+vi.mock('@/store', () => {
+  const getState = () => ({
+    deleteStateByWorktreeId: {},
+    fetchHostedReviewForBranch,
+    fetchIssue,
+    fetchLinearIssue,
+    gitConflictOperationByWorktree: {},
+    hostedReviewCache,
+    issueCache,
+    linearIssueCache: {},
+    openModal,
+    prCache,
+    projectGroups: [],
+    remoteBranchConflictByWorktreeId: {},
+    settings,
+    sshConnectionStates: new Map(),
+    sshTargetLabels: new Map(),
+    updateWorktreeMeta,
+    workspacePortScan,
+    worktreeCardProperties
+  })
+  return {
+    useAppStore: Object.assign((selector: (state: unknown) => unknown) => selector(getState()), {
+      getState
     })
-}))
+  }
+})
 
 vi.mock('@/lib/worktree-activation', () => ({
   activateAndRevealWorktree: vi.fn()
@@ -76,7 +80,6 @@ vi.mock('./WorktreeCardAgents', () => ({
 
 vi.mock('./WorktreeContextMenu', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
-  CLOSE_ALL_CONTEXT_MENUS_EVENT: 'orca:test-close-context-menus',
   WORKTREE_NATIVE_CONTEXT_MENU_ATTR: 'data-worktree-native-context-menu',
   WORKTREE_CONTEXT_MENU_SCOPE_ATTR: 'data-orca-context-menu-scope'
 }))
@@ -680,7 +683,8 @@ describe('WorktreeCard linked PR display', () => {
     expect(markup).toContain('PR: Merged')
     expect(markup).toContain('text-purple-600/70')
     expect(markup).not.toContain('Branch')
-    expect(markup).not.toContain('lucide-git-branch')
+    // Only the Deck tree glyph draws a branch icon; the PR status replaces the slot's own.
+    expect(markup.match(/lucide-git-branch/g)).toHaveLength(1)
   })
 
   it('reads the local branch PR cache for a known local repo while a runtime is focused', async () => {
@@ -716,7 +720,8 @@ describe('WorktreeCard linked PR display', () => {
 
     expect(markup).toContain('PR checks: Pending')
     expect(markup).not.toContain('Branch')
-    expect(markup).not.toContain('lucide-git-branch')
+    // Only the Deck tree glyph draws a branch icon; the PR status replaces the slot's own.
+    expect(markup.match(/lucide-git-branch/g)).toHaveLength(1)
   })
 
   it('keeps the detailed right-side PR badge during a transient hosted-review miss', async () => {

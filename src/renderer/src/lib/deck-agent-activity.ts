@@ -1,5 +1,5 @@
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
-import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TerminalAgent } from '../../../shared/terminal-agent'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
 import { agentTypeToIconAgent } from './agent-status'
 import type { AppState } from '../store/types'
@@ -21,7 +21,7 @@ export function selectRunningAgentsKey(
   statusByPaneKey: StatusByPaneKey,
   tabIds: ReadonlySet<string>
 ): string {
-  const agents = new Set<TuiAgent>()
+  const agents = new Set<TerminalAgent>()
   for (const [paneKey, entry] of Object.entries(statusByPaneKey)) {
     const agent = agentTypeToIconAgent(entry?.agentType)
     const tabId = parsePaneKey(paneKey)?.tabId
@@ -51,7 +51,7 @@ export function selectAgentAttention(
 
 export type TabAgentSummary = {
   /** Icon agent of the tab's live agent, else of any agent it ran. */
-  agent: TuiAgent | null
+  agent: TerminalAgent | null
   attention: DeckAgentAttention
 }
 

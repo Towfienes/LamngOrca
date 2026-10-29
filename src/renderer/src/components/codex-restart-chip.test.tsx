@@ -51,25 +51,26 @@ describe('Deck Codex account continuity', () => {
       dismissed: true
     })
     expect(useAppStore.getState().codexRestartNoticeByPtyId[OTHER_PTY]).toEqual(notice)
-    expect(useAppStore.getState().pendingCodexPaneRestartIds).toEqual({})
     expect(document.activeElement).toBe(input)
     expect(forgetStalePanes).not.toHaveBeenCalled()
     input.remove()
   })
   it('does not consume an explicitly queued restart', async () => {
     useAppStore.setState({
-      codexRestartNoticeByPtyId: { [PTY]: { ...notice, restartRequested: true } },
-      pendingCodexPaneRestartIds: { [PTY]: true }
+      codexRestartNoticeByPtyId: { [PTY]: { ...notice, restartRequested: true } }
     })
     await act(async () => {
       root.render(<CodexRestartChip ptyId={PTY} />)
     })
-    expect(useAppStore.getState().pendingCodexPaneRestartIds[PTY]).toBe(true)
+    expect(useAppStore.getState().codexRestartNoticeByPtyId[PTY]).toEqual({
+      ...notice,
+      restartRequested: true
+    })
     expect(forgetStalePanes).not.toHaveBeenCalled()
   })
   it('dismisses a restored notice once even during StrictMode replay', async () => {
     useAppStore.setState({
-      codexRestartNoticeByPtyId: { [PTY]: { ...notice, homeRouteChanged: true } }
+      codexRestartNoticeByPtyId: { [PTY]: notice }
     })
     await act(async () => {
       root.render(
@@ -105,7 +106,6 @@ describe('Deck Codex account continuity', () => {
       nextAccountId: 'third',
       dismissed: true
     })
-    expect(useAppStore.getState().pendingCodexPaneRestartIds).toEqual({})
     expect(forgetStalePanes).not.toHaveBeenCalled()
   })
 })

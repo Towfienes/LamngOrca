@@ -1,7 +1,8 @@
 import { useAppStore } from '@/store'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
-import { activateStructuredAgentSessionTab } from '@/lib/structured-agent-session-tab-activation'
+import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structured-agent-session-tab-activation'
+import { activateTerminalTabOnOwner } from '@/lib/terminal-tab-owner-activation'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import { dismissStaleAgentRowByKey } from '../terminal-pane/stale-agent-row'
 
@@ -31,10 +32,12 @@ export function activateSidebarAgentTab(worktreeId: string, tabId: string, paneK
       flashFocusedPane: true,
       scrollToBottomIfOutputSinceLastView: true
     })
+    activateTerminalTabOnOwner(worktreeId, tabId, parsed.leafId)
   } else if (!activateStructuredAgentSessionTab({ worktreeId, tabId })) {
     const liveEntry = useAppStore.getState().agentStatusByPaneKey[paneKey]
     if (liveEntry?.worktreeId === worktreeId) {
-      // Why: orchestration worker status can be worktree-attributed before the renderer knows its tab; keep the live row instead of dismissing as stale.
+      // Why: orchestration worker status can be worktree-attributed before the renderer knows its tab; keep the live row and activate its owning terminal.
+      activateTerminalTabOnOwner(worktreeId, tabId, parsed.leafId)
       return
     }
     dismissStaleAgentRowByKey(paneKey)

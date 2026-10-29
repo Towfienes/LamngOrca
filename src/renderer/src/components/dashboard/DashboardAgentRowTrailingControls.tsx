@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import { DashboardAgentChildDisclosure } from './DashboardAgentChildDisclosure'
 
 type DashboardAgentRowTrailingControlsProps = {
-  compact?: boolean
   childAgentCount?: number
   childAgentsExpanded?: boolean
   onToggleChildAgents?: () => void
@@ -13,9 +12,10 @@ type DashboardAgentRowTrailingControlsProps = {
   relativeTimestamp: string | null
   expanded: boolean
   hideExpand: boolean
-  /** Subagent child rows have no store entry of their own to dismiss —
-   *  offering the X would be a silent no-op. */
+  /** Subagents have no dismissible store entry; hide the otherwise inert control. */
   hideDismiss?: boolean
+  // Deck's compact rows keep only a square dismiss control in the trailing slot.
+  compact?: boolean
   sendTargetStatus?: 'eligible' | 'disabled' | 'sending'
   onDismiss: (paneKey: string) => void
   onToggleExpanded: () => void
@@ -23,7 +23,6 @@ type DashboardAgentRowTrailingControlsProps = {
 }
 
 export function DashboardAgentRowTrailingControls({
-  compact = false,
   childAgentCount,
   childAgentsExpanded = false,
   onToggleChildAgents,
@@ -32,13 +31,13 @@ export function DashboardAgentRowTrailingControls({
   expanded,
   hideExpand,
   hideDismiss = false,
+  compact = false,
   sendTargetStatus,
   onDismiss,
   onToggleExpanded,
   onSendTargetClick
 }: DashboardAgentRowTrailingControlsProps): React.JSX.Element {
-  // Why: stop propagation so clicking nested row controls does not also
-  // activate the agent row or parent worktree card.
+  // Nested controls must not activate the agent row or enclosing worktree card.
   const stopMouseDown = useCallback((event: React.MouseEvent) => {
     event.stopPropagation()
   }, [])
@@ -74,16 +73,18 @@ export function DashboardAgentRowTrailingControls({
   )
 
   const hasChildDisclosure = Boolean(childAgentCount && onToggleChildAgents)
+  const hasSendTargetButton = sendTargetStatus === 'eligible' || sendTargetStatus === 'sending'
 
   return (
     <span
       data-agent-row-controls
       className={cn(
-        'relative ml-auto flex shrink-0 items-center justify-end',
-        hasChildDisclosure ? 'h-5 gap-1' : compact ? 'h-5 w-5' : 'h-3.5 w-12'
+        // Reserve the disclosure height even when there are no children.
+        'relative ml-auto flex h-5 shrink-0 items-center justify-end',
+        hasChildDisclosure ? 'gap-1' : compact ? 'w-5' : hasSendTargetButton ? 'min-w-12' : 'w-12'
       )}
     >
-      {(sendTargetStatus === 'eligible' || sendTargetStatus === 'sending') && (
+      {hasSendTargetButton && (
         <button
           type="button"
           onClick={handleInlineSendTargetClick}
@@ -91,8 +92,7 @@ export function DashboardAgentRowTrailingControls({
           onKeyDown={stopKeyDown}
           disabled={sendTargetStatus === 'sending'}
           className={cn(
-            'worktree-agent-send-target-button absolute right-0 top-1/2 z-10 inline-flex h-5 -translate-y-1/2 items-center gap-1 rounded-md border px-1.5 text-[10px] font-medium leading-none transition-[background-color,border-color,color,opacity]',
-            hasChildDisclosure && 'static translate-y-0',
+            'worktree-agent-send-target-button z-10 inline-flex h-5 items-center gap-1 rounded-md border px-1.5 text-[10px] font-medium leading-none transition-[background-color,border-color,color,opacity] whitespace-nowrap',
             sendTargetStatus === 'sending' && 'cursor-progress opacity-75'
           )}
           aria-label={translate(
@@ -120,8 +120,7 @@ export function DashboardAgentRowTrailingControls({
             {relativeTimestamp}
           </span>
         )}
-      {/* Why: timestamp and dismiss-X share one slot. On no-hover devices the X
-          is visible by default, so the timestamp must yield there too. */}
+      {/* Timestamp and dismiss share a slot; always-visible dismiss controls on touch must hide the timestamp too. */}
       {!compact &&
         !hasChildDisclosure &&
         !sendTargetStatus &&

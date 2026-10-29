@@ -10,6 +10,7 @@ import type { AgentType } from './agent-status-types'
 import { isClaudeManagementTitle } from './agent-title-core'
 import { stripLeadingAgentTitleDecorationOrEmpty } from './agent-title-decoration'
 import { formatAgentTypeLabel } from './agent-type-label'
+import { isJcodeIdentityTerminalTitle } from './jcode-terminal-title'
 import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
 import { getDshTerminalSessionTitle } from './dsh-terminal-title'
 import { SYNTHETIC_AGENT_TITLE_PROFILES } from './synthetic-agent-title'
@@ -20,8 +21,7 @@ export type ConversationNameTab = Pick<
   'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'title' | 'defaultTitle'
 >
 
-// Why: synthetic status titles ("Codex ready", "Cursor - action required") are
-// state, not names. Precomputed once; the profile table is a module constant.
+// Synthetic status labels describe state rather than a conversation name.
 const SYNTHETIC_STATUS_TITLES_LOWER: ReadonlySet<string> = new Set(
   Object.values(SYNTHETIC_AGENT_TITLE_PROFILES).flatMap((profile) => [
     profile.workingLabel.toLowerCase(),
@@ -30,8 +30,7 @@ const SYNTHETIC_STATUS_TITLES_LOWER: ReadonlySet<string> = new Set(
   ])
 )
 
-// Why: retained rows without a live tab synthesize `title: 'Agent'`
-// (worktree-agent-row-fallback-tab.ts); it is a placeholder, not a name.
+// Retained-tab fallback Agent is a placeholder, never a conversation name.
 const FALLBACK_TAB_TITLE_LOWER = 'agent'
 
 const AGENT_IDENTITY_ALIASES_LOWER: Readonly<Record<string, readonly string[]>> = {
@@ -71,8 +70,7 @@ function isAgentIdentityStatusTitle(
 }
 
 function isCwdLikeTitle(title: string): boolean {
-  // Hook-less agents over SSH surface spinner+cwd titles (#8711); once the
-  // spinner is stripped, what remains is a path, not a conversation name.
+  // Hookless SSH titles may contain only spinner+cwd, never a conversation name (#8711).
   if (/^(?:~|[\\/]|[A-Za-z]:[\\/])/.test(title)) {
     return true
   }
@@ -132,6 +130,8 @@ function conversationNameFromLiveTitle(
     STATUS_WITH_CONTEXT_RE.test(stripped) ||
     DEFAULT_TERMINAL_TITLE_RE.test(stripped) ||
     isClaudeManagementTitle(stripped) ||
+    // jcode repaints codename/diff/duration each second; accepting that identity hides the prompt preview.
+    isJcodeIdentityTerminalTitle(stripped) ||
     isCwdLikeTitle(stripped)
   ) {
     return null

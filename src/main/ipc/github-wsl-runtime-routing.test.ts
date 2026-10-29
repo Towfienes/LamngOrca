@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = await vi.hoisted(async () => {
@@ -87,7 +88,7 @@ describe('registerGitHubHandlers', () => {
       branch: 'feature/wsl'
     })
     await handlers['gh:reportVisiblePRRefreshCandidates'](
-      { sender: { id: 7, once: vi.fn() } },
+      { sender: Object.assign(new EventEmitter(), { id: 7 }) },
       {
         generation: 1,
         candidates: [
@@ -138,6 +139,15 @@ describe('registerGitHubHandlers', () => {
     )
     await handlers['gh:listLabels'](null, { repoPath: '/workspace/repo' })
     await handlers['gh:listAssignableUsers'](null, { repoPath: '/workspace/repo' })
+    const metadataRepo = { owner: 'fork-owner', repo: 'widgets', host: 'github.com' }
+    await handlers['gh:listLabels'](null, {
+      repoPath: '/workspace/repo',
+      ownerRepo: metadataRepo
+    })
+    await handlers['gh:listAssignableUsers'](null, {
+      repoPath: '/workspace/repo',
+      ownerRepo: metadataRepo
+    })
 
     expect(getPRForBranchMock).toHaveBeenCalledWith(
       '/workspace/repo',
@@ -197,7 +207,8 @@ describe('registerGitHubHandlers', () => {
       7,
       { body: 'Updated' },
       null,
-      localGitOptions
+      localGitOptions,
+      undefined
     )
     expect(addIssueCommentMock).toHaveBeenCalledWith(
       '/workspace/repo',
@@ -205,9 +216,24 @@ describe('registerGitHubHandlers', () => {
       'Comment',
       null,
       null,
-      localGitOptions
+      localGitOptions,
+      undefined
     )
     expect(listLabelsMock).toHaveBeenCalledWith('/workspace/repo', undefined, null, localGitOptions)
+    expect(listLabelsMock).toHaveBeenLastCalledWith(
+      '/workspace/repo',
+      undefined,
+      null,
+      localGitOptions,
+      metadataRepo
+    )
+    expect(listAssignableUsersMock).toHaveBeenLastCalledWith(
+      '/workspace/repo',
+      undefined,
+      null,
+      localGitOptions,
+      metadataRepo
+    )
     expect(listAssignableUsersMock).toHaveBeenCalledWith(
       '/workspace/repo',
       undefined,

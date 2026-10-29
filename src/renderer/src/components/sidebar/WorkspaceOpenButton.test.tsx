@@ -64,7 +64,8 @@ describe('workspace VS Code action', () => {
       expect(mocks.open).toHaveBeenCalledWith({
         path: '/repo1/feature',
         command: 'code',
-        connectionId: null
+        connectionId: null,
+        ownerHostId: 'local'
       })
     )
     await act(async () => {
@@ -93,13 +94,14 @@ describe('workspace VS Code action', () => {
     })
     expect(selectWorkspaceChromeTarget(store.getState())?.name).toBe('Notes')
     fireEvent.click(mount('file-manager'))
-    await waitFor(() => expect(mocks.folder).toHaveBeenCalledWith('/notes'))
+    await waitFor(() => expect(mocks.folder).toHaveBeenCalledWith('/notes', 'local'))
     fireEvent.click(button)
     await waitFor(() =>
       expect(mocks.open).toHaveBeenLastCalledWith({
         path: '/notes',
         command: 'code',
-        connectionId: null
+        connectionId: null,
+        ownerHostId: 'local'
       })
     )
   })
@@ -136,14 +138,15 @@ describe('workspace VS Code action', () => {
       expect(mocks.open).toHaveBeenCalledWith({
         path: '/remote/feature',
         command: 'code',
-        connectionId: 'host'
+        connectionId: 'host',
+        ownerHostId: 'ssh:host'
       })
     )
   })
 
   it('opens the selected local folder in the file manager', async () => {
     fireEvent.click(mount('file-manager'))
-    await waitFor(() => expect(mocks.folder).toHaveBeenCalledWith('/repo1/feature'))
+    await waitFor(() => expect(mocks.folder).toHaveBeenCalledWith('/repo1/feature', 'local'))
     expect(mocks.open).not.toHaveBeenCalled()
   })
 

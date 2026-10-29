@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { worktree } from '../../worktree-list-groups-test-fixtures'
 import { withRepoWorktreeTree } from './repo-worktree-tree'
-import type { Row, WorktreeRow } from './row-types'
+import type { Row, WorktreeRow } from '../../../../../../shared/sidebar-list/row-types'
 
 function row(id: string, main = false, overrides: Partial<WorktreeRow> = {}): WorktreeRow {
   return {
@@ -12,7 +12,6 @@ function row(id: string, main = false, overrides: Partial<WorktreeRow> = {}): Wo
     repo: undefined,
     depth: 0,
     groupDepth: 0,
-    lineageTrail: [],
     isLastLineageChild: false,
     lineageChildCount: 0,
     ...overrides
@@ -31,8 +30,8 @@ it('anchors visible repo siblings to the main worktree and preserves sibling ord
 })
 
 it('draws lineage descendants as tree rows without rewriting their ancestry', () => {
-  const nested = row('nested', false, { depth: 1, lineageTrail: [false] })
-  const grandchild = row('grandchild', false, { depth: 2, lineageTrail: [false, false] })
+  const nested = row('nested', false, { depth: 1 })
+  const grandchild = row('grandchild', false, { depth: 2 })
   const input = [
     row('feature'),
     row('main', true, { lineageChildCount: 1, lineageGroupKey: 'lineage:main' }),
@@ -91,7 +90,13 @@ it('never draws a connection across hosts or repositories', () => {
 })
 
 it('keeps folder and section boundary rows intact', () => {
-  const header: Row = { type: 'header', key: 'repo:repo-1', label: 'Repo', count: 2, tone: '' }
+  const header: Row = {
+    type: 'header',
+    key: 'repo:repo-1',
+    label: 'Repo',
+    count: 2,
+    icon: { kind: 'project' }
+  }
   const output = withRepoWorktreeTree([header, row('main', true), row('feature')])
   expect(output[0]).toBe(header)
   expect(output[2]).toMatchObject({ repoTree: 'last' })

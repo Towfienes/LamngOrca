@@ -13,6 +13,9 @@ vi.mock('../../shared/app-environment', () => ({
   getAppEnvironment: () => ({ getPath: () => fixture.root })
 }))
 vi.mock('../codex/codex-home-paths', () => ({ getSystemCodexHomePath: () => fixture.home }))
+vi.mock('./claude-shared-projects-root', () => ({
+  claudeSharedProjectsRoot: () => join(fixture.root, 'dot-claude', 'projects')
+}))
 
 let settings: ReturnType<typeof getDefaultSettings>
 let source: string
@@ -68,7 +71,8 @@ async function claudeFixture(): Promise<void> {
   }
   const roots = managedClaudeSessionRoots(settings)
   source = join(roots[0]!, 'project', 'claude-id.jsonl')
-  target = join(roots[1]!, 'project', 'claude-id.jsonl')
+  // Account profiles share ~/.claude/projects, so every Claude account resumes from there.
+  target = join(fixture.root, 'dot-claude', 'projects', 'project', 'claude-id.jsonl')
   await mkdir(dirname(source), { recursive: true })
   await mkdir(dirname(target), { recursive: true })
 }
@@ -182,7 +186,7 @@ describe('account-scoped session preparation', () => {
     )
     await expect(prepareAccountSessionResume(args(), settings)).rejects.toThrow('redirected')
   })
-  it('discovers and copies Claude history across owned account folders', async () => {
+  it('copies Claude history from a legacy account folder into the shared projects folder', async () => {
     await claudeFixture()
     await writeFile(source, 'claude conversation')
     await expect(

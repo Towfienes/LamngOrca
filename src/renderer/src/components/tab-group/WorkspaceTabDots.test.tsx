@@ -24,14 +24,16 @@ vi.mock('@/lib/workspace-tab-dots', async (importOriginal) => ({
 vi.mock('@/lib/focus-terminal-tab-surface', () => ({
   focusTerminalTabSurface: mocks.focusSurface
 }))
-vi.mock('@/runtime/web-runtime-session', () => ({
-  isWebRuntimeSessionActive: () => false,
+vi.mock('@/runtime/web-runtime-session-environment', () => ({
+  isWebRuntimeSessionActive: () => false
+}))
+vi.mock('@/runtime/web-runtime-session-tab-lifecycle', () => ({
   activateWebRuntimeSessionTab: vi.fn()
 }))
 vi.mock('@/lib/worktree-runtime-owner', () => ({
-  getRuntimeEnvironmentIdForWorktree: () => null
+  runtimeEnvironmentIdOrLocalUnlessTwin: () => null
 }))
-vi.mock('@/lib/structured-agent-session-tab-activation', () => ({
+vi.mock('@/lib/agent-session/structured-agent-session-tab-activation', () => ({
   activateStructuredAgentSessionTab: vi.fn()
 }))
 vi.mock('@/store', () => {

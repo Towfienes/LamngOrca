@@ -1,14 +1,8 @@
 import type { ReactNode } from 'react'
 import { useAnyBrowserGuestNeedsPaint } from './browser-pane/host-guest/browser-guest-paint-retention'
 
-// Why: the outermost ancestor of every browser <webview>. Parking it with `hidden` whenever
-// the user leaves the workspace view also stops the guest compositing, which silently kills
-// screencast frames for a phone or an agent driving that page.
-//
-// Why no entry animation: an opacity fade on this surface re-composites every xterm canvas
-// underneath it, which showed up as a hitch exactly when a new CLI started painting. The
-// pane's own reveal is enough; the grid must never move or fade (see
-// tests/e2e/deck-terminal-startup-stability.spec.ts).
+// Keep hidden browser guests compositing while a phone/agent drives them; display:none silently stops screencasts.
+// No entry animation: fading this surface re-composites every xterm canvas (tests/e2e/deck-terminal-startup-stability.spec.ts).
 export function TerminalWorkbenchContainer({
   isVisible,
   children
@@ -23,12 +17,11 @@ export function TerminalWorkbenchContainer({
         isVisible
           ? 'flex flex-1 min-w-0 min-h-0'
           : retainBrowserGuestPaint
-            ? // Why: absolute keeps the invisible workbench out of the flex column so the
-              // active page (Settings, Tasks, …) still gets the full content area.
+            ? // Remove the invisible workbench from flex flow so the active page keeps full height.
               'absolute inset-0 flex opacity-0 pointer-events-none'
             : 'hidden flex-1 min-w-0 min-h-0'
       }
-      // Why: a paintable-but-hidden workbench must stay unreachable by Tab / assistive tech.
+      // Keep hidden paintable panes outside keyboard/accessibility navigation.
       inert={!isVisible}
       aria-hidden={!isVisible}
       data-terminal-workbench-container=""

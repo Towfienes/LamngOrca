@@ -47,9 +47,7 @@ export function useTerminalFontZoom({
         return
       }
       pane.terminal.options.fontSize = nextSize
-      // Why: safeFit flushes parked metric options, which would otherwise
-      // overwrite this zoom with the font size captured while the pane was
-      // unmeasurable. Fold the new size in; other parked keys still apply.
+      // Fold zoom into parked metrics before safeFit flushes them, or the captured font size overwrites it.
       overridePendingPaneMetricOptions(pane, { fontSize: nextSize })
       safeFit(pane)
 

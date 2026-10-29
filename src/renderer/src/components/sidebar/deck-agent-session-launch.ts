@@ -1,3 +1,4 @@
+import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
 import { useAppStore } from '@/store'
 import { getDeckSessionLaunchAgent } from './deck-session-agent'
 import { isAiVaultTitleAgent } from '../../../../shared/ai-vault-session-title'
@@ -60,7 +61,12 @@ export async function launchDeckAgentSession(args: {
       await launchDeckAgentInPane(worktreeId, pane, agent)
       return pane.tabId
     }
-    const result = launchAgentInNewTab({ agent, worktreeId, groupId })
+    const result = launchAgentInNewTab({
+      requestId: newAgentLaunchRequestId(),
+      agent,
+      worktreeId,
+      groupId
+    })
     return result?.surface.kind === 'local-terminal' ? result.surface.tabId : null
   }
   if (session.agent !== (agent === 'claude-agent-teams' ? 'claude' : agent)) {

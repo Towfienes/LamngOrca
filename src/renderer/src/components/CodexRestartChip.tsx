@@ -8,6 +8,7 @@ export default function CodexRestartChip({
   ptyId: string
   isVisible?: boolean
   shouldFocus?: boolean
+  onReturnFocus?: () => void
 }): null {
   const restartNotice = useAppStore((state) => state.codexRestartNoticeByPtyId[ptyId])
   useEffect(() => {

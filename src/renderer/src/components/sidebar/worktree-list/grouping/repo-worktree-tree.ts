@@ -1,8 +1,13 @@
 import { getWorktreeHostIdentity } from '../../../../../../shared/worktree/host-qualified-identity'
-import { PINNED_GROUP_KEY } from './group-keys'
-import type { Row, WorktreeRow } from './row-types'
+import { PINNED_GROUP_KEY } from '../../../../../../shared/sidebar-list/group-keys'
+import type { HostSectionRow } from '../../../../../../shared/sidebar-list/host-section-rows'
+import type { WorktreeRow } from '../../../../../../shared/sidebar-list/row-types'
 
-function sameRepoSection(left: WorktreeRow, right: Row): right is WorktreeRow {
+function isWorktreeRow(row: HostSectionRow): row is WorktreeRow {
+  return row.type === 'item'
+}
+
+function sameRepoSection(left: WorktreeRow, right: HostSectionRow): right is WorktreeRow {
   return (
     right.type === 'item' &&
     left.sectionKey === right.sectionKey &&
@@ -12,8 +17,8 @@ function sameRepoSection(left: WorktreeRow, right: Row): right is WorktreeRow {
 }
 
 /** Display repo membership without changing persisted lineage or Git ancestry. */
-export function withRepoWorktreeTree(rows: Row[]): Row[] {
-  const result: Row[] = []
+export function withRepoWorktreeTree<R extends HostSectionRow>(rows: R[]): (R | WorktreeRow)[] {
+  const result: (R | WorktreeRow)[] = []
   let changed = false
   for (let index = 0; index < rows.length;) {
     const first = rows[index]
@@ -26,7 +31,7 @@ export function withRepoWorktreeTree(rows: Row[]): Row[] {
     while (end < rows.length && sameRepoSection(first, rows[end])) {
       end++
     }
-    const group = rows.slice(index, end).filter((row): row is WorktreeRow => row.type === 'item')
+    const group = rows.slice(index, end).flatMap((row) => (isWorktreeRow(row) ? [row] : []))
     const mains = group.filter((row) => row.depth === 0 && row.worktree.isMainWorktree)
     if (mains.length !== 1 || group.length < 2) {
       result.push(...group)
@@ -63,7 +68,6 @@ export function withRepoWorktreeTree(rows: Row[]): Row[] {
         ...row,
         // Why: flattened so the card draws as a plain tree row; lineage data stays on the worktree.
         depth: 0,
-        lineageTrail: [],
         isLastLineageChild: false,
         lineageChildCount: 0,
         lineageGroupKey: undefined,

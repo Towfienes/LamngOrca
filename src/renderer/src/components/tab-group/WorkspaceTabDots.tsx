@@ -5,12 +5,10 @@ import { FileText, Globe, Smartphone, TerminalSquare, X, type LucideIcon } from 
 import { AgentIcon } from '@/lib/agent-catalog'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
-import { activateStructuredAgentSessionTab } from '@/lib/structured-agent-session-tab-activation'
-import {
-  activateWebRuntimeSessionTab,
-  isWebRuntimeSessionActive
-} from '@/runtime/web-runtime-session'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
+import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structured-agent-session-tab-activation'
+import { activateWebRuntimeSessionTab } from '@/runtime/web-runtime-session-tab-lifecycle'
+import { isWebRuntimeSessionActive } from '@/runtime/web-runtime-session-environment'
 import {
   WORKSPACE_EMPTY_SLOTS,
   createWorkspaceTabDotsSelector,
@@ -39,7 +37,7 @@ function activateDotTab(worktreeId: string, dot: WorkspaceTabDot, leafId?: strin
   state.focusGroup(worktreeId, tab.groupId)
   state.activateTab(tab.id)
   if (tab.contentType === 'terminal') {
-    const runtimeEnvironmentId = getRuntimeEnvironmentIdForWorktree(state, worktreeId)
+    const runtimeEnvironmentId = runtimeEnvironmentIdOrLocalUnlessTwin(state, worktreeId)
     if (isWebRuntimeSessionActive(runtimeEnvironmentId)) {
       void activateWebRuntimeSessionTab({
         worktreeId,

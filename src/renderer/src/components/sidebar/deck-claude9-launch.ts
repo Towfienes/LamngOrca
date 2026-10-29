@@ -51,7 +51,7 @@ export async function launchClaude9Tab(
 ): Promise<string> {
   const state = useAppStore.getState()
   const command = buildClaude9Command(
-    resolveTuiAgentLaunchArgs('claude', state.settings?.agentDefaultArgs),
+    resolveTuiAgentLaunchArgs('claude', state.settings),
     session
       ? {
           sessionId: session.sessionId,

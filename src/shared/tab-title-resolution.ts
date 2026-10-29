@@ -4,10 +4,9 @@ import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
 import { getDshTerminalSessionTitle } from './dsh-terminal-title'
 
 export function resolveTerminalTabTitle(
-  tab: Pick<
-    TerminalTab,
-    'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title'
-  >,
+  tab: Pick<TerminalTab, 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title'> & {
+    customTitle?: string | null
+  },
   generatedTitlesEnabled: boolean,
   fallback = ''
 ): string {

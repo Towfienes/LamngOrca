@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import type * as ReactModule from 'react'
 import { act, cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -48,6 +49,8 @@ function getMockKnownWorktree(): { id: string; repoId: string } {
   return mockAppState.cachedWorktree
 }
 
+// The Deck usage panel polls account usage; the drag-region layout does not depend on it.
+vi.mock('./DeckUsagePanel', () => ({ default: () => null }))
 vi.mock('@/hooks/useSidebarResize', () => ({
   useSidebarResize: () => ({
     containerRef: { current: null },
@@ -61,7 +64,7 @@ vi.mock('@/hooks/useShortcutLabel', () => ({
 }))
 
 vi.mock('@/store', async () => {
-  const React = await vi.importActual<typeof import('react')>('react') // eslint-disable-line @typescript-eslint/consistent-type-imports -- vi.importActual requires inline import()
+  const React = await vi.importActual<typeof ReactModule>('react')
   const getSnapshot = (selector: (state: Record<string, unknown>) => unknown): unknown => {
     if (mockAppState.snapshotCache.has(selector)) {
       return mockAppState.snapshotCache.get(selector)
@@ -75,6 +78,7 @@ vi.mock('@/store', async () => {
       rightSidebarRouteRequestId: mockAppState.rightSidebarRouteRequestId,
       setRightSidebarTab: mockAppState.setRightSidebarTab,
       showRightSidebarFiles: mockAppState.showRightSidebarFiles,
+      setRightSidebarEffectiveTab: vi.fn(),
       toggleRightSidebar: vi.fn(),
       activeWorktreeId: mockAppState.activeWorktreeId,
       getKnownWorktreeById: getMockKnownWorktree,

@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type * as TrackingDecisions from './web-session-tabs-sync/tracking-decisions'
 import {
   createWebRuntimeAgentSessionTerminal,
   createWebRuntimeAgentSessionTerminalWithLaunchDraft,
   createWebRuntimeSessionTerminal
-} from './web-runtime-session'
+} from './web-runtime-terminal-creation'
 import { peekWebSessionFocusIntent } from './web-session-focus-intent'
 import { resetWebSessionCloseIntentForTests } from './web-session-close-intent'
 import {
@@ -15,8 +16,10 @@ import {
   resetTerminalCreateEnvironment,
   stubTerminalCreateEnvironment
 } from './web-runtime-session-test-harness'
+import { stubRuntimeEnvironmentBridge } from './runtime-environment-bridge-fixture'
 
 const mocks = vi.hoisted(() => ({
+  changedAgentPaneKeys: new Set<string>(),
   getState: vi.fn(),
   setState: vi.fn(),
   subscribe: vi.fn(),
@@ -34,7 +37,6 @@ const mocks = vi.hoisted(() => ({
   trackTerminalPaneSplit: vi.fn(),
   deliverLaunchPromptToAgentTab: vi.fn(),
   seedNativeChatLaunchDraftForAgentTab: vi.fn(),
-  getRuntimeEnvironmentIdForWorktree: vi.fn(),
   hasMaterializedWebRuntimeBrowserPage: vi.fn()
 }))
 
@@ -46,25 +48,31 @@ vi.mock('../store', () => ({
   }
 }))
 
-vi.mock('./web-session-tabs-sync', () => ({
+vi.mock('./web-session-tabs-sync/tracking-lifecycle', () => ({
   acceptReplayedWebSessionTabsSnapshot: mocks.acceptReplayedWebSessionTabsSnapshot,
-  applyWebSessionTabsSnapshot: mocks.applyWebSessionTabsSnapshot,
-  decideWebSessionTabsSnapshot: mocks.decideWebSessionTabsSnapshot,
-  getWebSessionTabsTrackingGeneration: mocks.getWebSessionTabsTrackingGeneration,
-  applyWebSessionTabsStorePatch: (buildPatch: (state: unknown) => unknown) => {
-    mocks.setState(buildPatch)
-    // The production caller invokes the returned settle receipt.
+  getWebSessionTabsTrackingGeneration: mocks.getWebSessionTabsTrackingGeneration
+}))
+vi.mock('./web-session-tabs-sync/snapshot-api', () => ({
+  applyWebSessionTabsSnapshot: mocks.applyWebSessionTabsSnapshot
+}))
+vi.mock('./web-session-tabs-sync/tracking-decisions', async (importOriginal) => ({
+  ...(await importOriginal<typeof TrackingDecisions>()),
+  decideWebSessionTabsSnapshot: mocks.decideWebSessionTabsSnapshot
+}))
+vi.mock('./web-session-tabs-sync/store-patch', () => ({
+  applyWebSessionTabsStorePatch: (
+    buildPatch: (state: unknown, changedAgentPaneKeys: Set<string>) => unknown
+  ) => {
+    mocks.setState((state: unknown) => buildPatch(state, mocks.changedAgentPaneKeys))
     return () => {}
-  },
+  }
+}))
+vi.mock('./web-session-tabs-sync/tracking-mappings', () => ({
   resolveHostSessionTabIdForWebSessionTab: mocks.resolveHostSessionTabIdForWebSessionTab
 }))
 
 vi.mock('@/lib/feature-education-telemetry', () => ({
   trackTerminalPaneSplit: mocks.trackTerminalPaneSplit
-}))
-
-vi.mock('@/lib/worktree-runtime-owner', () => ({
-  getRuntimeEnvironmentIdForWorktree: mocks.getRuntimeEnvironmentIdForWorktree
 }))
 
 vi.mock('@/lib/agent-launch-prompt-delivery', () => ({
@@ -100,9 +108,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         result: { tab: { id: 'host-tab-1', leafId: 'host-leaf-1' } }
       })
       .mockResolvedValueOnce({ id: 'list', ok: true, result: makeSnapshot() })
-    vi.stubGlobal('window', {
-      api: { runtimeEnvironments: { call: runtimeCall } }
-    })
+    stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
     await expect(
       createWebRuntimeSessionTerminal({
@@ -164,9 +170,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         }
         return { id: 'list', ok: true, result: makeSnapshot() }
       })
-      vi.stubGlobal('window', {
-        api: { runtimeEnvironments: { call: runtimeCall } }
-      })
+      stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
       await expect(
         createWebRuntimeSessionTerminal({
@@ -211,9 +215,7 @@ describe('createWebRuntimeSessionTerminal', () => {
   ])(
     'routes a Kimi resume by capability (advertised=$gated) instead of the generic host-authority probe',
     async ({ gated, authority }) => {
-      // Why: an old host answers the widened ensureAgentSession enum with invalid_argument, which
-      // runRemoteAgentSessionLaunch does not retry on — the per-agent probe is the only thing
-      // keeping a remote Kimi resume from dying instead of degrading to a legacy launch.
+      // Old hosts reject widened ensureAgentSession enums without retry; per-agent probes preserve Kimi’s legacy fallback.
       const runtimeCall = vi.fn(async (request: { method: string }) => {
         if (request.method === 'status.get') {
           return {
@@ -255,9 +257,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         }
         return { id: 'list', ok: true, result: makeSnapshot() }
       })
-      vi.stubGlobal('window', {
-        api: { runtimeEnvironments: { call: runtimeCall } }
-      })
+      stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
       await expect(
         createWebRuntimeSessionTerminal({
@@ -334,13 +334,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         result: snapshot
       })
 
-    vi.stubGlobal('window', {
-      api: {
-        runtimeEnvironments: {
-          call: runtimeCall
-        }
-      }
-    })
+    stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
     await expect(
       createWebRuntimeSessionTerminal({
@@ -405,7 +399,10 @@ describe('createWebRuntimeSessionTerminal', () => {
     expect(mocks.applyWebSessionTabsSnapshot).toHaveBeenCalledWith(
       { state: 'before', activeWorktreeId: WORKTREE_ID },
       snapshot,
-      ENVIRONMENT_ID
+      ENVIRONMENT_ID,
+      undefined,
+      undefined,
+      mocks.changedAgentPaneKeys
     )
   })
 
@@ -449,9 +446,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         }
         return { id: 'ok', ok: true, result: makeSnapshot() }
       })
-      vi.stubGlobal('window', {
-        api: { runtimeEnvironments: { call: runtimeCall } }
-      })
+      stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
       await expect(
         createWebRuntimeSessionTerminal({
@@ -509,9 +504,7 @@ describe('createWebRuntimeSessionTerminal', () => {
       }
       return { id: 'list', ok: true, result: makeSnapshot() }
     })
-    vi.stubGlobal('window', {
-      api: { runtimeEnvironments: { call: runtimeCall } }
-    })
+    stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
     await expect(
       createWebRuntimeSessionTerminal({
@@ -557,9 +550,7 @@ describe('createWebRuntimeSessionTerminal', () => {
       }
       return { id: 'list', ok: true, result: makeSnapshot() }
     })
-    vi.stubGlobal('window', {
-      api: { runtimeEnvironments: { call: runtimeCall } }
-    })
+    stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
     await expect(
       createWebRuntimeAgentSessionTerminal({
@@ -619,9 +610,7 @@ describe('createWebRuntimeSessionTerminal', () => {
       }
       return { id: 'list', ok: true, result: makeSnapshot() }
     })
-    vi.stubGlobal('window', {
-      api: { runtimeEnvironments: { call: runtimeCall } }
-    })
+    stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
     await expect(
       createWebRuntimeAgentSessionTerminalWithLaunchDraft({
@@ -633,8 +622,7 @@ describe('createWebRuntimeSessionTerminal', () => {
       })
     ).resolves.toEqual({ status: 'created' })
 
-    // No paste runs for an argv-prefill draft, so this is the only thing that
-    // fills the mirrored tab's composer on this host class.
+    // Argv-prefill sends no paste, so only this seeds the mirrored composer.
     expect(mocks.deliverLaunchPromptToAgentTab).not.toHaveBeenCalled()
     expect(mocks.seedNativeChatLaunchDraftForAgentTab).toHaveBeenCalledWith({
       tabId: 'web-terminal-host-tab-2',

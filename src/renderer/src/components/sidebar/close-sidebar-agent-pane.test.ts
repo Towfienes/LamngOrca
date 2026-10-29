@@ -9,7 +9,7 @@ const fixture = vi.hoisted(
 )
 vi.mock('@/store', () => ({ useAppStore: { getState: () => ({}) } }))
 vi.mock('@/lib/worktree-runtime-owner', () => ({
-  getRuntimeEnvironmentIdForWorktree: () => fixture.environmentId
+  runtimeEnvironmentIdOrLocalUnlessTwin: () => fixture.environmentId
 }))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: fixture.call }))
 vi.mock('@/runtime/runtime-environment-revision', () => ({

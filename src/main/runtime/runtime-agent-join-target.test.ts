@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { RuntimeMobileSessionTerminalTab } from '../../shared/runtime-mobile-session-tab-contracts'
 import type { TerminalPaneLayoutNode } from '../../shared/terminal-tab-types'
-import { selectSnapshotAgentJoinTarget, shouldJoinOpenWorkspace } from './runtime-agent-join-target'
+import {
+  selectSnapshotAgentJoinTarget,
+  shouldJoinOpenWorkspace,
+  withRevealedAgentJoin
+} from './runtime-agent-join-target'
+import { allocateTerminalPaneIdentity } from './runtime-terminal-pane-identity'
 
 const leaf = (leafId: string): TerminalPaneLayoutNode => ({ type: 'leaf', leafId })
 
@@ -77,5 +82,25 @@ describe('selectSnapshotAgentJoinTarget', () => {
   it('opens a tab when the worktree has no terminal surface or no snapshot', () => {
     expect(selectSnapshotAgentJoinTarget({ activeTabId: null, tabs: [] })).toBeNull()
     expect(selectSnapshotAgentJoinTarget(undefined)).toBeNull()
+  })
+})
+
+describe('withRevealedAgentJoin', () => {
+  const launch = { command: 'claude', launchAgent: 'claude' as const }
+  const snapshot = { activeTabId: 'tab-1', tabs: [surface('tab-1', 'a', leaf('a'), true)] }
+
+  it('carries the join target so the pane key is minted under the open tab', () => {
+    const joined = withRevealedAgentJoin({}, launch, snapshot)
+    expect(joined.agentJoin).toEqual({ tabId: 'tab-1', leafId: 'a', direction: 'vertical' })
+    const identity = allocateTerminalPaneIdentity(joined)
+    expect(identity.tabId).toBe('tab-1')
+    expect(identity.paneKey).toBe(`tab-1:${identity.leafId}`)
+    expect(identity.leafId).not.toBe('a')
+  })
+
+  it('leaves background launches and plain shells in their own tab', () => {
+    expect(withRevealedAgentJoin({ presentation: 'background' }, launch, snapshot)).toBe(launch)
+    const shell = { command: 'npm run dev' }
+    expect(withRevealedAgentJoin({}, shell, snapshot)).toBe(shell)
   })
 })

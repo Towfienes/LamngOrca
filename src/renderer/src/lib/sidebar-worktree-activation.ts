@@ -49,23 +49,29 @@ export async function activateWorktreeFromSidebar(
   }
   void restoreEmptyWorkspaceSessions(worktreeId)
 
-  if (typeof window !== 'undefined' && window.api?.ephemeralVm?.resumeWorkspace) {
-    try {
-      const runtime = await window.api.ephemeralVm.resumeWorkspace({ workspaceId: worktreeId })
-      if (runtime?.runtimeEnvironmentId) {
-        useAppStore.getState().setRuntimeEnvironments(await window.api.runtimeEnvironments.list())
-        await useAppStore.getState().refreshRuntimeEnvironmentStatus(runtime.runtimeEnvironmentId)
-      }
-    } catch (error) {
-      toast.error(
-        translate(
-          'auto.lib.sidebarWorktreeActivation.wakeEphemeralVmFailed',
-          'Failed to wake ephemeral VM workspace'
-        ),
-        {
-          description: error instanceof Error ? error.message : String(error)
-        }
-      )
+  await resumeEphemeralVmWorkspace(worktreeId)
+}
+
+/** Wakes the per-workspace VM behind a worktree, if it has one. */
+async function resumeEphemeralVmWorkspace(worktreeId: string): Promise<void> {
+  if (typeof window === 'undefined' || !window.api?.ephemeralVm?.resumeWorkspace) {
+    return
+  }
+  try {
+    const runtime = await window.api.ephemeralVm.resumeWorkspace({ workspaceId: worktreeId })
+    if (runtime?.runtimeEnvironmentId) {
+      useAppStore.getState().setRuntimeEnvironments(await window.api.runtimeEnvironments.list())
+      await useAppStore.getState().refreshRuntimeEnvironmentStatus(runtime.runtimeEnvironmentId)
     }
+  } catch (error) {
+    toast.error(
+      translate(
+        'auto.lib.sidebarWorktreeActivation.wakeEphemeralVmFailed',
+        'Failed to wake ephemeral VM workspace'
+      ),
+      {
+        description: error instanceof Error ? error.message : String(error)
+      }
+    )
   }
 }

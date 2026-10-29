@@ -1,277 +1,173 @@
 import { randomUUID } from 'node:crypto'
 import type {
-  ClaudeManagedAccount,
-  ClaudeRateLimitAccountsState
+  ClaudeAccountSignIn,
+  ClaudeRateLimitAccountsState,
+  ClaudeSignInRequest
 } from '../../shared/managed-account-types'
-import type { Store } from '../persistence'
-import type { RateLimitService } from '../rate-limits/service'
-import { findDuplicateClaudeAccount } from './claude-duplicate-account'
-import type { CapturedClaudeAuth } from './claude-auth-capture'
+import { claudeStateFile, readClaudeFolderLogin } from './claude-account-folder'
 import type {
-  ClaudeManagedAuthLocation,
-  ClaudeManagedAuthSnapshot,
-  ClaudeManagedAuthTarget
-} from './claude-managed-auth-storage'
-import type { ClaudeRuntimeAuthService } from './runtime-auth-service'
+  ClaudeAccountRuntime,
+  ClaudeAccountSelection,
+  ClaudeAccountStore,
+  ClaudeAccountUsage
+} from './claude-account-selection'
+import type { ClaudeCommandConfig } from './claude-command-process'
+import { findDuplicateClaudeAccount } from './claude-duplicate-account'
+import {
+  assertSameClaudeIdentity,
+  restoreClaudeFolderLogin,
+  snapshotClaudeFolderLogin,
+  type ClaudeFolderLoginSnapshot
+} from './claude-reauth-identity'
 import {
   getClaudeSelectionTargetForAccount,
-  normalizeClaudeRuntimeSelection
+  normalizeClaudeAccountSelectionTarget,
+  type ClaudeAccountSelectionTarget
 } from './runtime-selection'
-import type { ClaudeAccountSelection } from './claude-account-selection'
 
-type ClaudeAccountRegistrationDependencies = {
-  store: Store
-  rateLimits: RateLimitService
-  runtimeAuth: ClaudeRuntimeAuthService
-  selection: ClaudeAccountSelection
-  createManagedAuth: (
-    accountId: string,
-    target?: ClaudeManagedAuthTarget
-  ) => Promise<ClaudeManagedAuthLocation>
-  assertManagedAuth: (path: string, accountId: string) => Promise<string>
-  removeManagedAuth: (accountId: string, path: string) => Promise<void>
-  writeManagedAuth: (accountId: string, path: string, captured: CapturedClaudeAuth) => Promise<void>
-  writeCredentials: (accountId: string, path: string, value: string) => Promise<void>
-  writeOauth: (accountId: string, path: string, value: unknown) => Promise<void>
-  readSnapshot: (accountId: string, path: string) => Promise<ClaudeManagedAuthSnapshot>
-  restoreCredentials: (
-    accountId: string,
-    path: string,
-    snapshot: ClaudeManagedAuthSnapshot
-  ) => Promise<void>
-  restoreOauth: (
-    accountId: string,
-    path: string,
-    snapshot: ClaudeManagedAuthSnapshot
-  ) => Promise<void>
-  login: (location: ClaudeManagedAuthLocation) => Promise<CapturedClaudeAuth>
-  captureExisting: (
-    configDir: string,
-    previousLegacyCredentialsSha256?: string | null
-  ) => Promise<CapturedClaudeAuth>
-}
+export const CLAUDE_SIGN_IN_NOT_FINISHED_MESSAGE =
+  'Claude has not finished signing in to this account yet. Finish the sign-in in the terminal, then try again.'
+const CLAUDE_LOGIN_WITHOUT_ACCOUNT_MESSAGE =
+  'Claude login completed, but Orca could not resolve the account email.'
 
-class DuplicateClaudeAccountError extends Error {}
-
+/** Publish accounts only after login, so abandoned sign-ins never appear in the list. */
 export class ClaudeAccountRegistration {
-  constructor(private readonly dependencies: ClaudeAccountRegistrationDependencies) {}
+  // A re-authentication's prior login, kept until finish so a wrong-account sign-in can be undone.
+  private readonly loginsBeforeReauth = new Map<string, ClaudeFolderLoginSnapshot | null>()
 
-  async add(target?: ClaudeManagedAuthTarget): Promise<ClaudeRateLimitAccountsState> {
-    const accountId = randomUUID()
-    const location = await this.dependencies.createManagedAuth(accountId, target)
-    const previousSettings = this.dependencies.store.getSettings()
-    try {
-      const captured = await this.dependencies.login(location)
-      return await this.persist(accountId, location, previousSettings, captured)
-    } catch (error) {
-      await this.cleanupFailedAdd(accountId, location.managedAuthPath, previousSettings, error)
-      throw error
+  constructor(
+    private readonly deps: {
+      store: ClaudeAccountStore
+      rateLimits: ClaudeAccountUsage
+      runtimeAuth: ClaudeAccountRuntime
+      selection: ClaudeAccountSelection
     }
+  ) {}
+
+  async begin(request: ClaudeSignInRequest): Promise<ClaudeAccountSignIn> {
+    const { accountId, target, folder } = await this.prepare(request)
+    return { accountId, configDir: folder.configDir, ...target }
   }
 
-  async addFromConfigDir(
-    configDir: string,
-    options?: ClaudeManagedAuthTarget & { previousLegacyCredentialsSha256?: string | null }
+  async signIn(
+    request: ClaudeSignInRequest,
+    login: (folder: ClaudeCommandConfig) => Promise<void>
   ): Promise<ClaudeRateLimitAccountsState> {
-    const accountId = randomUUID()
-    const location = await this.dependencies.createManagedAuth(accountId, options)
-    const previousSettings = this.dependencies.store.getSettings()
+    const { accountId, target, folder } = await this.prepare(request)
+    const signIn = { accountId, ...target }
     try {
-      const captured = await this.dependencies.captureExisting(
-        configDir,
-        options?.previousLegacyCredentialsSha256
-      )
-      return await this.persist(accountId, location, previousSettings, captured)
-    } catch (error) {
-      await this.cleanupFailedAdd(accountId, location.managedAuthPath, previousSettings, error)
-      throw error
-    }
-  }
-
-  async reauthenticate(accountId: string): Promise<ClaudeRateLimitAccountsState> {
-    const account = this.dependencies.selection.requireAccount(accountId)
-    const managedAuthPath = await this.dependencies.assertManagedAuth(
-      account.managedAuthPath,
-      accountId
-    )
-    const previousSettings = this.dependencies.store.getSettings()
-    const previousAuth = await this.dependencies.readSnapshot(accountId, managedAuthPath)
-    const captured = await this.dependencies.login({
-      managedAuthPath,
-      managedAuthRuntime: account.managedAuthRuntime ?? 'host',
-      wslDistro: account.wslDistro ?? null,
-      wslLinuxAuthPath: account.wslLinuxAuthPath ?? null
-    })
-    if (!captured.identity.email) {
-      throw new Error('Claude login completed, but Orca could not resolve the account email.')
-    }
-    // Why: the browser may still be signed in as someone else; never let that login replace this account.
-    assertSameClaudeIdentity(account, captured.identity)
-
-    const settings = this.dependencies.store.getSettings()
-    const now = Date.now()
-    const nextAccounts = settings.claudeManagedAccounts.map((entry) =>
-      entry.id === accountId
-        ? {
-            ...entry,
-            email: captured.identity.email!,
-            organizationUuid: captured.identity.organizationUuid,
-            organizationName: captured.identity.organizationName,
-            updatedAt: now,
-            lastAuthenticatedAt: now
-          }
-        : entry
-    )
-    let wroteCredentials = false
-    try {
-      await this.dependencies.writeOauth(accountId, managedAuthPath, captured.oauthAccount)
-      await this.dependencies.writeCredentials(accountId, managedAuthPath, captured.credentialsJson)
-      wroteCredentials = true
-      this.dependencies.store.updateSettings({ claudeManagedAccounts: nextAccounts })
-      this.dependencies.runtimeAuth.clearLastWrittenCredentialsJson(accountId)
-      this.dependencies.rateLimits.evictInactiveClaudeCache(accountId)
-      const target = getClaudeSelectionTargetForAccount(account)
-      await this.dependencies.selection.syncRuntimeAuth(target)
-      // Why: the quota refresh pushes its own result; the sign-in is done once credentials land.
-      void this.dependencies.rateLimits
-        .refreshForClaudeAccountChange(undefined, target)
-        .catch((error: unknown) =>
-          console.warn('[claude-accounts] quota refresh after re-authentication failed', error)
-        )
-      return this.dependencies.selection.snapshot()
-    } catch (error) {
-      await this.rollbackReauthentication(
-        accountId,
-        managedAuthPath,
-        previousAuth,
-        previousSettings,
-        nextAccounts,
-        wroteCredentials
-      )
-      throw error
-    }
-  }
-
-  private async persist(
-    accountId: string,
-    location: ClaudeManagedAuthLocation,
-    previousSettings: ReturnType<Store['getSettings']>,
-    captured: CapturedClaudeAuth
-  ): Promise<ClaudeRateLimitAccountsState> {
-    if (!captured.identity.email) {
-      throw new Error('Claude login completed, but Orca could not resolve the account email.')
-    }
-    if (
-      findDuplicateClaudeAccount(previousSettings.claudeManagedAccounts, {
-        email: captured.identity.email,
-        organizationUuid: captured.identity.organizationUuid,
-        managedAuthRuntime: location.managedAuthRuntime,
-        wslDistro: location.wslDistro
+      await login({
+        windowsPath: folder.readPath,
+        linuxPath: target.runtime === 'wsl' ? folder.configDir : null,
+        wslDistro: target.runtime === 'wsl' ? (target.wslDistro ?? null) : null
       })
-    ) {
-      throw new DuplicateClaudeAccountError('This Claude account is already added.')
-    }
-    await this.dependencies.writeManagedAuth(accountId, location.managedAuthPath, captured)
-    const now = Date.now()
-    const account: ClaudeManagedAccount = {
-      id: accountId,
-      email: captured.identity.email,
-      managedAuthPath: location.managedAuthPath,
-      managedAuthRuntime: location.managedAuthRuntime,
-      wslDistro: location.wslDistro,
-      wslLinuxAuthPath: location.wslLinuxAuthPath,
-      authMethod: 'subscription-oauth',
-      organizationUuid: captured.identity.organizationUuid,
-      organizationName: captured.identity.organizationName,
-      createdAt: now,
-      updatedAt: now,
-      lastAuthenticatedAt: now
-    }
-    const selection = normalizeClaudeRuntimeSelection(previousSettings)
-    this.dependencies.store.updateSettings({
-      claudeManagedAccounts: [...previousSettings.claudeManagedAccounts, account],
-      activeClaudeManagedAccountId: selection.host,
-      activeClaudeManagedAccountIdsByRuntime: selection
-    })
-    this.dependencies.runtimeAuth.clearLastWrittenCredentialsJson(accountId)
-    this.dependencies.rateLimits.evictInactiveClaudeCache(accountId)
-    return this.dependencies.selection.snapshot()
-  }
-
-  private async cleanupFailedAdd(
-    accountId: string,
-    managedAuthPath: string,
-    previousSettings: ReturnType<Store['getSettings']>,
-    error: unknown
-  ): Promise<void> {
-    if (error instanceof DuplicateClaudeAccountError) {
-      await this.dependencies.removeManagedAuth(accountId, managedAuthPath)
-      return
-    }
-    this.dependencies.selection.restoreSettings(previousSettings)
-    try {
-      await this.dependencies.runtimeAuth.forceMaterializeCurrentSelectionForRollback()
-    } catch (rollbackError) {
-      console.warn('[claude-accounts] Rollback rematerialization failed:', rollbackError)
-    }
-    await this.dependencies.removeManagedAuth(accountId, managedAuthPath)
-  }
-
-  private async rollbackReauthentication(
-    accountId: string,
-    path: string,
-    snapshot: ClaudeManagedAuthSnapshot,
-    previousSettings: ReturnType<Store['getSettings']>,
-    nextAccounts: ClaudeManagedAccount[],
-    wroteCredentials: boolean
-  ): Promise<void> {
-    let restoredCredentials = false
-    try {
-      await this.dependencies.restoreCredentials(accountId, path, snapshot)
-      restoredCredentials = true
-    } catch (rollbackError) {
-      console.warn(
-        '[claude-accounts] Failed to restore managed credentials during rollback:',
-        rollbackError
-      )
-    }
-    if (restoredCredentials || !wroteCredentials) {
-      try {
-        await this.dependencies.restoreOauth(accountId, path, snapshot)
-      } catch (rollbackError) {
+      return await this.finish(signIn, CLAUDE_LOGIN_WITHOUT_ACCOUNT_MESSAGE)
+    } catch (error) {
+      // Preserve the sign-in error if cleanup also fails.
+      await this.cancel(signIn).catch((cleanupError: unknown) =>
         console.warn(
-          '[claude-accounts] Failed to restore managed oauth metadata during rollback:',
-          rollbackError
+          '[claude-accounts] Could not delete an unfinished sign-in folder:',
+          cleanupError
         )
+      )
+      throw error
+    }
+  }
+
+  private async prepare(request: ClaudeSignInRequest) {
+    const saved = request.accountId ? this.deps.selection.requireAccount(request.accountId) : null
+    const target = saved ? getClaudeSelectionTargetForAccount(saved) : signInTarget(request)
+    const accountId = saved?.id ?? randomUUID()
+    const folder = await this.deps.runtimeAuth.prepareAccountFolder(accountId, target)
+    if (saved) {
+      this.loginsBeforeReauth.set(accountId, snapshotClaudeFolderLogin(folder.readPath))
+    }
+    return { accountId, target, folder }
+  }
+
+  async cancel(signIn: Omit<ClaudeAccountSignIn, 'configDir'>): Promise<void> {
+    if (!this.deps.selection.findAccount(signIn.accountId)) {
+      await this.deps.runtimeAuth.removeAccountFolder(signIn.accountId, signInTarget(signIn))
+    }
+  }
+
+  async finish(
+    signIn: Omit<ClaudeAccountSignIn, 'configDir'>,
+    notSignedInMessage = CLAUDE_SIGN_IN_NOT_FINISHED_MESSAGE
+  ): Promise<ClaudeRateLimitAccountsState> {
+    const { store, rateLimits, runtimeAuth, selection } = this.deps
+    const saved = selection.findAccount(signIn.accountId)
+    const target = saved ? getClaudeSelectionTargetForAccount(saved) : signInTarget(signIn)
+    // Merge onboarding into the state file created by login.
+    const folder = await runtimeAuth.prepareAccountFolder(signIn.accountId, target)
+    const login = readClaudeFolderLogin(claudeStateFile(folder.readPath))
+    if (!login) {
+      throw new Error(notSignedInMessage)
+    }
+    if (saved) {
+      const before = this.loginsBeforeReauth.get(signIn.accountId)
+      try {
+        // The browser may still be signed in as someone else; that login must never replace this account.
+        assertSameClaudeIdentity(saved, login)
+      } catch (error) {
+        if (before) {
+          restoreClaudeFolderLogin(folder.readPath, before)
+        }
+        throw error
+      } finally {
+        this.loginsBeforeReauth.delete(signIn.accountId)
       }
     }
-    if (restoredCredentials) {
-      this.dependencies.selection.restoreSettings(previousSettings)
-      await this.dependencies.runtimeAuth.forceMaterializeCurrentSelectionForRollback()
-    } else if (wroteCredentials) {
-      this.dependencies.store.updateSettings({ claudeManagedAccounts: nextAccounts })
-    } else {
-      this.dependencies.selection.restoreSettings(previousSettings)
+    const accounts = store.getSettings().claudeManagedAccounts
+    const scope = {
+      managedAuthRuntime: target.runtime ?? 'host',
+      wslDistro: target.runtime === 'wsl' ? (target.wslDistro ?? null) : null
+    } as const
+    if (
+      !saved &&
+      // Compare current folder logins; saved identities may be stale.
+      findDuplicateClaudeAccount(selection.list().accounts, {
+        email: login.email,
+        organizationUuid: login.organizationUuid,
+        ...scope
+      })
+    ) {
+      await runtimeAuth.removeAccountFolder(signIn.accountId, target)
+      throw new Error('This Claude account is already added.')
     }
+    const now = Date.now()
+    selection.saveSettings({
+      claudeManagedAccounts: [
+        ...accounts.filter((entry) => entry.id !== signIn.accountId),
+        {
+          id: signIn.accountId,
+          email: login.email,
+          organizationUuid: login.organizationUuid,
+          organizationName: login.organizationName,
+          managedAuthPath: folder.readPath,
+          ...scope,
+          wslLinuxAuthPath: target.runtime === 'wsl' ? folder.configDir : null,
+          authMethod: 'subscription-oauth',
+          createdAt: saved?.createdAt ?? now,
+          updatedAt: now,
+          lastAuthenticatedAt: now
+        }
+      ]
+    })
+    rateLimits.evictInactiveClaudeCache(signIn.accountId)
+    // Publish the new folder for terminals using the selected account.
+    await runtimeAuth.syncForCurrentSelection(target)
+    selection.refreshUsage(undefined, target)
+    return selection.list()
   }
 }
 
-/** Thrown when a re-authentication signs in as a different Claude account than the one being renewed. */
-export class ClaudeReauthIdentityMismatchError extends Error {}
-
-function assertSameClaudeIdentity(
-  account: Pick<ClaudeManagedAccount, 'email' | 'organizationUuid'>,
-  identity: { email: string | null; organizationUuid?: string | null }
-): void {
-  const sameEmail = account.email.trim().toLowerCase() === identity.email?.trim().toLowerCase()
-  const sameOrganization =
-    !account.organizationUuid ||
-    !identity.organizationUuid ||
-    account.organizationUuid === identity.organizationUuid
-  if (!sameEmail || !sameOrganization) {
-    throw new ClaudeReauthIdentityMismatchError(
-      `Signed in as ${identity.email ?? 'another account'}, but this account is ${account.email}. ` +
-        `Nothing was changed. Sign in as ${account.email}, or add the other account separately.`
-    )
+function signInTarget(request: ClaudeAccountSelectionTarget): ClaudeAccountSelectionTarget {
+  const target = normalizeClaudeAccountSelectionTarget(request)
+  if (target.runtime === 'wsl' && !target.wslDistro) {
+    throw new Error('Choose a WSL distro before signing in.')
   }
+  return target.runtime === 'wsl'
+    ? { runtime: 'wsl', wslDistro: target.wslDistro }
+    : { runtime: 'host' }
 }

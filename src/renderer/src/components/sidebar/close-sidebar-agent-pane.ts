@@ -1,8 +1,9 @@
 import { useAppStore } from '@/store'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
-import { callRuntimeRpc, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { captureRuntimeEnvironmentRequestRevision } from '@/runtime/runtime-environment-revision'
-import { toHostSessionTabId } from '@/runtime/web-terminal-surface-id'
+import { toHostSessionTabId } from '../../../../shared/terminal-surface-id'
 import { makePaneKey, parsePaneKey } from '../../../../shared/stable-pane-id'
 import type {
   RuntimeTerminalClose,
@@ -14,7 +15,7 @@ export async function closeSidebarAgentPane(worktreeId: string, paneKey: string)
   if (!pane) {
     throw new Error('This agent has no terminal pane to close.')
   }
-  const environmentId = getRuntimeEnvironmentIdForWorktree(useAppStore.getState(), worktreeId)
+  const environmentId = runtimeEnvironmentIdOrLocalUnlessTwin(useAppStore.getState(), worktreeId)
   const target: RuntimeClientTarget = environmentId
     ? { kind: 'environment', environmentId }
     : { kind: 'local' }

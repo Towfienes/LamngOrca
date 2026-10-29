@@ -1,7 +1,7 @@
 import type { AppState } from '@/store/types'
 import { getActiveSidebarWorkspaceId, parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { getConnectionIdFromState } from './connection-owner-resolution'
-import { getRuntimeEnvironmentIdForWorktree } from './worktree-runtime-owner'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from './worktree-runtime-owner'
 import { findIndexedFolderWorkspaceOwner } from './worktree-runtime-owner-index'
 
 export function selectWorkspaceChromeTarget(
@@ -39,6 +39,6 @@ export function selectWorkspaceChromeTarget(
     name: folder?.name ?? worktree?.displayName ?? path,
     path,
     connectionId: getConnectionIdFromState(state, workspaceId),
-    runtimeEnvironmentId: getRuntimeEnvironmentIdForWorktree(state, workspaceId)
+    runtimeEnvironmentId: runtimeEnvironmentIdOrLocalUnlessTwin(state, workspaceId)
   }
 }

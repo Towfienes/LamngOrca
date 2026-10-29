@@ -27,7 +27,7 @@ vi.mock('@/lib/launch-agent-execution-context', () => ({
   })
 }))
 vi.mock('@/lib/worktree-runtime-owner', () => ({
-  getRuntimeEnvironmentIdForWorktree: () => fixture.owner.environmentId
+  runtimeEnvironmentIdOrLocalUnlessTwin: () => fixture.owner.environmentId
 }))
 vi.mock('@/lib/tui-agent-startup', () => ({ buildAgentStartupPlan: fixture.plan }))
 vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: fixture.call }))

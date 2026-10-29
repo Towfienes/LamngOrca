@@ -5,6 +5,7 @@ import {
   type PaneSplitDirection
 } from '../../shared/terminal-pane-largest-split'
 import type { TerminalCreateOptions } from './runtime-terminal-contracts'
+import { resolveTerminalPresentation } from './orca-runtime-create-terminal-dependencies'
 
 export type AgentJoinTarget = { tabId: string; leafId: string; direction: PaneSplitDirection }
 
@@ -70,4 +71,15 @@ export function agentJoinRevealSplit(target: AgentJoinTarget | null): {
   splitDirection?: AgentJoinTarget['direction']
 } {
   return target ? { splitFromLeafId: target.leafId, splitDirection: target.direction } : {}
+}
+
+/** Deck: an agent launch that names no pane carries its join target through to spawn and reveal. */
+export function withRevealedAgentJoin(
+  opts: TerminalCreateOptions,
+  launch: TerminalCreateOptions,
+  snapshot: Parameters<typeof selectSnapshotAgentJoinTarget>[0]
+): TerminalCreateOptions {
+  const revealed = resolveTerminalPresentation(opts) !== 'background'
+  const agentJoin = resolveRevealedAgentJoin(revealed, launch, snapshot)
+  return agentJoin ? { ...launch, agentJoin } : launch
 }

@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { setRuntimeDesktopSurface } from './runtime-desktop-surface'
 import { createDesktopTerminal } from './orca-runtime-create-terminal-desktop'
+import { wireHeadlessServeRuntime } from './orca-runtime-test-scenario-builders.spec'
 
 function fakeRuntime(reply: { tabId: string; leafId?: string }) {
   const handlers = new Map<string, (event: unknown, response: unknown) => void>()
@@ -41,14 +42,12 @@ it('returns the joined pane when the renderer split the agent into an open tab',
   const created = await createDesktopTerminal(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the desktop create path reads only the members faked above.
     runtime as never,
-    'id:wt',
     { command: 'claude' },
-    undefined,
-    null
+    undefined
   )
   expect(runtime.waitForLeafInTab).toHaveBeenCalledWith('tab-1', 'leaf-new')
   expect(runtime.waitForTerminalHandle).not.toHaveBeenCalled()
-  expect(created).toMatchObject({ handle: 'handle-joined-pane', tabId: 'tab-1', worktreeId: 'wt' })
+  expect(created).toMatchObject({ handle: 'handle-joined-pane', tabId: 'tab-1' })
 })
 
 it('keeps resolving the new tab handle when the renderer opened a tab', async () => {
@@ -56,12 +55,18 @@ it('keeps resolving the new tab handle when the renderer opened a tab', async ()
   const created = await createDesktopTerminal(
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the desktop create path reads only the members faked above.
     runtime as never,
-    'id:wt',
     { command: 'bash' },
-    undefined,
-    null
+    undefined
   )
   expect(runtime.waitForTerminalHandle).toHaveBeenCalledWith('tab-2')
   expect(runtime.waitForLeafInTab).not.toHaveBeenCalled()
   expect(created.handle).toBe('handle-first-pane')
+})
+
+it('tells a workspace-less create on a windowless host to pass --worktree', async () => {
+  const runtime = wireHeadlessServeRuntime()
+
+  await expect(runtime.createTerminal(undefined, { title: 'probe' })).rejects.toThrow(
+    /No workspace was given or found.*Pass --worktree.*No terminal was created\./
+  )
 })

@@ -1,10 +1,11 @@
 import { useAppStore } from '@/store'
 import { buildAgentStartupPlan } from '@/lib/tui-agent-startup'
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
-import { callRuntimeRpc, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { captureRuntimeEnvironmentRequestRevision } from '@/runtime/runtime-environment-revision'
-import { toHostSessionTabId } from '@/runtime/web-terminal-surface-id'
+import { toHostSessionTabId } from '../../../../shared/terminal-surface-id'
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
 import { paneIsCoveredByNativeChat } from '@/components/terminal-pane/native-chat-covered-pane'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
@@ -74,7 +75,7 @@ export async function launchDeckAgentInPane(
   if (!context) {
     return
   }
-  const environmentId = getRuntimeEnvironmentIdForWorktree(state, worktreeId)
+  const environmentId = runtimeEnvironmentIdOrLocalUnlessTwin(state, worktreeId)
   if (launch?.accountId && (context.isRemote || environmentId)) {
     throw new Error('Launch accounts on the host that owns this workspace.')
   }
@@ -93,9 +94,9 @@ export async function launchDeckAgentInPane(
         prompt: '',
         allowEmptyPromptLaunch: true,
         cmdOverrides: state.settings?.agentCmdOverrides ?? {},
-        agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
+        agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings),
         agentEnv: {
-          ...resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
+          ...resolveTuiAgentLaunchEnv(agent, state.settings),
           ...(launch?.accountId ? { [AGENT_LAUNCH_ACCOUNT_ENV]: launch.accountId } : {})
         },
         platform: context.resolvedLaunchPlatform,

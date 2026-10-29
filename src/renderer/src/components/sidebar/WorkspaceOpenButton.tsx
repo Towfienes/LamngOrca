@@ -1,3 +1,4 @@
+import { getConnectionExecutionHostId } from '../../../../shared/execution-host'
 import { useState } from 'react'
 import { FolderOpen } from 'lucide-react'
 import { isLocalPathOpenBlocked } from '@/lib/local-path-open-guard'
@@ -19,15 +20,14 @@ export function WorkspaceOpenButton({
   application: 'vscode' | 'file-manager'
 }): React.JSX.Element {
   const target = useAppStore(useShallow(selectWorkspaceChromeTarget))
-  const settings = useAppStore((state) => state.settings)
   const [opening, setOpening] = useState(false)
   const allowed =
     target &&
     target.connectionId !== undefined &&
     !target.runtimeEnvironmentId &&
     (application === 'file-manager'
-      ? !isLocalPathOpenBlocked(settings, target)
-      : getExternalEditorOpenCapability(settings, {
+      ? !isLocalPathOpenBlocked(getConnectionExecutionHostId(target.connectionId))
+      : getExternalEditorOpenCapability({
           connectionId: target.connectionId,
           command: 'code'
         }).allowed)

@@ -1,3 +1,4 @@
+import type { RateLimitWindow } from '../../../shared/rate-limit-types'
 import { RateLimitServiceFetchControl } from './service-fetch-control'
 import {
   MAX_ACTIVE_FAILURE_STREAK,
@@ -5,12 +6,37 @@ import {
   type ProviderRateLimits
 } from './service-types'
 
+export function hasUsageWindows(limits: ProviderRateLimits): boolean {
+  return Boolean(
+    limits.session ||
+    limits.weekly ||
+    limits.fableWeekly ||
+    limits.monthly ||
+    (limits.buckets && limits.buckets.length > 0)
+  )
+}
+
+// Why: a window past its reset no longer describes the account, and 0% would hide use on another device.
+export function withoutResetWindows(limits: ProviderRateLimits, now: number): ProviderRateLimits {
+  const isCurrent = (window: RateLimitWindow): boolean =>
+    typeof window.resetsAt !== 'number' || window.resetsAt > now
+  const current = (window: RateLimitWindow | null | undefined): RateLimitWindow | null =>
+    window && isCurrent(window) ? window : null
+  return {
+    ...limits,
+    session: current(limits.session),
+    weekly: current(limits.weekly),
+    ...(limits.fableWeekly ? { fableWeekly: current(limits.fableWeekly) } : {}),
+    ...(limits.monthly ? { monthly: current(limits.monthly) } : {}),
+    ...(limits.buckets ? { buckets: limits.buckets.filter(isCurrent) } : {})
+  }
+}
+
 export abstract class RateLimitServiceResultPolicy extends RateLimitServiceFetchControl {
   protected applyStalePolicy(
     fresh: ProviderRateLimits,
     previous: ProviderRateLimits | null
   ): ProviderRateLimits {
-    // Fresh data is fine — use it
     if (fresh.status === 'ok') {
       return {
         ...fresh,
@@ -22,32 +48,30 @@ export abstract class RateLimitServiceResultPolicy extends RateLimitServiceFetch
       }
     }
 
-    // Explicitly unavailable (e.g. setting cleared): discard stale data so the UI shows the provider as disabled/unconfigured.
+    // Explicit unavailability clears stale usage, including removed settings.
     if (fresh.status === 'unavailable') {
       return fresh
     }
 
-    const previousHasData = Boolean(
-      previous?.session ||
-      previous?.weekly ||
-      previous?.fableWeekly ||
-      previous?.monthly ||
-      (previous?.buckets && previous.buckets.length > 0)
-    )
+    if (!previous) {
+      return fresh
+    }
 
-    // No previous data to fall back on
-    if (!previous || !previousHasData) {
+    const current = withoutResetWindows(previous, Date.now())
+    if (!hasUsageWindows(current)) {
       return fresh
     }
 
     // Keep the last successful reading marked as stale; failures must not erase its windows.
     return {
-      ...previous,
+      ...current,
       error: fresh.error,
       status: 'error',
       usageMetadata: {
         ...previous.usageMetadata,
         ...fresh.usageMetadata,
+        // Error kind belongs to this failure, not an older snapshot.
+        failureKind: fresh.usageMetadata?.failureKind,
         lastSuccessfulSource:
           previous.usageMetadata?.lastSuccessfulSource ?? previous.usageMetadata?.source
       }
@@ -84,7 +108,7 @@ export abstract class RateLimitServiceResultPolicy extends RateLimitServiceFetch
         status: 'fetching'
       }
     }
-    // Why: keep a settled chip visible during background refetch so a persistently failing provider doesn't flash "…" → error each cycle.
+    // Keep settled chips visible during background retries to avoid loading/error flashes.
     if (current.status === 'ok' || current.status === 'error' || current.status === 'unavailable') {
       return current
     }

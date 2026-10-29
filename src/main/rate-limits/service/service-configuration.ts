@@ -1,6 +1,7 @@
 import type { BrowserWindow } from 'electron'
 import { hasMiniMaxSessionCookie } from '../../minimax/minimax-cookie-store'
 import { hasMiniMaxApiKey } from '../../minimax/minimax-api-key-store'
+import { hasZcodePlanApiKey } from '../../zcode/zcode-plan-api-key-store'
 import { RateLimitServiceAccountRefresh } from './service-account-refresh'
 import {
   type CodexAccountSelectionTarget,
@@ -11,6 +12,7 @@ import {
   type OpenCodeGoRateLimitConfig,
   type MiniMaxRateLimitConfig,
   type AntigravityUsageEnabledResolver,
+  type ZcodePlanRateLimitConfig,
   type GeminiCliOAuthEnabledResolver,
   type InactiveCodexAccountInfo,
   type InactiveClaudeAccountInfo,
@@ -41,12 +43,20 @@ export abstract class RateLimitServiceConfiguration extends RateLimitServiceAcco
     this.claudeFetchTarget = normalizeClaudeAccountSelectionTarget(target)
   }
 
-  setOpenCodeGoConfigResolver(resolver: () => OpenCodeGoRateLimitConfig): void {
+  setOpenCodeGoConfigResolver(
+    resolver: () => OpenCodeGoRateLimitConfig,
+    apiKeyResolver?: () => string | null
+  ): void {
     this.openCodeGoConfigResolver = resolver
+    this.openCodeGoApiKeyResolver = apiKeyResolver ?? null
   }
 
   setMiniMaxConfigResolver(resolver: () => MiniMaxRateLimitConfig): void {
     this.miniMaxConfigResolver = resolver
+  }
+
+  setZcodePlanConfigResolver(resolver: () => ZcodePlanRateLimitConfig): void {
+    this.zcodePlanConfigResolver = resolver
   }
 
   setGeminiCliOAuthEnabledResolver(resolver: GeminiCliOAuthEnabledResolver): void {
@@ -77,7 +87,7 @@ export abstract class RateLimitServiceConfiguration extends RateLimitServiceAcco
     const refreshOnResume = (): void => {
       void this.refreshIfWindowActive()
     }
-    // Why: attach() can replace windows; remove the previous closed listener too, not only the focus listeners.
+    // Replacing windows must also detach the old closed listener.
     const detachWindowListeners = (): void => {
       mainWindow.removeListener('focus', refreshOnResume)
       mainWindow.removeListener('show', refreshOnResume)
@@ -127,9 +137,10 @@ export abstract class RateLimitServiceConfiguration extends RateLimitServiceAcco
     this.pruneInactiveCodexState()
     return {
       ...this.state,
-      // Why: the cookie lives on the filesystem, not GlobalSettings; surface its presence so the renderer keeps the MiniMax bar across reloads.
+      // Filesystem-stored cookie presence keeps MiniMax visible across renderer reloads.
       minimaxCookieConfigured: hasMiniMaxSessionCookie(),
       minimaxApiKeyConfigured: hasMiniMaxApiKey(),
+      zcodePlanApiKeyConfigured: hasZcodePlanApiKey(),
       opencodeGoApiKeyConfigured: this.openCodeGoApiKeyConfigured,
       grokAuthConfigured: this.grokAuthConfigured,
       cursorAuthConfigured: this.cursorAuthConfigured,
