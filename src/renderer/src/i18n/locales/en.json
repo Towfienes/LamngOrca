@@ -5583,6 +5583,7 @@
           "newCardDisplay": {
             "title": "Card display"
           },
+          "showHoverDetails": "Hover details",
           "09faabd875": "Project order",
           "7bada3b1ab": "Sort by",
           "dc0bb670bc": "Group by",
@@ -5670,6 +5671,7 @@
           "ccbd1e2c69": "Customize {{value0}} appearance"
         },
         "WorktreeCard": {
+          "sleepWorkspace": "Sleep workspace",
           "a88c92d0e3": "{{value0}}/{{value1}} already exists.",
           "6f09f58541": "Delete workspace",
           "0777de5970": "Primary worktree (original clone directory)",
@@ -13825,6 +13827,7 @@
           "models": {
             "7433516faf": "Gremlin",
             "a84d5677ff": "OpenCode",
+            "19f5d4d9fb": "DeepSeek",
             "2528586aa7": "Claudino"
           }
         }

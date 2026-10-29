@@ -155,11 +155,18 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
       .locator('.deck-agent-icon-slot > *')
       .evaluate((icon) => getComputedStyle(icon).animationName)
   ).toBe('none')
-  expect(
-    await waitingRow
-      .locator('.deck-agent-state-slot')
-      .evaluate((badge) => getComputedStyle(badge, '::after').borderRadius)
-  ).toBe('50%')
+  // Attention states badge the logo; there is no trailing state dot.
+  const waitingBadge = await waitingRow.evaluate((row) => {
+    const badge = row.querySelector('.deck-agent-state-slot')!.getBoundingClientRect()
+    const icon = row.querySelector('.deck-agent-icon-slot')!.getBoundingClientRect()
+    const heading = row.querySelector('.deck-agent-heading')!
+    return {
+      onIcon: badge.left < icon.right && badge.bottom > icon.top + icon.height / 2,
+      trailingDot: getComputedStyle(heading, '::after').content
+    }
+  })
+  expect(waitingBadge.onIcon).toBe(true)
+  expect(waitingBadge.trailingDot).toBe('none')
   await expect
     .poll(() =>
       page.locator('[data-worktree-virtual-row-key]').evaluateAll((elements) => {
@@ -183,22 +190,18 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   await page.keyboard.press('Enter')
   await expect(keyboardRow).toHaveAttribute('data-focused-agent-pane', 'true')
   const iconAlignment = await keyboardRow.evaluate((row) => {
-    const status = row.querySelector('.deck-agent-state-slot')!.getBoundingClientRect()
     const icon = row.querySelector('.deck-agent-icon-slot')!.getBoundingClientRect()
     const title = row
       .querySelector('.deck-agent-heading > [role="button"]')!
       .getBoundingClientRect()
-    const summary = row.querySelector('.deck-agent-summary')!.getBoundingClientRect()
     return {
-      leftOverlap: status.right > icon.left && status.left < icon.left,
-      bottomOverlap: status.top > icon.top && status.top < icon.bottom,
-      rowCenter: Math.abs(icon.top + icon.height / 2 - (title.top + summary.bottom) / 2),
+      iconBeforeTitle: icon.right <= title.left,
+      rowCenter: Math.abs(icon.top + icon.height / 2 - (title.top + title.height / 2)),
       rowHeight: row.getBoundingClientRect().height
     }
   })
-  expect(iconAlignment.leftOverlap).toBe(true)
-  expect(iconAlignment.bottomOverlap).toBe(true)
-  expect(iconAlignment.rowCenter).toBeLessThan(1)
+  expect(iconAlignment.iconBeforeTitle).toBe(true)
+  expect(iconAlignment.rowCenter).toBeLessThan(2)
   expect(iconAlignment.rowHeight).toBeLessThan(43)
   const providerIcon = keyboardRow.locator('.deck-agent-icon-slot > *')
   await expect(providerIcon).toHaveCSS('animation-name', 'none')
@@ -284,7 +287,9 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
       )
     )
     .toBe(true)
-  await page.screenshot({ path: testInfo.outputPath('deck-workspace-small.png') })
+  await page.screenshot({
+    path: testInfo.outputPath('deck-workspace-small.png')
+  })
   await page.evaluate(() => window.__store!.getState().updateSettings({ theme: 'light' }))
   await expect(page.locator('html')).not.toHaveClass(/dark/)
   expect(
@@ -292,7 +297,9 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
       .locator('.pane[data-active-pane]:visible')
       .evaluate((pane) => getComputedStyle(pane, '::after').borderColor)
   ).toBe(borderColors.find((pane) => pane.active)?.color)
-  await page.screenshot({ path: testInfo.outputPath('deck-workspace-light.png') })
+  await page.screenshot({
+    path: testInfo.outputPath('deck-workspace-light.png')
+  })
   await page.evaluate(() => {
     const state = window.__store!.getState()
     state.setTabCustomTitle(state.activeTabId!, 'Agent team')

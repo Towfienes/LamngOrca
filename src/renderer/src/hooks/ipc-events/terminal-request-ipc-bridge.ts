@@ -1,4 +1,5 @@
 import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
+import { joinAgentIntoOpenWorkspace } from './terminal-request-agent-join'
 import { getConnectionIdFromState } from '@/lib/connection-context'
 import { initialAgentTabViewModeProps } from '@/lib/native-chat-initial-view-mode'
 import { isNativeChatTranscriptLocalReadable } from '@/lib/native-chat-transcript-readability'
@@ -53,6 +54,26 @@ export function registerTerminalRequestIpcBridge(unsubs: (() => void)[]): void {
           terminalPresentation !== 'background' && data.surfaceOwner !== false
         if (shouldActivate) {
           activateTerminalInitiatedWorktree(store, worktreeId)
+        }
+        const joined = joinAgentIntoOpenWorkspace(store, worktreeId, data, shouldActivate)
+        if (joined) {
+          if (shouldActivate) {
+            store.setActiveTabType('terminal', worktreeId)
+            store.setActiveTab(joined.tabId)
+            focusTerminalInitiatedTab(joined.tabId, joined.leafId, worktreeId)
+          }
+          if (shouldSurfaceOwner) {
+            store.revealWorktreeInSidebar(worktreeId)
+          }
+          window.api.ui.replyTerminalCreate({
+            requestId: data.requestId,
+            tabId: joined.tabId,
+            leafId: joined.leafId,
+            title:
+              data.title ??
+              store.tabsByWorktree[worktreeId]?.find((tab) => tab.id === joined.tabId)?.title
+          })
+          return
         }
         // Why: the paired launch client already resolved the mode, so its choice wins over the host renderer's local default.
         const tabOptions = data.launchAgent

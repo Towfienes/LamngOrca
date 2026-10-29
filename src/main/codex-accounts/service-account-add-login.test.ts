@@ -265,7 +265,7 @@ describe('CodexAccountService config sync', () => {
       codexManagedAccounts: [
         {
           id: 'account-1',
-          email: 'old@example.com',
+          email: 'new@example.com',
           managedHomePath,
           providerAccountId: null,
           workspaceLabel: null,
@@ -403,7 +403,11 @@ describe('CodexAccountService config sync', () => {
         }
         writeFileSync(
           join(options.env.CODEX_HOME!, 'auth.json'),
-          createCodexAuthJson('reauthenticated@example.com', 'provider-new', 'refresh-new'),
+          createCodexAuthJson(
+            `${testCase.accountId}@example.com`,
+            `provider-${testCase.accountId}`,
+            'refresh-new'
+          ),
           'utf-8'
         )
         queueMicrotask(() => child.emit('close', 0))

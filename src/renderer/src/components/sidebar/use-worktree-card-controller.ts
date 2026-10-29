@@ -90,6 +90,9 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
       isDeleting: linked.isDeleting,
       isMainWorktree: worktree.isMainWorktree
     })
+  // Why: sleep is reversible (panes reopen cold with identifiers kept), so unlike delete it
+  // belongs in the ordinary hover chrome and needs no modifier to reveal.
+  const showSleepQuickAction = !props.affiliateListMode && !linked.isDeleting
   const workspaceActions = useWorktreeCardWorkspaceActions({
     worktree,
     lineageChildCount: props.lineageChildCount,
@@ -158,6 +161,7 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
     shouldRefreshHostedReview,
     ...activation,
     showDeleteQuickAction,
+    showSleepQuickAction,
     ...workspaceActions,
     ...secondary
   }

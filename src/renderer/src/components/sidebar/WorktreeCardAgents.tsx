@@ -1,8 +1,7 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
-import { activateAndRevealWorktree } from '@/lib/worktree-activation'
-import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
+import { activateWorktreeFromSidebar } from '@/lib/sidebar-worktree-activation'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'
 import { useNow } from '@/hooks/use-now'
 import { deriveRunningAgentSendTargets } from '@/lib/running-agent-targets'
@@ -13,8 +12,6 @@ import {
 import { useWorktreeAgentRows } from './useWorktreeAgentRows'
 import { cn } from '@/lib/utils'
 import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/useDashboardData'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
-import { dismissStaleAgentRowByKey } from '../terminal-pane/stale-agent-row'
 import { useFocusedAgentPaneKey } from './focused-agent-row-highlight'
 import {
   CompactAgentExpansion,
@@ -28,7 +25,7 @@ import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion
 import { translate } from '@/i18n/i18n'
 import { toast } from 'sonner'
 import { closeSidebarAgentPane } from './close-sidebar-agent-pane'
-import { activateStructuredAgentSessionTab } from '@/lib/structured-agent-session-tab-activation'
+import { activateSidebarAgentTab } from './sidebar-agent-tab-activation'
 import { SidebarSubagentBadge } from './SidebarSubagentBadge'
 import { selectAcknowledgedAgentTimes } from './worktree-card-agent-ack-inputs'
 
@@ -168,45 +165,13 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
   )
 
   const handleActivateAgentTab = useCallback(
-    (tabId: string, paneKey: string) => {
-      const parsed = parsePaneKey(paneKey)
-      if (!parsed) {
-        // Why: malformed/legacy numeric keys can't be resolved after pane replay/remount, so drop the stale row instead of guessing.
-        console.warn('[WorktreeCardAgents] malformed paneKey, skipping pane focus', paneKey)
-        dismissStaleAgentRowByKey(paneKey)
-        return
-      }
-      if (parsed.tabId !== tabId) {
-        console.warn('[WorktreeCardAgents] paneKey tabId mismatch, dismissing row', {
-          tabId,
-          paneKey
-        })
-        dismissStaleAgentRowByKey(paneKey)
-        return
-      }
-      // Why: design-doc rule — every user-initiated worktree switch must route through activateAndRevealWorktree (cross-repo activation + nav history).
-      activateAndRevealWorktree(worktreeId)
-      const tabs = useAppStore.getState().tabsByWorktree[worktreeId] ?? []
-      if (tabs.some((t) => t.id === tabId)) {
-        activateTabAndFocusPane(tabId, parsed.leafId, {
-          ackPaneKeyOnSuccess: paneKey,
-          flashFocusedPane: true,
-          scrollToBottomIfOutputSinceLastView: true
-        })
-      } else if (!activateStructuredAgentSessionTab({ worktreeId, tabId })) {
-        const liveEntry = useAppStore.getState().agentStatusByPaneKey[paneKey]
-        if (liveEntry?.worktreeId === worktreeId) {
-          // Why: orchestration worker status can be worktree-attributed before the renderer knows its tab; keep the live row instead of dismissing as stale.
-          return
-        }
-        dismissStaleAgentRowByKey(paneKey)
-      }
-    },
+    (tabId: string, paneKey: string) => activateSidebarAgentTab(worktreeId, tabId, paneKey),
     [worktreeId]
   )
   const handleActivateRetainedAgent = useCallback(() => {
-    // Why: hibernation-retained rows are passive completion evidence; activating would resume sleeping sessions, so the row is inert.
-  }, [])
+    // A slept row still selects its workspace through the normal sidebar wake path.
+    void activateWorktreeFromSidebar(worktreeId)
+  }, [worktreeId])
 
   // Why: one 30s tick per non-empty inline list; zero-agent cards never mount this (see WorktreeCardAgents), so idle worktrees pay no timer cost.
   const now = useNow(30_000)

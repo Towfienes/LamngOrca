@@ -1,4 +1,7 @@
 import { useAppStore } from '@/store'
+import { getDeckSessionLaunchAgent } from './deck-session-agent'
+import { isAiVaultTitleAgent } from '../../../../shared/ai-vault-session-title'
+import { isUsableAgentSessionName } from '../../../../shared/agent-row-conversation-name'
 import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
 import { launchAiVaultSessionInNewTab } from '@/lib/launch-ai-vault-session'
 import { prepareAiVaultSessionForResume } from '@/lib/ai-vault-session-resume-preparation'
@@ -24,7 +27,8 @@ export async function launchDeckAgentSession(args: {
   session?: AiVaultSession
   login?: boolean
 }): Promise<string | null> {
-  const { agent, worktreeId, groupId, pane, accountId, session } = args
+  const { worktreeId, groupId, pane, accountId, session } = args
+  const agent = getDeckSessionLaunchAgent(args.agent, session)
   const state = useAppStore.getState()
   const effectiveAccountId =
     accountId ??
@@ -121,11 +125,13 @@ export async function launchDeckAgentSession(args: {
     startupCommandDelivery: 'shell-ready'
   }
   if (pane) {
-    await launchDeckAgentInPane(worktreeId, pane, agent, {
-      accountId,
-      startup,
-      sessionTitle: session.title
-    })
+    // Why: the history title names this resumed session only, never the pane's manual title slot.
+    if (isAiVaultTitleAgent(session.agent) && isUsableAgentSessionName(session.title)) {
+      state.setAiVaultSessionTitles([
+        { agent: session.agent, sessionId: session.sessionId, title: session.title }
+      ])
+    }
+    await launchDeckAgentInPane(worktreeId, pane, agent, { accountId, startup })
     return pane.tabId
   }
   const launched = launchAiVaultSessionInNewTab({

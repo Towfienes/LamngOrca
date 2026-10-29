@@ -105,6 +105,8 @@ export class ClaudeAccountRegistration {
     if (!captured.identity.email) {
       throw new Error('Claude login completed, but Orca could not resolve the account email.')
     }
+    // Why: the browser may still be signed in as someone else; never let that login replace this account.
+    assertSameClaudeIdentity(account, captured.identity)
 
     const settings = this.dependencies.store.getSettings()
     const now = Date.now()
@@ -130,7 +132,12 @@ export class ClaudeAccountRegistration {
       this.dependencies.rateLimits.evictInactiveClaudeCache(accountId)
       const target = getClaudeSelectionTargetForAccount(account)
       await this.dependencies.selection.syncRuntimeAuth(target)
-      await this.dependencies.rateLimits.refreshForClaudeAccountChange(undefined, target)
+      // Why: the quota refresh pushes its own result; the sign-in is done once credentials land.
+      void this.dependencies.rateLimits
+        .refreshForClaudeAccountChange(undefined, target)
+        .catch((error: unknown) =>
+          console.warn('[claude-accounts] quota refresh after re-authentication failed', error)
+        )
       return this.dependencies.selection.snapshot()
     } catch (error) {
       await this.rollbackReauthentication(
@@ -246,5 +253,25 @@ export class ClaudeAccountRegistration {
     } else {
       this.dependencies.selection.restoreSettings(previousSettings)
     }
+  }
+}
+
+/** Thrown when a re-authentication signs in as a different Claude account than the one being renewed. */
+export class ClaudeReauthIdentityMismatchError extends Error {}
+
+function assertSameClaudeIdentity(
+  account: Pick<ClaudeManagedAccount, 'email' | 'organizationUuid'>,
+  identity: { email: string | null; organizationUuid?: string | null }
+): void {
+  const sameEmail = account.email.trim().toLowerCase() === identity.email?.trim().toLowerCase()
+  const sameOrganization =
+    !account.organizationUuid ||
+    !identity.organizationUuid ||
+    account.organizationUuid === identity.organizationUuid
+  if (!sameEmail || !sameOrganization) {
+    throw new ClaudeReauthIdentityMismatchError(
+      `Signed in as ${identity.email ?? 'another account'}, but this account is ${account.email}. ` +
+        `Nothing was changed. Sign in as ${account.email}, or add the other account separately.`
+    )
   }
 }

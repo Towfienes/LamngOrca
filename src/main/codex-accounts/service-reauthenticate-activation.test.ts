@@ -8,7 +8,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import type { GlobalSettings } from '../../shared/global-settings-types'
@@ -70,7 +70,8 @@ function createLoginSpawn(onLogin?: () => void) {
     onLogin?.()
     writeFileSync(
       join(options.env.CODEX_HOME!, 'auth.json'),
-      createCodexAuthJson('reauthenticated@example.com', 'provider-new', 'refresh-new'),
+      // Same provider account, renamed email: the one identity change re-auth may apply.
+      createCodexAuthJson('reauthenticated@example.com', 'provider-account-2', 'refresh-new'),
       'utf-8'
     )
     queueMicrotask(() => child.emit('close', 0))
@@ -110,7 +111,7 @@ describe('CodexAccountService reauthenticate activation intent', () => {
     expect(spawnMock).toHaveBeenCalledTimes(1)
     expect(result.accounts.find((account) => account.id === 'account-2')).toMatchObject({
       email: 'reauthenticated@example.com',
-      providerAccountId: 'provider-new'
+      providerAccountId: 'provider-account-2'
     })
     expect(result.activeAccountId).toBe('account-2')
     expect(result.activeAccountIdsByRuntime).toEqual({ host: 'account-2', wsl: {} })
@@ -202,5 +203,55 @@ describe('CodexAccountService reauthenticate activation intent', () => {
     expect(result.activeAccountId).toBeNull()
     expect(result.activeAccountIdsByRuntime).toEqual({ host: null, wsl: {} })
     expect(store.getSettings().activeCodexManagedAccountId).toBeNull()
+  })
+
+  it('refuses a login as a different account and restores the previous credential', async () => {
+    vi.resetModules()
+    const spawnMock = vi.fn(
+      (_command: string, _args: string[], options: { env: NodeJS.ProcessEnv }) => {
+        const child = new EventEmitter() as EventEmitter & {
+          stdout: PassThrough
+          stderr: PassThrough
+          kill: () => void
+        }
+        child.stdout = new PassThrough()
+        child.stderr = new PassThrough()
+        child.kill = vi.fn()
+        writeFileSync(
+          join(options.env.CODEX_HOME!, 'auth.json'),
+          createCodexAuthJson('stranger@example.com', 'provider-stranger', 'refresh-stranger'),
+          'utf-8'
+        )
+        queueMicrotask(() => child.emit('close', 0))
+        return child
+      }
+    )
+    vi.doMock('node:child_process', () => ({ execFileSync: vi.fn(), spawn: spawnMock }))
+    vi.doMock('../codex-cli/command', () => ({ resolveCodexCommand: () => 'codex' }))
+
+    const accounts = createHostAccounts()
+    const target = accounts[1]!
+    const authPath = join(target.managedHomePath, 'auth.json')
+    const before = readFileSync(authPath, 'utf-8')
+    const settings = createSettings({
+      codexManagedAccounts: accounts,
+      activeCodexManagedAccountId: 'account-1',
+      activeCodexManagedAccountIdsByRuntime: { host: 'account-1', wsl: {} }
+    })
+    const store = createStore(settings)
+    const { CodexAccountService } = await import('./service')
+    const service = new CodexAccountService(
+      store as never,
+      createRateLimits() as never,
+      createRuntimeHome() as never
+    )
+
+    await expect(service.reauthenticateAccount('account-2')).rejects.toThrow(
+      'Signed in as stranger@example.com, but this account is account-2@example.com'
+    )
+    expect(readFileSync(authPath, 'utf-8')).toBe(before)
+    expect(
+      store.getSettings().codexManagedAccounts.find((account) => account.id === 'account-2')
+    ).toMatchObject({ email: 'account-2@example.com', providerAccountId: 'provider-account-2' })
   })
 })

@@ -36,7 +36,7 @@ vi.mock('./focused-agent-row-highlight', () => ({
   useFocusedAgentPaneKey: () => focusedPaneKey
 }))
 vi.mock('@/components/dashboard/use-agent-row-conversation-name', () => ({
-  useAgentRowConversationName: () => null
+  useAgentRowConversationName: (agent: { tab: { title: string } }) => agent.tab.title
 }))
 vi.mock('./CacheTimer', () => ({
   default: () => null,
@@ -59,7 +59,8 @@ function agentRow(
       id: tabId,
       ptyId: null,
       worktreeId: WORKSPACE,
-      title: tabId,
+      // Why: the row's name comes from its own terminal title, never from its prompt.
+      title: paneKey === PANE_A ? 'Review agent A' : 'Review agent B',
       customTitle: null,
       color: null,
       sortOrder: 0,

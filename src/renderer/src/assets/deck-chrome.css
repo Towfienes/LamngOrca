@@ -125,26 +125,55 @@
 
 .deck-create-bar {
   container-type: inline-size;
-  padding: 8px 10px;
+  padding: 8px;
 }
 
+/* Compact dock pill: hugs its icons, left-aligned, brighter hairline, icon groups split by one divider. */
 .deck-agent-actions {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  width: 100%;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
   align-items: center;
-  justify-items: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 28%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+}
+
+.deck-agent-actions button {
+  width: 22px;
+  height: 22px;
+}
+
+.deck-dock-group,
+.deck-dock-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.deck-dock-divider {
+  width: 1px;
+  height: 14px;
+  margin-inline: 4px;
+  background: color-mix(in srgb, var(--foreground) 28%, transparent);
 }
 
 .deck-agent-quick-button {
+  position: relative;
   display: inline-flex;
 }
 
-@container (max-width: 284px) {
-  .deck-agent-actions {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+.deck-agent-running-dot {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  width: 3px;
+  height: 3px;
+  margin-inline: auto;
+  border-radius: 9999px;
+  background: var(--status-success);
 }
 
 .deck-sidebar.deck-sidebar .deck-sidebar-options {
@@ -181,9 +210,7 @@
   @apply sidebar-glass;
 }
 
-.deck-sidebar.deck-sidebar
-  [data-worktree-card-surface]:has([data-deck-agent])
-  [data-worktree-card-status-slot] {
+.deck-sidebar.deck-sidebar [data-worktree-card-status-slot] {
   display: none;
 }
 
@@ -196,31 +223,28 @@
   gap: 4px;
 }
 
-.deck-sidebar.deck-sidebar [role='group']:has(> [data-deck-agent]),
-.deck-sidebar.deck-sidebar [role='tree']:has(> [data-deck-agent]) {
-  border-left: 1px solid color-mix(in srgb, var(--worktree-sidebar-foreground) 12%, transparent);
-  margin-left: 4px;
-  padding-left: 8px;
-}
-
 .deck-sidebar.deck-sidebar [data-deck-agent] {
-  min-height: 28px;
-  margin: 1px 0;
-  padding: 4px 4px 4px 30px;
+  position: relative;
+  min-height: var(--deck-agent-row-height);
+  margin: 0 0 0 var(--deck-agent-inset);
+  padding: 0 6px 0 4px;
+  justify-content: center;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
 }
 
 .deck-sidebar [data-deck-agent] .deck-agent-heading {
   position: relative;
+  gap: 8px;
 }
 
+/* The state badge overlaps the logo's lower-left corner, as before the tree redesign. */
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-state-slot {
   position: absolute;
-  left: -28px;
+  left: -4px;
+  top: calc(50% + 6px);
   width: 10px;
   height: 10px;
-  top: calc(50% + 6px);
   transform: translateY(-50%);
   border: 1px solid var(--worktree-sidebar);
   border-radius: 50%;
@@ -229,10 +253,8 @@
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-icon-slot {
-  position: absolute;
-  left: -24px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  transform: none;
 }
 
 .deck-sidebar .deck-agent-state-slot [data-agent-spinner] {
@@ -253,8 +275,12 @@
 
 .deck-sidebar.deck-sidebar [data-deck-agent] .deck-agent-heading > span[title].flex-1 {
   font-size: 13px;
-  font-weight: 500;
-  color: var(--foreground);
+  font-weight: 400;
+  color: color-mix(in srgb, var(--foreground) 82%, transparent);
+}
+
+.deck-sidebar [data-deck-agent]:not(:hover, :focus-within) [data-agent-row-controls] {
+  opacity: 0;
 }
 
 .deck-sidebar.deck-sidebar [data-deck-agent] > :not(.deck-agent-heading, .deck-agent-summary) {
@@ -383,17 +409,20 @@
 }
 [data-terminal-tab-id] .pane .xterm-container {
   margin-top: var(--orca-pane-title-height);
-  height: calc(100% - var(--orca-pane-title-height));
+  height: calc(100% - var(--orca-pane-title-height) - var(--orca-pane-footer-height, 0px));
 }
 [data-terminal-tab-id] .pane:has(> .pane-top-banner) .xterm-container {
   margin-top: calc(var(--orca-pane-title-height) + var(--orca-pane-top-banner-height, 0px));
-  height: calc(100% - var(--orca-pane-title-height) - var(--orca-pane-top-banner-height, 0px));
+  height: calc(
+    100% - var(--orca-pane-title-height) - var(--orca-pane-top-banner-height, 0px) -
+      var(--orca-pane-footer-height, 0px)
+  );
 }
 [data-terminal-tab-id] .pane .pane-top-banner {
   top: var(--orca-pane-title-height);
 }
 
-.deck-sidebar [data-worktree-card-surface]:has([data-deck-agent]) [data-worktree-card-meta-row],
+.deck-sidebar [data-worktree-card-meta-row],
 .deck-sidebar [data-deck-primary-worktree] {
   display: none;
 }
@@ -408,8 +437,589 @@
   outline-offset: 2px;
 }
 
-/* Indentation alone shows repo membership; keep selection frames unchanged. */
-.deck-sidebar [data-repo-worktree-tree='branch'],
-.deck-sidebar [data-repo-worktree-tree='last'] {
-  margin-inline-start: 12px;
+.deck-sidebar {
+  --deck-tree-line: color-mix(in srgb, var(--sidebar-foreground) 55%, transparent);
+  /* Centre of the main worktree's branch glyph; nested worktrees hang off it. */
+  --deck-tree-x: 34px;
+  --deck-tree-elbow-y: 13px;
+  /* Seats the branch glyph's centre under the project name. */
+  --deck-worktree-shift: 6px;
+  --deck-tree-nested-inset: 24px;
+  /* Agent icons sit just left of the worktree name, clear of the connector line. */
+  --deck-agent-inset: 14px;
+  --deck-agent-row-height: 24px;
+}
+
+/* Project row: folder + bold name; the row toggles collapse and the chevron shows on hover only. */
+.deck-sidebar
+  [data-repo-header-id]:not(:hover, :focus-visible)
+  [data-repo-header-collapse-affordance] {
+  opacity: 0;
+}
+
+.deck-sidebar [data-repo-header-id] [data-repo-header-drag-handle] {
+  gap: 8px;
+}
+
+.deck-sidebar [data-repo-header-id] [data-repo-header-drag-handle] > div:first-child,
+.deck-sidebar [data-repo-header-id] .lucide-folder {
+  width: 16px;
+  height: 16px;
+}
+
+.deck-sidebar.deck-sidebar [data-repo-header-id] .lucide-folder {
+  color: var(--sidebar-foreground) !important;
+}
+
+.deck-sidebar .deck-tree-project-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--sidebar-foreground);
+}
+
+/* Worktree row: branch glyph + name. */
+.deck-sidebar .deck-tree-header > div:first-child {
+  gap: 8px;
+}
+
+.deck-sidebar .deck-branch-glyph svg {
+  width: 14px;
+  height: 14px;
+}
+
+.deck-sidebar.deck-sidebar [data-worktree-card-hover-trigger] [data-worktree-title-inline-rename] {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sidebar-foreground);
+}
+
+/* Lines run from the main worktree's glyph down to every other worktree of the repo. */
+.deck-sidebar [data-repo-worktree-tree]::before,
+.deck-sidebar [data-repo-worktree-tree='branch']::after,
+.deck-sidebar [data-repo-worktree-tree='last']::after,
+.deck-sidebar .deck-tree-trunk {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  /* Trunk n hangs off the glyph of the level-n worktree, one nested inset right of trunk n-1. */
+  left: calc(var(--deck-tree-x) + var(--deck-tree-trunk-index, 0) * var(--deck-tree-nested-inset));
+  pointer-events: none;
+  background: var(--deck-tree-line);
+}
+
+.deck-sidebar [data-repo-worktree-tree]::before {
+  top: 0;
+  bottom: -2px;
+  width: 1px;
+}
+
+.deck-sidebar .deck-tree-trunk {
+  top: 0;
+  bottom: -2px;
+  width: 1px;
+}
+
+/* A worktree's own trunk starts under its glyph and runs through its children. */
+.deck-sidebar .deck-tree-trunk[data-own='true'] {
+  top: calc(var(--deck-tree-elbow-y) + 9px);
+}
+
+.deck-sidebar [data-repo-worktree-tree='root']::before {
+  top: calc(var(--deck-tree-elbow-y) + 9px);
+}
+
+.deck-sidebar [data-repo-worktree-tree='last']::before {
+  bottom: auto;
+  height: calc(var(--deck-tree-elbow-y) + 1px);
+}
+
+.deck-sidebar [data-repo-worktree-tree='branch']::after,
+.deck-sidebar [data-repo-worktree-tree='last']::after {
+  top: var(--deck-tree-elbow-y);
+  width: calc(var(--deck-tree-nested-inset) - 10px);
+  height: 1px;
+}
+
+.deck-sidebar.deck-sidebar [data-worktree-card-parent-content] {
+  padding-left: var(--deck-worktree-shift);
+}
+
+.deck-sidebar.deck-sidebar [data-repo-worktree-tree='branch'] [data-worktree-card-parent-content],
+.deck-sidebar.deck-sidebar [data-repo-worktree-tree='last'] [data-worktree-card-parent-content] {
+  padding-left: calc(
+    var(--deck-worktree-shift) + var(--deck-tree-level, 1) * var(--deck-tree-nested-inset)
+  );
+}
+
+.deck-sidebar.deck-sidebar [data-worktree-sleep-quick-action]:not(:focus-visible) {
+  opacity: 0;
+}
+
+.deck-sidebar [data-worktree-card-surface]:hover [data-worktree-sleep-quick-action],
+.deck-sidebar [data-worktree-card-surface]:focus-within [data-worktree-sleep-quick-action] {
+  opacity: 1;
+}
+
+.deck-lamng-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 1 150px;
+  margin-inline-start: auto;
+  margin-inline-end: 12px;
+}
+
+.deck-lamng-brand .deck-signature {
+  margin-inline: 0;
+  min-width: 32px;
+  width: 112px;
+}
+
+.deck-signature-button {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.deck-signature-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.deck-usage-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.deck-explorer-root-icon {
+  display: none;
+}
+
+.deck-right-sidebar .deck-explorer-root-icon {
+  display: block;
+  color: var(--sidebar-foreground);
+}
+
+.deck-right-sidebar .deck-explorer-root-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.deck-david-brand {
+  position: absolute;
+  /* Starts level with "Estimated API cost", below the header and period switch. */
+  top: 76px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 20;
+  display: flex;
+  width: 32%;
+  margin: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.deck-david-caption {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+}
+
+.deck-david-portrait {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  margin-top: 6px;
+  object-fit: contain;
+  object-position: bottom right;
+  pointer-events: none;
+}
+
+/* Plinth lines beside the figure's feet, fading toward the text column. */
+.deck-david-brand::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: -10%;
+  width: 46%;
+  height: 34%;
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--sidebar-foreground) 22%, transparent) 0 1px,
+    transparent 1px 7px
+  );
+  mask-image: linear-gradient(to right, transparent, black 70%);
+  pointer-events: none;
+}
+
+.deck-usage-provider-list,
+.deck-usage-quota,
+.deck-usage-note {
+  padding-inline-end: calc(32% + 4px);
+}
+
+.deck-quota-active-dot {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--color-status-success);
+}
+
+.deck-quota-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--sidebar-foreground) 70%, transparent);
+}
+
+.deck-usage-panel:not([data-usage-open]) .deck-david-brand {
+  display: none;
+}
+
+@media (max-height: 560px) {
+  .deck-david-brand {
+    display: none;
+  }
+
+  .deck-usage-provider-list,
+  .deck-usage-quota,
+  .deck-usage-note {
+    padding-inline-end: 0;
+  }
+}
+
+/* Workspace dots: one per tab; the active tab is a filled pill, others small dots; the ring tracks agent state. */
+/* Dots-only strip: path on the left, the workspace capsule centered, a balancing spacer on the right. */
+.deck-tab-bar-dots {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+}
+
+.deck-tab-bar-dots-end {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  -webkit-app-region: drag;
+}
+
+.deck-tab-bar-dots-end > button {
+  -webkit-app-region: no-drag;
+}
+
+.deck-tab-dots {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 1px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent);
+  -webkit-app-region: no-drag;
+}
+
+.deck-tab-dot {
+  --dot-ring: transparent;
+  position: relative;
+  display: inline-flex;
+  min-width: 24px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  box-shadow: inset 0 0 0 1.5px var(--dot-ring);
+}
+
+/* Occupied workspaces show their agent or content icon, caelestia-style. */
+.deck-tab-dot:not([data-empty]) > * {
+  opacity: 0.7;
+}
+
+.deck-tab-dot:not([data-empty]):hover > *,
+.deck-tab-dot[data-active='true'] > * {
+  opacity: 1;
+}
+
+.deck-tab-dot[data-active='true'] {
+  min-width: 38px;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 16%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px var(--dot-ring),
+    0 0 12px color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.deck-tab-dot[data-attention='waiting'] {
+  --dot-ring: var(--status-warning);
+}
+
+.deck-tab-dot[data-attention='running'] {
+  --dot-ring: var(--status-success);
+}
+
+.deck-tab-dot:not([data-empty]):not([data-active='true']):hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+/* Multi-pane workspaces: one icon per pane; middle click closes that pane only. */
+.deck-tab-dot:has(.deck-tab-dot-pane) {
+  gap: 1px;
+  padding-inline: 4px;
+}
+
+.deck-tab-dot-pane {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+}
+
+.deck-tab-dot-pane:hover {
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.deck-tab-dot-pane[data-attention='waiting'] {
+  box-shadow: inset 0 0 0 1px var(--status-warning);
+}
+
+.deck-tab-dot-pane[data-attention='running'] {
+  box-shadow: inset 0 0 0 1px var(--status-success);
+}
+
+.deck-tab-dot[data-empty='true'] {
+  min-width: 18px;
+}
+
+.deck-tab-dot[data-empty='true']::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  content: '';
+}
+
+.deck-tab-dot[data-empty='true']:hover::before {
+  box-shadow: 0 0 0 1px var(--foreground);
+}
+
+.deck-tab-dot:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-tab-dot {
+    transition:
+      min-width 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 120ms ease-out,
+      box-shadow 160ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='hover-card-content']:has(.deck-tab-preview) {
+    animation: none;
+  }
+}
+
+.deck-tab-preview-canvas {
+  display: flex;
+  height: 88px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.deck-tab-preview-split {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.deck-tab-preview-split[data-direction='horizontal'] {
+  flex-direction: column;
+}
+
+.deck-tab-preview-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.deck-tab-preview-title {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.deck-tab-preview-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.deck-tab-preview-close:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.deck-tab-preview-close:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.deck-tab-preview-number {
+  flex-shrink: 0;
+  min-width: 14px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-tab-preview-count {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.deck-workspace-strip-label {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  padding-inline-start: 8px;
+  container-type: inline-size;
+  container-name: workspace-strip-label;
+  -webkit-app-region: drag;
+}
+
+.deck-workspace-strip-caption {
+  display: none;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+@container workspace-strip-label (min-width: 140px) {
+  .deck-workspace-strip-caption {
+    display: flex;
+  }
+}
+
+/* Isolated so the frame can sit behind the rows without dropping under the sidebar fill. */
+[data-worktree-sidebar] > div:has(> .deck-workspace-selection-frame) {
+  isolation: isolate;
+}
+
+.deck-workspace-selection-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--sidebar-foreground) 7%, transparent);
+}
+
+.deck-workspace-selection-frame::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 2.5px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--sidebar-foreground) 62%, transparent);
+}
+
+.deck-sidebar.deck-sidebar
+  [data-deck-selection-tracking]
+  [data-worktree-card-surface][data-worktree-card-active='primary'] {
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-workspace-selection-frame {
+    transition:
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      width 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .deck-agent-actions button,
+  .deck-sidebar-toolbar button {
+    transition:
+      transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 120ms ease-out,
+      opacity 120ms ease-out;
+  }
+
+  .deck-agent-actions button:hover {
+    transform: translateY(-1px);
+  }
+
+  .deck-agent-actions button:active,
+  .deck-sidebar-toolbar button:active {
+    transform: scale(0.94);
+  }
+
+  .deck-sidebar [data-worktree-card-surface] {
+    transition:
+      background-color 140ms ease-out,
+      border-color 140ms ease-out,
+      box-shadow 140ms ease-out;
+  }
+
+  .deck-sidebar [data-deck-agent] {
+    transition:
+      background-color 140ms ease-out,
+      transform 140ms ease-out;
+  }
+
+  .deck-sidebar [data-deck-agent]:active {
+    transform: translateX(2px);
+  }
 }

@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { readLoginAuthSnapshot } from './codex-login-auth-snapshot'
 import type {
   CodexManagedAccount,
   CodexRateLimitAccountsState
@@ -92,10 +95,20 @@ export class CodexAccountRegistration {
       options?.activateIfSelectionWasEmpty === true && selectedAccountId === null
 
     this.dependencies.configMirror.safeSyncIntoManagedHome(managedHomePath, undefined, account.id)
+    const authJsonPath = join(managedHomePath, 'auth.json')
+    // Why: codex login writes straight into this home, so keep the old credential to restore.
+    const authBeforeLogin = readLoginAuthSnapshot(authJsonPath)
     await this.dependencies.login(managedHomePath)
     const identity = this.dependencies.readIdentityFromHome(managedHomePath, account.id)
     if (!identity.email) {
       throw new Error('Codex login completed, but Orca could not resolve the account email.')
+    }
+    if (!isSameCodexIdentity(account, identity)) {
+      restoreAuthSnapshot(authJsonPath, authBeforeLogin)
+      throw new CodexReauthIdentityMismatchError(
+        `Signed in as ${identity.email}, but this account is ${account.email}. ` +
+          `Nothing was changed. Sign in as ${account.email}, or add the other account separately.`
+      )
     }
 
     const settings = this.dependencies.store.getSettings()
@@ -229,4 +242,29 @@ export class CodexAccountRegistration {
         console.error('[codex-accounts] Quota refresh after account change failed:', error)
       })
   }
+}
+
+/** Thrown when a re-authentication signs in as a different Codex account than the one being renewed. */
+export class CodexReauthIdentityMismatchError extends Error {}
+
+function isSameCodexIdentity(
+  account: { email: string; providerAccountId?: string | null },
+  identity: Pick<ResolvedCodexIdentity, 'email' | 'providerAccountId'>
+): boolean {
+  if (account.providerAccountId && identity.providerAccountId) {
+    return account.providerAccountId === identity.providerAccountId
+  }
+  return account.email.trim().toLowerCase() === identity.email?.trim().toLowerCase()
+}
+
+function restoreAuthSnapshot(authJsonPath: string, snapshot: string | null | undefined): void {
+  // Why: an unreadable original cannot be restored; the mismatch error still stops the overwrite of settings.
+  if (snapshot === undefined) {
+    return
+  }
+  if (snapshot === null) {
+    rmSync(authJsonPath, { force: true })
+    return
+  }
+  writeFileSync(authJsonPath, snapshot, { mode: 0o600 })
 }

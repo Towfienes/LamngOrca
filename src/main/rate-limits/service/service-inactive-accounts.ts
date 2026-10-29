@@ -1,10 +1,11 @@
+import { forEachWithConcurrency } from '../../../shared/map-with-concurrency'
 import { fetchManagedAccountUsage } from '../claude-fetcher'
 import { fetchCodexRateLimits } from '../codex-fetcher'
 import { RateLimitServicePolling } from './service-polling'
 import {
-  INACTIVE_CODEX_PROBE_STAGGER_MS,
-  INACTIVE_FETCH_DEBOUNCE_MS,
-  delayUnlessAborted
+  INACTIVE_CLAUDE_PROBE_CONCURRENCY,
+  INACTIVE_CODEX_PROBE_CONCURRENCY,
+  INACTIVE_FETCH_DEBOUNCE_MS
 } from './service-types'
 
 export abstract class RateLimitServiceInactiveAccounts extends RateLimitServicePolling {
@@ -30,7 +31,8 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
     this.pushToRenderer()
 
     try {
-      for (const account of accounts) {
+      // Why: accounts are independent, so a few run at once; each result still lands as it finishes.
+      await forEachWithConcurrency(accounts, INACTIVE_CLAUDE_PROBE_CONCURRENCY, async (account) => {
         if (
           signal.aborted ||
           fetchGeneration !== this.inactiveClaudeAccountsGeneration ||
@@ -41,7 +43,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
             this.inactiveClaudeCache.delete(account.id)
           }
           this.pushToRenderer()
-          continue
+          return
         }
         try {
           const fresh = await fetchManagedAccountUsage(account, {
@@ -59,7 +61,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
               this.inactiveClaudeCache.delete(account.id)
             }
             this.pushToRenderer()
-            continue
+            return
           }
           const cached = this.inactiveClaudeCache.get(account.id) ?? null
           this.inactiveClaudeCache.set(account.id, this.applyStalePolicy(fresh, cached))
@@ -75,7 +77,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
         }
         this.inactiveClaudeFetching.delete(account.id)
         this.pushToRenderer()
-      }
+      })
 
       if (!signal.aborted && fetchGeneration === this.inactiveClaudeAccountsGeneration) {
         this.lastInactiveClaudeFetchAt = Date.now()
@@ -103,9 +105,15 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
     const signal = controller.signal
     this.inactiveCodexFetchInFlight = true
 
-    let staggerNextProbe = false
+    // Why: show every queued account as loading at once instead of a silent dash until its turn.
+    for (const account of accounts) {
+      this.inactiveCodexFetching.add(account.id)
+    }
+    this.pushToRenderer()
     try {
-      for (const account of accounts) {
+      // Why: each probe spawns a codex process in that account's home, so a small pool bounds
+      // the burst while letting the next account start as soon as one finishes.
+      await forEachWithConcurrency(accounts, INACTIVE_CODEX_PROBE_CONCURRENCY, async (account) => {
         if (
           signal.aborted ||
           fetchGeneration !== this.inactiveCodexAccountsGeneration ||
@@ -116,31 +124,14 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
             this.inactiveCodexCache.delete(account.id)
           }
           this.pushToRenderer()
-          continue
-        }
-        if (staggerNextProbe) {
-          await delayUnlessAborted(INACTIVE_CODEX_PROBE_STAGGER_MS, signal)
-          // Why: the account set can change while the stagger delay runs.
-          if (
-            signal.aborted ||
-            fetchGeneration !== this.inactiveCodexAccountsGeneration ||
-            !this.isCurrentInactiveCodexAccount(account.id)
-          ) {
-            this.inactiveCodexFetching.delete(account.id)
-            if (!this.isCurrentInactiveCodexAccount(account.id)) {
-              this.inactiveCodexCache.delete(account.id)
-            }
-            this.pushToRenderer()
-            continue
-          }
+          return
         }
         const home = account.resolveHome()
         if (home.kind === 'skip') {
-          continue
+          this.inactiveCodexFetching.delete(account.id)
+          this.pushToRenderer()
+          return
         }
-        staggerNextProbe = true
-        this.inactiveCodexFetching.add(account.id)
-        this.pushToRenderer()
         try {
           // Why: point fetchCodexRateLimits at the managed home directly, avoiding materializing credentials into the shared runtime location.
           const fresh = await fetchCodexRateLimits({
@@ -157,7 +148,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
               this.inactiveCodexCache.delete(account.id)
             }
             this.pushToRenderer()
-            continue
+            return
           }
           const cached = this.inactiveCodexCache.get(account.id) ?? null
           this.inactiveCodexCache.set(account.id, this.applyStalePolicy(fresh, cached))
@@ -173,7 +164,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
         }
         this.inactiveCodexFetching.delete(account.id)
         this.pushToRenderer()
-      }
+      })
 
       if (!signal.aborted && fetchGeneration === this.inactiveCodexAccountsGeneration) {
         this.lastInactiveCodexFetchAt = Date.now()
@@ -188,6 +179,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
     this.inactiveClaudeAccountsGeneration += 1
     this.inactiveClaudeCache.delete(accountId)
     this.inactiveClaudeFetching.delete(accountId)
+    this.lastInactiveClaudeFetchAt = 0
     this.pushToRenderer()
   }
 
@@ -239,6 +231,8 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
     // Why: clear only this account, not the generation — bumping it would discard sibling fetches still in flight and their fresh results.
     this.inactiveCodexCache.delete(accountId)
     this.inactiveCodexFetching.delete(accountId)
+    // Why: a re-authenticated account must be probed again now, not after the open-debounce.
+    this.lastInactiveCodexFetchAt = 0
     this.pushToRenderer()
   }
 }

@@ -30,6 +30,7 @@ import type { FileWithMtime } from './session-scanner-types'
 import { remoteCodexIndexedTitleReader } from './remote-session-scanner-codex-index'
 import { remoteClineSource } from './remote-session-scanner-cline-source'
 import { remoteDevinSource } from './remote-session-scanner-devin-source'
+import { remoteDshSources } from './remote-session-scanner-dsh-source'
 import type {
   RemoteParserOptions,
   RemoteScannerContext,
@@ -137,6 +138,7 @@ export function remoteSessionSources(
       // match only the transcript (same predicate as local discovery).
       (path) => remotePathSegments(path).at(-1) === 'session.jsonl'
     ),
+    ...remoteDshSources(remoteHome, hostPlatform),
     jsonlSource(
       'droid',
       remoteHome,

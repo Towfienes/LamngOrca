@@ -59,6 +59,8 @@ export type SplitTerminalPaneDetail = {
   telemetrySource?: TerminalPaneSplitSource
   newLeafId?: string
   ptyId?: string
+  /** false splits without taking the active pane or keyboard focus. */
+  activate?: boolean
 }
 
 export type RequestActiveTerminalPaneSplitDetail = {

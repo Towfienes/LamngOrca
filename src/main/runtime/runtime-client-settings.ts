@@ -41,6 +41,7 @@ export type RuntimeClientSettings = Pick<
   | 'defaultLinearTeamSelection'
   | 'githubProjects'
   | 'experimentalNewWorktreeCardStyle'
+  | 'showWorktreeCardHoverDetails'
   | 'experimentalNativeChat'
   | 'openAgentTabsInChatByDefault'
   | 'experimentalStructuredNativeChat'
@@ -80,6 +81,7 @@ export type RuntimeClientSettingsUpdate = Pick<
   | 'defaultLinearTeamSelection'
   | 'githubProjects'
   | 'experimentalNewWorktreeCardStyle'
+  | 'showWorktreeCardHoverDetails'
   | 'compactWorktreeCards'
   | 'minimaxGroupId'
   | 'minimaxUsageModels'
@@ -123,6 +125,7 @@ export class RuntimeClientSettingsController {
         : null,
       githubProjects: settings.githubProjects,
       experimentalNewWorktreeCardStyle: settings.experimentalNewWorktreeCardStyle === true,
+      showWorktreeCardHoverDetails: settings.showWorktreeCardHoverDetails === true,
       // The three that decide whether a new agent tab -- and so an orchestration worker -- is a
       // structured chat session rather than a terminal agent.
       experimentalNativeChat: settings.experimentalNativeChat === true,

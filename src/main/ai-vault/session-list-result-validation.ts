@@ -66,6 +66,7 @@ const aiVaultSessionSchema = z.object({
   lastUserPrompt: z.string().nullable().optional(),
   queuedMessageCount: z.number().default(0),
   subagentTranscriptCount: z.number().default(0),
+  isSubagent: z.boolean().optional(),
   resumeCommand: z.string(),
   structuredSession: z
     .object({

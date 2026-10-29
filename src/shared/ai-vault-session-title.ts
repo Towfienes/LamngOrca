@@ -24,6 +24,11 @@ export type AiVaultSessionTitlesResult = {
   titles: AiVaultSessionTitle[]
 }
 
+/** Session ids are provider-unique, so the agent + id pair names one session on any host. */
+export function aiVaultSessionTitleKey(agent: string, sessionId: string): string {
+  return `${agent}\0${sessionId}`
+}
+
 export function isAiVaultTitleAgent(
   agent: string | null | undefined
 ): agent is AiVaultSessionTitle['agent'] {

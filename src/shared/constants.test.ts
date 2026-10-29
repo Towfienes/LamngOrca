@@ -106,6 +106,10 @@ describe('getDefaultSettings', () => {
     expect(getDefaultSettings('/tmp').compactWorktreeCards).toBe(false)
   })
 
+  it('keeps worktree card hover details disabled by default', () => {
+    expect(getDefaultSettings('/tmp').showWorktreeCardHoverDetails).toBe(false)
+  })
+
   it('keeps per-workspace environments disabled by default', () => {
     expect(getDefaultSettings('/tmp').experimentalEphemeralVms).toBe(false)
   })

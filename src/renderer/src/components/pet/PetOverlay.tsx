@@ -21,23 +21,20 @@ function usePetAnimationName(
   dragAnimation: PetDragAnimation,
   hovering: boolean
 ): PetAnimationName {
-  const agentStatusByPaneKey = useAppStore((s) => s.agentStatusByPaneKey)
-  const agentStatusEpoch = useAppStore((s) => s.agentStatusEpoch)
-  const retainedAgentsByPaneKey = useAppStore((s) => s.retainedAgentsByPaneKey)
-  // Re-render when the freshness scheduler ticks so stale live states stop
-  // driving pet animations even if no other store value changes, and read the
-  // boundary clock in render so the stale frame never paints.
-  const agentStatusNow = getAgentStatusEpochNow(agentStatusEpoch)
-
-  return selectPetAnimationName({
-    entries: Object.values(agentStatusByPaneKey),
-    retainedCount: Object.keys(retainedAgentsByPaneKey).length,
-    dragging,
-    dragAnimation,
-    hovering,
-    now: agentStatusNow,
-    staleAfterMs: AGENT_STATUS_STALE_AFTER_MS
-  })
+  // Why: the selector returns the animation name, so the sprite re-renders only when the pet's
+  // state changes, not on every agent status ping. The epoch in the selector keeps stale live
+  // states from driving the pet once the freshness scheduler ticks.
+  return useAppStore((s) =>
+    selectPetAnimationName({
+      entries: Object.values(s.agentStatusByPaneKey),
+      retainedCount: Object.keys(s.retainedAgentsByPaneKey).length,
+      dragging,
+      dragAnimation,
+      hovering,
+      now: getAgentStatusEpochNow(s.agentStatusEpoch),
+      staleAfterMs: AGENT_STATUS_STALE_AFTER_MS
+    })
+  )
 }
 
 // Why: pet bundles ship a sprite sheet — animate by stepping a CSS background

@@ -1,4 +1,5 @@
 import { getAgentRowConversationName } from '../../../../shared/agent-row-conversation-name'
+import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault-session-title'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import { resolveAgentRowPaneLiveTitle } from './agent-row-pane-live-title'
 import { useAppStore } from '@/store'
@@ -32,9 +33,6 @@ export function useAgentRowConversationName(agent: DashboardAgentRow): string | 
     parentPaneKey !== undefined &&
     parsePaneKey(parentPaneKey)?.tabId === agent.tab.id
   const cannotOwnTabName = agent.rowSource === 'subagent' || usesParentTab
-  const generatedTitlesEnabled = useAppStore(
-    (s) => !cannotOwnTabName && s.settings?.tabAutoGenerateTitle === true
-  )
   const liveTab = useAppStore((s) =>
     cannotOwnTabName
       ? undefined
@@ -55,6 +53,20 @@ export function useAgentRowConversationName(agent: DashboardAgentRow): string | 
           ownLeafId
         )
   )
+  const manualPaneTitle = useAppStore((s) =>
+    cannotOwnTabName || !ownLeafId
+      ? undefined
+      : s.terminalLayoutsByTabId?.[agent.tab.id]?.titlesByLeafId?.[ownLeafId]
+  )
+  const recordedTitle = useAppStore((s) =>
+    cannotOwnTabName ? undefined : s.sleepingAgentSessionsByPaneKey?.[agent.paneKey]?.terminalTitle
+  )
+  const providerSessionId = agent.entry.providerSession?.id
+  const providerSessionTitle = useAppStore((s) =>
+    cannotOwnTabName || !providerSessionId
+      ? undefined
+      : s.aiVaultSessionTitlesByKey?.[aiVaultSessionTitleKey(agent.agentType, providerSessionId)]
+  )
   // Why: synthetic and same-tab child rows do not own the parent tab's name.
   if (cannotOwnTabName) {
     return null
@@ -63,8 +75,8 @@ export function useAgentRowConversationName(agent: DashboardAgentRow): string | 
   return getAgentRowConversationName(
     liveTab ?? agent.tab,
     agent.agentType,
-    generatedTitlesEnabled,
     paneLiveTitle,
-    agent.entry.providerSession?.id
+    providerSessionId,
+    { manualPaneTitle, providerSessionTitle, recordedTitle }
   )
 }

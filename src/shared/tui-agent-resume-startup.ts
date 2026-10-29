@@ -11,6 +11,7 @@ import { resolveStartupShell, type AgentStartupShell } from './tui-agent-startup
 import { TUI_AGENT_CONFIG } from './tui-agent-config'
 import type { TuiAgent } from './tui-agent'
 import { buildAgentResumeLaunchCommand } from './agent-resume-launch-command'
+import { isClaude9TranscriptPath } from './claude9-models'
 
 export function buildAgentResumeStartupPlan(args: {
   agent: ResumableTuiAgent
@@ -31,7 +32,13 @@ export function buildAgentResumeStartupPlan(args: {
     return null
   }
   const shell = resolveStartupShell(args.platform, args.shell)
-  const resolvedAgentCommand = args.agentCommand?.trim()
+  // Why: claude9 panes report Claude hooks, but their transcripts live in claude9's own config
+  // dir; `claude --resume` there fails with "No conversation found".
+  const claude9Command =
+    args.agent === 'claude' && isClaude9TranscriptPath(args.providerSession.transcriptPath)
+      ? ['claude9', args.agentArgs?.trim()].filter(Boolean).join(' ')
+      : null
+  const resolvedAgentCommand = claude9Command ?? args.agentCommand?.trim()
   const baseCommand = resolvedAgentCommand
     ? ({
         ok: true,

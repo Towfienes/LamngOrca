@@ -126,6 +126,91 @@ describe('Deck account picker', () => {
     expect(screen.queryByRole('button', { name: 'Open CLI' })).toBeNull()
   })
 
+  it('re-authenticates the clicked account, never the last row the pointer crossed', async () => {
+    const reauthenticate = vi.fn(async () => ({}))
+    Object.defineProperty(window, 'api', {
+      configurable: true,
+      value: {
+        codexAccounts: {
+          reauthenticate,
+          cancelPendingLogin: vi.fn(async () => true),
+          getPendingLoginUrl: vi.fn(async () => null),
+          onPendingLoginUrlChanged: vi.fn(() => () => {})
+        }
+      }
+    })
+    useAppStore.setState({ fetchSettings: vi.fn(async () => {}) })
+    render(<DeckAgentAccountPicker agent="codex" local onLaunch={() => {}} onClose={() => {}} />)
+    // Moving down to the footer crosses the other row; that must only preview it.
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'second@example.com' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in again' }))
+    await vi.waitFor(() =>
+      expect(reauthenticate).toHaveBeenCalledWith({
+        accountId: 'first',
+        activateIfSelectionWasEmpty: false
+      })
+    )
+  })
+
+  it('renews a signed-out account straight from its row', async () => {
+    const reauthenticate = vi.fn(async () => ({}))
+    Object.defineProperty(window, 'api', {
+      configurable: true,
+      value: {
+        codexAccounts: {
+          reauthenticate,
+          cancelPendingLogin: vi.fn(async () => true),
+          getPendingLoginUrl: vi.fn(async () => null),
+          onPendingLoginUrlChanged: vi.fn(() => () => {})
+        }
+      }
+    })
+    useAppStore.setState({
+      fetchSettings: vi.fn(async () => {}),
+      rateLimits: {
+        ...useAppStore.getState().rateLimits,
+        inactiveCodexAccounts: [
+          {
+            accountId: 'second',
+            updatedAt: 1,
+            isFetching: false,
+            rateLimits: {
+              ...usage(0),
+              status: 'error',
+              session: null,
+              usageMetadata: { failureKind: 'stale-token' }
+            }
+          }
+        ]
+      }
+    })
+    const launch = vi.fn()
+    render(<DeckAgentAccountPicker agent="codex" local onLaunch={launch} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'second@example.com' }))
+    await vi.waitFor(() =>
+      expect(reauthenticate).toHaveBeenCalledWith({
+        accountId: 'second',
+        activateIfSelectionWasEmpty: false
+      })
+    )
+    expect(launch).not.toHaveBeenCalled()
+  })
+
+  it('shows a loading row instead of a blank dash while usage is being fetched', () => {
+    useAppStore.setState({
+      rateLimits: {
+        ...useAppStore.getState().rateLimits,
+        inactiveCodexAccounts: [
+          { accountId: 'second', rateLimits: null, updatedAt: 0, isFetching: true }
+        ]
+      }
+    })
+    render(<DeckAgentAccountPicker agent="codex" local onLaunch={() => {}} onClose={() => {}} />)
+    const row = screen.getByRole('button', { name: 'second@example.com' })
+    expect(row.textContent).toContain('Loading')
+    expect(row.querySelector('[aria-label="Loading usage"]')).toBeTruthy()
+  })
+
   it('opens the existing account manager from Add account', () => {
     const openSettingsTarget = vi.fn()
     const openSettingsPage = vi.fn()

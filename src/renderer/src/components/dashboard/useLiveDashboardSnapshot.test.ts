@@ -109,14 +109,12 @@ function seed(settings: Partial<GlobalSettings> | null): void {
 // relayed one, so anything the builder reads has to be threaded in by hand —
 // a dropped slice silently blanks the field rather than failing loudly.
 describe('useLiveDashboardSnapshot', () => {
-  it('feeds the builder the settings that gate generated conversation names', () => {
-    seed({ tabAutoGenerateTitle: true })
-    const withTitles = renderHook(() => useLiveDashboardSnapshot())
-    expect(withTitles.result.current.cards[0].conversationName).toBe('Fix the flaky pty test')
-
-    seed({ tabAutoGenerateTitle: false })
-    const withoutTitles = renderHook(() => useLiveDashboardSnapshot())
-    expect(withoutTitles.result.current.cards[0].conversationName).toBeUndefined()
+  it('never names a card from the generated tab title', () => {
+    for (const enabled of [true, false]) {
+      seed({ tabAutoGenerateTitle: enabled })
+      const { result } = renderHook(() => useLiveDashboardSnapshot())
+      expect(result.current.cards[0].conversationName).toBeUndefined()
+    }
   })
 
   it('carries repo icons through to the drawer', () => {

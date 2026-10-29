@@ -7,7 +7,10 @@ import DashboardAgentRow from './DashboardAgentRow'
 import type { DashboardAgentRow as AgentRow } from './useDashboardData'
 import { DashboardAgentChildDisclosure } from './DashboardAgentChildDisclosure'
 
-vi.mock('./use-agent-row-conversation-name', () => ({ useAgentRowConversationName: () => null }))
+// Why: rows are named by their session, never by the prompt, so the name is supplied directly.
+vi.mock('./use-agent-row-conversation-name', () => ({
+  useAgentRowConversationName: () => 'Review the change'
+}))
 vi.mock('../sidebar/CacheTimer', () => ({
   default: () => null,
   usePromptCacheCountdownForPane: () => null

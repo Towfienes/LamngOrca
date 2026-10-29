@@ -3,7 +3,9 @@ import type {
   AiVaultSessionTitlesResult
 } from '../../../shared/ai-vault-session-title'
 import type { AppState } from '@/store/types'
+import { aiVaultSessionTitleKey } from '../../../shared/ai-vault-session-title'
 import {
+  collectAiVaultSessionTitleRequests,
   collectAiVaultTitleRequests,
   type AiVaultTitleRequest
 } from './ai-vault-tab-title-requests'
@@ -38,15 +40,26 @@ function scheduleMicrotask(callback: () => void): () => void {
   }
 }
 
-function nextLiveRefreshDelay(state: AppState, requests: AiVaultTitleRequest[]): number | null {
+function nextLiveRefreshDelay(
+  state: AppState,
+  requests: AiVaultTitleRequest[],
+  sessionRequests: AiVaultTitleRequest[]
+): number | null {
   const liveRequests = requests.filter((request) => request.refresh)
-  if (liveRequests.length === 0) {
+  const liveSessionRequests = sessionRequests.filter((request) => request.refresh)
+  if (liveRequests.length === 0 && liveSessionRequests.length === 0) {
     return null
   }
   const tabsById = new Map(
     Object.values(state.tabsByWorktree)
       .flat()
       .map((tab) => [tab.id, tab] as const)
+  )
+  const hasMissingSessionTitle = liveSessionRequests.some(
+    (request) =>
+      !state.aiVaultSessionTitlesByKey?.[
+        aiVaultSessionTitleKey(request.agent, request.providerSession.id)
+      ]
   )
   const hasMissingTitle = liveRequests.some((request) => {
     const stored = tabsById.get(request.tabId)?.aiVaultTitle
@@ -56,7 +69,9 @@ function nextLiveRefreshDelay(state: AppState, requests: AiVaultTitleRequest[]):
       !stored.title.trim()
     )
   })
-  return hasMissingTitle ? MISSING_TITLE_REFRESH_MS : LIVE_TITLE_REFRESH_MS
+  return hasMissingTitle || hasMissingSessionTitle
+    ? MISSING_TITLE_REFRESH_MS
+    : LIVE_TITLE_REFRESH_MS
 }
 
 export function startAiVaultTabTitleSync(dependencies: SyncDependencies): () => void {
@@ -111,6 +126,19 @@ export function startAiVaultTabTitleSync(dependencies: SyncDependencies): () => 
         )
       }
     }
+    // Why: a title is keyed by its own session, so a late reply can only ever name that session.
+    const requestedIdentities = new Set(requests.map(requestIdentity))
+    const sessionTitles = result.titles.filter((title) =>
+      requestedIdentities.has(`${first.executionHostId}\0${title.agent}\0${title.sessionId}`)
+    )
+    if (sessionTitles.length > 0) {
+      writing = true
+      try {
+        dependencies.getState().setAiVaultSessionTitles(sessionTitles)
+      } finally {
+        writing = false
+      }
+    }
     const currentByTabId = new Map(
       collectAiVaultTitleRequests(dependencies.getState()).map((request) => [
         request.tabId,
@@ -157,6 +185,18 @@ export function startAiVaultTabTitleSync(dependencies: SyncDependencies): () => 
       return request.refresh || !identityMatches || !stored?.title.trim()
     })
 
+    const scannedIdentities = new Set(requestsToScan.map(requestIdentity))
+    for (const request of collectAiVaultSessionTitleRequests(state)) {
+      const known =
+        state.aiVaultSessionTitlesByKey?.[
+          aiVaultSessionTitleKey(request.agent, request.providerSession.id)
+        ]
+      if ((request.refresh || !known) && !scannedIdentities.has(requestIdentity(request))) {
+        scannedIdentities.add(requestIdentity(request))
+        requestsToScan.push(request)
+      }
+    }
+
     if (requestsToScan.length > 0) {
       scanInFlight = true
       await settleAiVaultTitleRequestBatches(requestsToScan, resolveBatch)
@@ -168,8 +208,11 @@ export function startAiVaultTabTitleSync(dependencies: SyncDependencies): () => 
       schedule()
     } else if (!stopped) {
       const currentState = dependencies.getState()
-      const currentRequests = collectAiVaultTitleRequests(currentState)
-      const refreshDelay = nextLiveRefreshDelay(currentState, currentRequests)
+      const refreshDelay = nextLiveRefreshDelay(
+        currentState,
+        collectAiVaultTitleRequests(currentState),
+        collectAiVaultSessionTitleRequests(currentState)
+      )
       if (refreshDelay !== null) {
         refreshTimer = setTimer(schedule, refreshDelay)
       }

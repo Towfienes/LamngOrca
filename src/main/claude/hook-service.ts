@@ -4,19 +4,14 @@ import type { AgentHookSource } from '../../shared/agent-hook-relay'
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import {
-  buildManagedCommandHook,
   readHooksJson,
   writeHooksJson,
   type HooksConfig,
   writeManagedScript
 } from '../agent-hooks/installer-utils'
-import {
-  readHooksJsonRemote,
-  writeHooksJsonRemote,
-  writeManagedScriptRemote
-} from '../agent-hooks/installer-utils-remote'
 import { refreshManagedScriptIfPresent } from '../agent-hooks/managed-hook-script-refresh'
 import { getManagedScript } from './hook-script'
+import { installClaudeHooksRemote } from './hook-remote-install'
 import {
   getWindowsClaudeHookFileStatus,
   installWindowsClaudeHookFiles,
@@ -34,9 +29,6 @@ import {
   getManagedCommand,
   getManagedLifecycleHook,
   getManagedScriptPath,
-  getPosixManagedScriptFileName,
-  getRemoteConfigPath,
-  getRemoteManagedCommand,
   getStatusLineInstallMarkerPath,
   getStatusLineScriptFileName,
   getStatusLineScriptPath,
@@ -231,6 +223,10 @@ export class ClaudeHookService {
       retire: [],
       statusLine: 'leave'
     })
+    // Account config dirs do not inherit the user's statusline; keep explicit per-account choices.
+    if (next.statusLine === undefined && getStatusLineSlotState(source) === 'user') {
+      next.statusLine = source.statusLine
+    }
     if (JSON.stringify(next) !== JSON.stringify(target)) {
       writeHooksJson(configPath, next)
     }
@@ -277,62 +273,18 @@ export class ClaudeHookService {
     return next
   }
 
-  // Why: install the Claude hook on the remote box (via SFTP); POSIX-only by design (Windows-remote deferred).
-  async installRemote(
+  installRemote(
     sftp: SFTPWrapper,
     remoteHome: string,
     options: ClaudeHookInstallOptions = {}
   ): Promise<AgentHookInstallStatus> {
-    // Why: remote Windows is unsupported; local process.platform cannot identify the remote OS.
-    const remoteConfigPath = getRemoteConfigPath(remoteHome, this.options.settings)
-    const remoteScriptFileName = getPosixManagedScriptFileName(this.options.settings)
-    const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/${remoteScriptFileName}`
-    // Why: surface fallible SFTP installs as structured errors.
-    try {
-      const config = await readHooksJsonRemote(sftp, remoteConfigPath)
-      if (!config) {
-        return {
-          agent: this.options.agent,
-          state: 'error',
-          configPath: remoteConfigPath,
-          managedHooksPresent: false,
-          detail: `Could not parse remote ${this.options.displayName} settings.json`
-        }
-      }
-
-      // Why: settings resolve HOME at runtime while SFTP still targets the discovered remote home.
-      const hook = buildManagedCommandHook(getRemoteManagedCommand(remoteScriptPath))
-      const nextConfig = applyManagedHooks(
-        config,
-        hook,
-        remoteScriptFileName,
-        this.managedHookPlan(options)
-      )
-
-      // Why: write scripts before settings to avoid settings pointing to missing scripts.
-      // Why: SSH scripts always use POSIX .sh paths, regardless of the local OS.
-      await writeManagedScriptRemote(sftp, remoteScriptPath, this.managedScript('posix'))
-      // Why: no statusline install here — this path serves SSH remotes and WSL guests, whose relay hook
-      // listener doesn't route /statusline/claude, and an SSH box's Claude login can be a different
-      // account than the locally selected one, so its usage must not feed the local bar (live feed is host-local only).
-      await writeHooksJsonRemote(sftp, remoteConfigPath, nextConfig)
-
-      return {
-        agent: this.options.agent,
-        state: 'installed',
-        configPath: remoteConfigPath,
-        managedHooksPresent: true,
-        detail: null
-      }
-    } catch (err) {
-      return {
-        agent: this.options.agent,
-        state: 'error',
-        configPath: remoteConfigPath,
-        managedHooksPresent: false,
-        detail: err instanceof Error ? err.message : String(err)
-      }
-    }
+    return installClaudeHooksRemote(sftp, remoteHome, {
+      agent: this.options.agent,
+      displayName: this.options.displayName,
+      settings: this.options.settings,
+      plan: () => this.managedHookPlan(options),
+      posixScript: () => this.managedScript('posix')
+    })
   }
 
   remove(): AgentHookInstallStatus {

@@ -107,6 +107,7 @@ export type TerminalActions = {
   updateTabTitle: (tabId: string, title: string) => void
   updateTabTitles: (updates: readonly TerminalTabTitleUpdate[]) => void
   setAiVaultTabTitle: (tabId: string, aiVaultTitle: AiVaultSessionTitle | null) => void
+  setAiVaultSessionTitles: (titles: readonly AiVaultSessionTitle[]) => void
   setGeneratedTabTitleFromAgentPrompt: (
     paneKey: string,
     prompt: string,

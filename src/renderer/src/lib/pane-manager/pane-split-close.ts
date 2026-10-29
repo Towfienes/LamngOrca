@@ -46,6 +46,7 @@ type SplitManagedPaneArgs = {
   ) => void
   getDragCallbacks: () => DragReorderCallbacks
   setActivePaneId: (paneId: number | null) => void
+  getActivePaneId?: () => number | null
   isDestroyed: () => boolean
 }
 
@@ -66,7 +67,9 @@ export function splitManagedPane(args: SplitManagedPaneArgs): ManagedPane | null
   const movedPaneStates = prepareMovedPanesForSplit(existingContainer, existing, args.panes)
 
   wrapInSplit(existingContainer, newPane.container, isVertical, divider, args.opts)
-  args.setActivePaneId(newPane.id)
+  if (args.opts?.activate !== false) {
+    args.setActivePaneId(newPane.id)
+  }
   openSplitPane(args, newPane, args.opts?.cwd)
 
   for (const movedPaneState of movedPaneStates) {
@@ -145,9 +148,16 @@ function openSplitPane(
     ligatures: args.managerOptions.terminalLigaturesEnabled?.(),
     inlineImages: args.managerOptions.terminalInlineImagesEnabled?.()
   })
-  applyPaneOpacity(args.panes.values(), newPane.id, args.styleOptions)
+  const activate = args.opts?.activate !== false
+  applyPaneOpacity(
+    args.panes.values(),
+    activate ? newPane.id : (args.getActivePaneId?.() ?? newPane.id),
+    args.styleOptions
+  )
   applyDividerStyles(args.root, args.styleOptions)
-  newPane.terminal.focus()
+  if (activate) {
+    newPane.terminal.focus()
+  }
   updateMultiPaneState(args.getDragCallbacks())
   // Why: forward one-shot spawn/adoption hints so the new pane inherits the
   // source cwd for local splits or attaches a runtime-spawned PTY for web splits.

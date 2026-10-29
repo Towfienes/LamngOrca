@@ -1,7 +1,7 @@
 import type { AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
 import type { AgentType } from '../../../shared/agent-status-types'
 import type { AiVaultSessionTitle } from '../../../shared/ai-vault-session-title'
-import { isAiVaultTitleAgent } from '../../../shared/ai-vault-session-title'
+import { aiVaultSessionTitleKey, isAiVaultTitleAgent } from '../../../shared/ai-vault-session-title'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
@@ -28,10 +28,17 @@ function activePaneKey(state: AppState, tabId: string): string | null {
   return activeLeafId ? `${tabId}:${activeLeafId}` : null
 }
 
+type CandidateMaps = {
+  /** The one session whose title the tab itself shows (its focused pane wins). */
+  byTab: Map<string, RequestCandidate>
+  /** Every session, so each agent row and pane can show its own title. */
+  bySession: Map<string, RequestCandidate>
+}
+
 function registerCandidate(
   state: AppState,
   tabsById: ReadonlyMap<string, TerminalTab>,
-  candidates: Map<string, RequestCandidate>,
+  candidates: CandidateMaps,
   args: {
     agent: AgentType | null | undefined
     paneKey: string
@@ -52,28 +59,35 @@ function registerCandidate(
     return
   }
   const priority = args.priority + (activePaneKey(state, tabId) === args.paneKey ? 100 : 0)
-  if ((candidates.get(tabId)?.priority ?? -1) >= priority) {
-    return
-  }
-  const executionHostId = getExecutionHostIdForWorktree(state, worktreeId)
-  candidates.set(tabId, {
+  const candidate: RequestCandidate = {
     agent: args.agent,
-    executionHostId,
+    executionHostId: getExecutionHostIdForWorktree(state, worktreeId),
     providerSession: args.providerSession,
     refresh: args.refresh,
     tabId,
     worktreeId,
     priority
-  })
+  }
+  const sessionKey = aiVaultSessionTitleKey(args.agent, args.providerSession.id)
+  const previousSession = candidates.bySession.get(sessionKey)
+  if ((previousSession?.priority ?? -1) < priority) {
+    candidates.bySession.set(sessionKey, {
+      ...candidate,
+      refresh: candidate.refresh || previousSession?.refresh === true
+    })
+  }
+  if ((candidates.byTab.get(tabId)?.priority ?? -1) < priority) {
+    candidates.byTab.set(tabId, candidate)
+  }
 }
 
-export function collectAiVaultTitleRequests(state: AppState): AiVaultTitleRequest[] {
+function collectCandidates(state: AppState): CandidateMaps {
   const tabsById = new Map(
     Object.values(state.tabsByWorktree)
       .flat()
       .map((tab) => [tab.id, tab] as const)
   )
-  const candidates = new Map<string, RequestCandidate>()
+  const candidates: CandidateMaps = { byTab: new Map(), bySession: new Map() }
 
   for (const entry of Object.values(state.retainedAgentsByPaneKey)) {
     registerCandidate(state, tabsById, candidates, {
@@ -109,5 +123,18 @@ export function collectAiVaultTitleRequests(state: AppState): AiVaultTitleReques
     })
   }
 
+  return candidates
+}
+
+function toRequests(candidates: Map<string, RequestCandidate>): AiVaultTitleRequest[] {
   return [...candidates.values()].map(({ priority: _priority, ...request }) => request)
+}
+
+export function collectAiVaultTitleRequests(state: AppState): AiVaultTitleRequest[] {
+  return toRequests(collectCandidates(state).byTab)
+}
+
+/** One request per provider session, so split-tab siblings each get their own title. */
+export function collectAiVaultSessionTitleRequests(state: AppState): AiVaultTitleRequest[] {
+  return toRequests(collectCandidates(state).bySession)
 }

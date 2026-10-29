@@ -168,6 +168,7 @@ const CACHED_SESSION_FIELDS = {
   subagentTranscriptCount: true,
   resumeCommand: true,
   subagent: true,
+  isSubagent: true,
   structuredSession: true
 } satisfies Record<keyof AiVaultSession, true>
 
@@ -231,7 +232,7 @@ describe('session parse cache persistence', () => {
     expect(stats.reused).toBe(0)
   })
 
-  it('ignores a cache file with a mismatched schemaVersion', async () => {
+  it.each([3, 999])('ignores incompatible cache schemaVersion %s', async (schemaVersion) => {
     const root = await makeTempDir()
     const cacheFile = join(root, 'session-parse-cache.json')
     initSessionParseCachePersistence({ filePath: cacheFile, appVersion: APP_VERSION })
@@ -239,7 +240,7 @@ describe('session parse cache persistence', () => {
     await parseAndPersist(transcript)
 
     const persisted = JSON.parse(await readFile(cacheFile, 'utf-8'))
-    persisted.schemaVersion = 999
+    persisted.schemaVersion = schemaVersion
     await writeFile(cacheFile, JSON.stringify(persisted))
 
     simulateRestart(cacheFile)

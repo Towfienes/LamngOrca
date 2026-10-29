@@ -138,18 +138,14 @@ describe('Deck agent pane launch', () => {
   })
 })
 
-it('keeps the chosen history title on the new pane, without renaming its sibling', async () => {
+it('never writes an automatic history title into the pane rename slot', async () => {
   fixture.call
     .mockReset()
     .mockResolvedValueOnce({ terminal: { handle: 'source' } })
     .mockResolvedValueOnce({ split: { leafId: 'new-leaf' } })
   fixture.owner.environmentId = null
   await launchDeckAgentInPane('wt-1', pane, 'claude', {
-    startup: { command: 'claude --resume saved' },
-    sessionTitle: 'Yesterday review'
+    startup: { command: 'claude --resume saved' }
   })
-  expect(fixture.setLayout).toHaveBeenCalledWith(
-    'tab-1',
-    expect.objectContaining({ titlesByLeafId: { 'new-leaf': 'Yesterday review' } })
-  )
+  expect(fixture.setLayout).not.toHaveBeenCalled()
 })

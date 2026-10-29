@@ -99,7 +99,9 @@ export function useTerminalPaneReconciliation(controller: TerminalPaneCloseContr
           ...(splitRatio !== undefined && { ratio: splitRatio }),
           leafId: insertion.newLeafId,
           ptyId,
-          placement: insertion.placement
+          placement: insertion.placement,
+          // Why: the layout's activeLeafId below decides focus; activating here would persist the inserted pane as active first.
+          activate: false
         }
       )
       if (createdPane) {

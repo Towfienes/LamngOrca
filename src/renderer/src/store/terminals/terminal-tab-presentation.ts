@@ -10,6 +10,7 @@ import {
   getTerminalTabOwnerWorktreeId
 } from '../slices/terminal-tab-owner-index'
 import { getTabIdFromPaneKey } from './terminal-pty-identities'
+import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault-session-title'
 import type { TerminalSlice, TerminalStoreGet, TerminalStoreSet } from './terminal-state'
 
 export function createTerminalTabPresentationActions(
@@ -20,6 +21,7 @@ export function createTerminalTabPresentationActions(
   | 'updateTabTitle'
   | 'updateTabTitles'
   | 'setAiVaultTabTitle'
+  | 'setAiVaultSessionTitles'
   | 'setGeneratedTabTitleFromAgentPrompt'
   | 'setGeneratedTabTitlesFromAgentPrompts'
   | 'clearTabLaunchAgent'
@@ -46,6 +48,20 @@ export function createTerminalTabPresentationActions(
           scheduleRuntimeGraphSync()
         }
         return result.patch ?? state
+      })
+    },
+    setAiVaultSessionTitles: (titles) => {
+      set((s) => {
+        let next: Record<string, string> | null = null
+        for (const title of titles) {
+          const key = aiVaultSessionTitleKey(title.agent, title.sessionId)
+          const value = title.title.trim()
+          if (value && s.aiVaultSessionTitlesByKey[key] !== value) {
+            next ??= { ...s.aiVaultSessionTitlesByKey }
+            next[key] = value
+          }
+        }
+        return next ? { aiVaultSessionTitlesByKey: next } : s
       })
     },
     setAiVaultTabTitle: (tabId, aiVaultTitle) => {

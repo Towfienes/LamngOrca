@@ -499,6 +499,8 @@ export type GlobalSettings = {
   experimentalEphemeralVms?: boolean
   /** Compact worktree cards: hide the metadata row when title and branch say the same thing. */
   compactWorktreeCards: boolean
+  /** Open the worktree card details popover on hover. Off by default; it covers the rows beside it. */
+  showWorktreeCardHoverDetails?: boolean
   /** Legacy persisted key from the Experimental rollout; new writes use compactWorktreeCards. */
   experimentalCompactWorktreeCards?: boolean
   /** Active non-local runtime environment for client-routed RPC; null keeps local desktop behavior. */

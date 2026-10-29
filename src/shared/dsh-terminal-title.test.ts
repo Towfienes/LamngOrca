@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { detectAgentStatusFromTitle, normalizeTerminalTitle } from './agent-title-status'
 import { isDshTerminalTitle, isGeminiTerminalTitle } from './agent-title-core'
 import { getAgentLabel, resolveExplicitTerminalTitleAgentType } from './terminal-title-agent-type'
+import { getDshTerminalSessionTitle } from './dsh-terminal-title'
 
 // DSH-TUI titles are `<prefix> 🐋 <session title>`: `✦` at rest, `⠂`/`⠐` while a turn
 // runs. Both halves collide with an existing agent — `✦` is Gemini CLI's WORKING glyph,
@@ -11,6 +12,15 @@ const RESTING = '✦ \u{1F40B} dsh-demo-repo'
 const WORKING_FRAMES = ['⠂ \u{1F40B} fix the flaky test', '⠐ \u{1F40B} fix the flaky test']
 
 describe('a DSH-TUI terminal title', () => {
+  it('uses the session name without the status glyph or whale', () => {
+    expect(getDshTerminalSessionTitle(RESTING)).toBe('dsh-demo-repo')
+    for (const title of WORKING_FRAMES) {
+      expect(getDshTerminalSessionTitle(title)).toBe('fix the flaky test')
+    }
+    expect(getDshTerminalSessionTitle('✦ 🐋')).toBe('DeepSeek Harness')
+    expect(getDshTerminalSessionTitle('✳ Fix the whale 🐋 icon')).toBeNull()
+  })
+
   it('is recognized by its whale', () => {
     expect(isDshTerminalTitle(RESTING)).toBe(true)
     expect(isDshTerminalTitle('✦ some other agent')).toBe(false)

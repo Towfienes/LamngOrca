@@ -67,7 +67,6 @@ export async function launchDeckAgentInPane(
     accountId?: string
     commandOverride?: string
     startup?: WorktreeStartupLaunch
-    sessionTitle?: string
   }
 ): Promise<void> {
   const state = useAppStore.getState()
@@ -135,15 +134,6 @@ export async function launchDeckAgentInPane(
     options
   )
   const current = useAppStore.getState()
-  if (launch?.sessionTitle && split.leafId && !environmentId && !context.isRemote) {
-    const layout = current.terminalLayoutsByTabId[pane.tabId]
-    if (layout) {
-      current.setTabLayout(pane.tabId, {
-        ...layout,
-        titlesByLeafId: { ...layout.titlesByLeafId, [split.leafId]: launch.sessionTitle }
-      })
-    }
-  }
   if (
     current.activeWorktreeId === worktreeId &&
     current.activeTabId === pane.tabId &&

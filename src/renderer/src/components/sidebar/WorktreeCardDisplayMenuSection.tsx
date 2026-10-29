@@ -32,6 +32,7 @@ export function WorktreeCardDisplayMenuSection({
   const worktreeCardProperties = useAppStore((s) => s.worktreeCardProperties)
   const setWorktreeCardProperties = useAppStore((s) => s.setWorktreeCardProperties)
   const settings = useAppStore((s) => s.settings)
+  const updateSettings = useAppStore((s) => s.updateSettings)
   const setWorktreeCardMode = useAppStore((s) => s.setWorktreeCardMode)
   const agentActivityDisplayMode = useAppStore((s) => s.agentActivityDisplayMode)
   const setAgentActivityDisplayMode = useAppStore((s) => s.setAgentActivityDisplayMode)
@@ -87,6 +88,19 @@ export function WorktreeCardDisplayMenuSection({
               {opt.label}
             </DropdownMenuCheckboxItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            checked={settings?.showWorktreeCardHoverDetails === true}
+            onCheckedChange={(checked) =>
+              void updateSettings({ showWorktreeCardHoverDetails: checked === true })
+            }
+            onSelect={(e) => e.preventDefault()}
+          >
+            {translate(
+              'auto.components.sidebar.SidebarWorkspaceOptionsMenu.showHoverDetails',
+              'Hover details'
+            )}
+          </DropdownMenuCheckboxItem>
         </DropdownMenuSubContent>
       </DropdownMenuSub>
     )

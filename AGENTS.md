@@ -2,6 +2,14 @@
 
 Deck agent launch changes must preserve the user choices in [DECK_AGENT_UX.md](DECK_AGENT_UX.md).
 
+## Preserve Customizations Across Updates
+
+- CLI and Orca upgrades must preserve the accepted Lamng UI and Claude/Codex account/context display documented in [ORCA_UI_HANDOFF.md](ORCA_UI_HANDOFF.md). Do not silently reset these customizations.
+- Keep Claude statusline scripts and configuration outside CLI installation directories. Restore missing managed-account statuslines through the existing launch synchronization; preserve explicit custom commands and `null` settings.
+- Preserve Codex's native model/context statusline and Orca's pane footer (`account` + `ctx xx%`). The account must remain bound to that terminal session; unavailable context must show `—`, never a guessed value.
+- The terminal workbench has no entry animation (2026-10-24): no opacity fade, translate or scale on the surface that holds the xterm canvases — an opacity animation there re-composited every canvas and hitched when a new CLI started painting. Keep the pixel grid stationary, preserve the approved Lamng signature vector, and run `tests/e2e/deck-terminal-startup-stability.spec.ts` when touching that surface.
+- Before installing an upgraded build, run the relevant regression checks and hidden UI checks. If an upstream change breaks the display, adapt the integration before replacing the working build; never change authentication, default models, or provider settings to repair it.
+
 All UI work — layout, color, typography, spacing, component selection, UX behavior — must follow [`docs/STYLEGUIDE.md`](./docs/STYLEGUIDE.md). Most of it is linted: `pnpm run check:code-quality:changed` fails on new restyles of a `components/ui/` primitive, raw palette colors, and computed `className` strings; `pnpm lint` fails on any class Tailwind cannot generate. See the Enforcement section of the style guide before suppressing either. Use the tokens defined in `src/renderer/src/assets/main.css` (the canonical source) and the shadcn primitives in `src/renderer/src/components/ui/`. Don't invent new color values, font sizes, or shadow tiers when a documented one already covers the role. When STYLEGUIDE.md is silent, follow the resolution order in its final section.
 
 ## Electron UI Validation

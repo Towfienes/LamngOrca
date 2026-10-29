@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { normalizeAgentStatusPayload } from '../../../shared/agent-status-types'
 import {
+  getAgentRowFallbackName,
   getAgentRowGeneratedTitleText,
   getAgentRowPrimaryText,
+  getAgentSessionTooltip,
   getOrcaDispatchTaskId,
   isOrcaDispatchPrompt
 } from './agent-row-primary-text'
@@ -240,5 +242,34 @@ Checkout race body`,
         }
       })
     ).toBe('Refactor the auth middleware')
+  })
+})
+
+describe('getAgentRowFallbackName', () => {
+  it('names an unnamed session after its agent, never after its prompt', () => {
+    for (const prompt of [
+      'Tiếp tục đi naof',
+      'The approval policy changed from "ask" to "never"',
+      '<command-message>paper-referee</command-message>',
+      ''
+    ]) {
+      expect(getAgentRowFallbackName({ prompt }, 'claude')).toBe('Claude')
+    }
+    expect(getAgentRowFallbackName({ prompt: 'Kiếm app voice' }, 'dsh')).toBe('DeepSeek Harness')
+  })
+})
+
+describe('getAgentSessionTooltip', () => {
+  it('tells same-named sessions apart with their own session facts', () => {
+    const a = getAgentSessionTooltip('Review parser', 'claude', {
+      providerSession: { key: 'session_id', id: '87793843-1cbe' },
+      model: 'DeepSeek-V4'
+    })
+    const b = getAgentSessionTooltip('Review parser', 'claude', {
+      providerSession: { key: 'session_id', id: '5274354b-f107' }
+    })
+    expect(a).toBe('Review parser\nClaude · DeepSeek-V4 · session 87793843')
+    expect(b).toBe('Review parser\nClaude · session 5274354b')
+    expect(getAgentSessionTooltip('Claude', 'claude', {})).toBe('Claude')
   })
 })

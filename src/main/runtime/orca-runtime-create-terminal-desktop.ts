@@ -4,6 +4,9 @@ import type { OrcaRuntimeWithCreateTerminal } from './orca-runtime-create-termin
 import type { RuntimeTerminalPresentation } from '../../shared/runtime-types'
 import type { Worktree } from '../../shared/worktree/types'
 
+// leafId: the renderer joined the terminal to an open tab as a split pane.
+type TabCreateReply = { tabId: string; leafId?: string; title: string }
+
 export async function createDesktopTerminal(
   runtime: OrcaRuntimeWithCreateTerminal,
   worktreeSelector: string | undefined,
@@ -32,7 +35,7 @@ export async function createDesktopTerminal(
     ? runtime.resolveWorkspaceTerminalStartupCwd(workspace, launchOpts.cwd)
     : launchOpts.cwd
   const requestId = dependencies.randomUUID()
-  const reply = await new Promise<{ tabId: string; title: string }>((resolve, reject) => {
+  const reply = await new Promise<TabCreateReply>((resolve, reject) => {
     const timer = setTimeout(() => {
       dependencies.getRuntimeDesktopSurface().removeIpcListener('terminal:tabCreateReply', handler)
       reject(new Error('Terminal creation timed out'))
@@ -42,6 +45,7 @@ export async function createDesktopTerminal(
       response: {
         requestId: string
         tabId?: string
+        leafId?: string
         title?: string
         error?: string
       }
@@ -54,7 +58,11 @@ export async function createDesktopTerminal(
       if (response.error) {
         reject(new Error(response.error))
       } else {
-        resolve({ tabId: response.tabId!, title: response.title ?? launchOpts.title ?? '' })
+        resolve({
+          tabId: response.tabId!,
+          ...(response.leafId ? { leafId: response.leafId } : {}),
+          title: response.title ?? launchOpts.title ?? ''
+        })
       }
     }
     dependencies.getRuntimeDesktopSurface().onIpc('terminal:tabCreateReply', handler)
@@ -79,7 +87,10 @@ export async function createDesktopTerminal(
       ...dependencies.ownerSurfacing(opts.surfaceOwner !== false)
     })
   })
-  const handle = await runtime.waitForTerminalHandle(reply.tabId)
+  // A joined pane shares its tab, so the tab's first handle would name the wrong terminal.
+  const handle = reply.leafId
+    ? await runtime.waitForLeafInTab(reply.tabId, reply.leafId)
+    : await runtime.waitForTerminalHandle(reply.tabId)
   return {
     handle,
     tabId: reply.tabId,

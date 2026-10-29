@@ -271,20 +271,25 @@ describe('RateLimitService', () => {
       inactiveCodexAccount('account-b', '/tmp/account-b/home')
     ]
     service.setInactiveCodexAccountsResolver(() => inactiveAccounts)
-    vi.mocked(fetchCodexRateLimits).mockReturnValueOnce(accountFetch.promise)
+    const evictedFetch = deferred<ProviderRateLimits>()
+    vi.mocked(fetchCodexRateLimits)
+      .mockReturnValueOnce(accountFetch.promise)
+      .mockReturnValueOnce(evictedFetch.promise)
 
     const fetchOnOpen = service.fetchInactiveCodexAccountsOnOpen()
     await Promise.resolve()
     expect(service.getState().inactiveCodexAccounts).toEqual([
-      { accountId: 'account-a', rateLimits: null, updatedAt: 0, isFetching: true }
+      { accountId: 'account-a', rateLimits: null, updatedAt: 0, isFetching: true },
+      { accountId: 'account-b', rateLimits: null, updatedAt: 0, isFetching: true }
     ])
 
     inactiveAccounts = [inactiveCodexAccount('account-a', '/tmp/account-a/home')]
     service.evictInactiveCodexCache('account-b')
     accountFetch.resolve(okProvider('codex', 64, Date.now()))
+    evictedFetch.resolve(okProvider('codex', 10, Date.now()))
     await fetchOnOpen
 
-    expect(fetchCodexRateLimits).toHaveBeenCalledTimes(1)
+    expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
     expect(service.getState().inactiveCodexAccounts).toEqual([
       {
         accountId: 'account-a',
@@ -345,57 +350,72 @@ describe('RateLimitService', () => {
     expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
   })
 
-  it('staggers inactive Codex probes instead of bursting every account at once', async () => {
-    vi.useFakeTimers()
-    try {
-      const service = new RateLimitService()
-      service.setInactiveCodexAccountsResolver(() => [
-        inactiveCodexAccount('account-a', '/tmp/account-a/home'),
-        inactiveCodexAccount('account-b', '/tmp/account-b/home')
-      ])
-      vi.mocked(fetchCodexRateLimits).mockImplementation(async () => okProvider('codex', 5))
+  it('probes inactive Codex accounts through a bounded pool, starting the next as one finishes', async () => {
+    const service = new RateLimitService()
+    const ids = ['a', 'b', 'c', 'd', 'e']
+    service.setInactiveCodexAccountsResolver(() =>
+      ids.map((id) => inactiveCodexAccount(`account-${id}`, `/tmp/account-${id}/home`))
+    )
+    const pending: (() => void)[] = []
+    let running = 0
+    let peak = 0
+    vi.mocked(fetchCodexRateLimits).mockImplementation(async () => {
+      running += 1
+      peak = Math.max(peak, running)
+      await new Promise<void>((resolve) => pending.push(resolve))
+      running -= 1
+      return okProvider('codex', 5)
+    })
 
-      const fetchOnOpen = service.fetchInactiveCodexAccountsOnOpen()
-      await vi.advanceTimersByTimeAsync(0)
-      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(1)
-
-      await vi.advanceTimersByTimeAsync(1_999)
-      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(1)
-
-      await vi.advanceTimersByTimeAsync(1)
-      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
-      await fetchOnOpen
-    } finally {
-      vi.useRealTimers()
+    const fetchOnOpen = service.fetchInactiveCodexAccountsOnOpen()
+    await vi.waitFor(() => expect(fetchCodexRateLimits).toHaveBeenCalledTimes(3))
+    // Every queued account reads as loading right away, not as a blank row.
+    expect(service.getState().inactiveCodexAccounts.every((row) => row.isFetching)).toBe(true)
+    pending.shift()!()
+    await vi.waitFor(() => expect(fetchCodexRateLimits).toHaveBeenCalledTimes(4))
+    while (pending.length > 0 || running > 0) {
+      pending.shift()?.()
+      await Promise.resolve()
     }
+    await fetchOnOpen
+    expect(fetchCodexRateLimits).toHaveBeenCalledTimes(5)
+    expect(peak).toBe(3)
   })
 
-  it('does not start another inactive Codex batch during the inter-account stagger', async () => {
-    vi.useFakeTimers()
-    try {
-      const service = new RateLimitService()
-      service.setInactiveCodexAccountsResolver(() => [
-        inactiveCodexAccount('account-a', '/tmp/account-a/home'),
-        inactiveCodexAccount('account-b', '/tmp/account-b/home')
-      ])
-      vi.mocked(fetchCodexRateLimits).mockImplementation(async () => okProvider('codex', 5))
-
-      const fetchOnOpen = service.fetchInactiveCodexAccountsOnOpen()
-      await vi.advanceTimersByTimeAsync(0)
-      expect(fetchCodexRateLimits).toHaveBeenCalledOnce()
-      expect(service.getState().inactiveCodexAccounts).toEqual([
-        expect.objectContaining({ accountId: 'account-a', isFetching: false })
-      ])
-
-      await service.fetchInactiveCodexAccountsOnOpen()
-      expect(fetchCodexRateLimits).toHaveBeenCalledOnce()
-
-      await vi.advanceTimersByTimeAsync(2_000)
-      await fetchOnOpen
-      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
-    } finally {
-      vi.useRealTimers()
+  it('does not start another inactive Codex batch while one is in flight', async () => {
+    const service = new RateLimitService()
+    service.setInactiveCodexAccountsResolver(() => [
+      inactiveCodexAccount('account-a', '/tmp/account-a/home'),
+      inactiveCodexAccount('account-b', '/tmp/account-b/home')
+    ])
+    const releases: (() => void)[] = []
+    vi.mocked(fetchCodexRateLimits).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releases.push(() => resolve(okProvider('codex', 5)))
+        })
+    )
+    const fetchOnOpen = service.fetchInactiveCodexAccountsOnOpen()
+    await vi.waitFor(() => expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2))
+    await service.fetchInactiveCodexAccountsOnOpen()
+    expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
+    for (const release of releases) {
+      release()
     }
+    await fetchOnOpen
+  })
+
+  it('re-probes a Codex account right after re-authentication instead of waiting out the debounce', async () => {
+    const service = new RateLimitService()
+    service.setInactiveCodexAccountsResolver(() => [
+      inactiveCodexAccount('account-a', '/tmp/account-a/home')
+    ])
+    vi.mocked(fetchCodexRateLimits).mockResolvedValue(okProvider('codex', 5))
+    await service.fetchInactiveCodexAccountsOnOpen()
+    expect(fetchCodexRateLimits).toHaveBeenCalledTimes(1)
+    service.evictInactiveCodexCache('account-a')
+    await service.fetchInactiveCodexAccountsOnOpen()
+    expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
   })
 
   it('does not recache an inactive Claude account removed during fetch-on-open', async () => {

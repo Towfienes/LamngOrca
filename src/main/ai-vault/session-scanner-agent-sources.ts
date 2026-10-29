@@ -11,6 +11,7 @@ import {
 } from './session-scanner-cline-parser'
 import { cursorChatMetaPath } from './session-scanner-cursor-chat-meta'
 import { devinSessionsDbDependencyPath } from './session-scanner-devin-db'
+import { dshSessionRootDirs, isDshSessionLogFile } from './session-scanner-dsh-paths'
 import { resolveKimiSessionsDir } from './session-scanner-kimi-paths'
 import { resolveMuseSessionsDir } from './session-scanner-muse-paths'
 import { OMP_SESSION_ARTIFACT_DIR_PATTERN } from './session-scanner-omp-subagent-transcripts'
@@ -311,6 +312,23 @@ export const AI_VAULT_AGENT_SOURCES: AiVaultAgentSourceTable = {
     // match only those (not sibling .log/.sqlite3 sidecars or the .msp-view
     // materialized projection).
     filePredicate: (filePath) => basename(filePath) === 'session.jsonl'
+  },
+  dsh: {
+    rootDirs: (options, wslHomeDirs) =>
+      dshSessionRootDirs({
+        dshSessionsDir: options.dshSessionsDir,
+        wslHomeDirs
+      }),
+    mergeRootDiscoveries: true,
+    // Why both suffixes: dsh-tui commits each session generation as
+    // `session.vN.jsonl`, compressed to `.zstd` by default but readable as plain
+    // JSONL when compression is off. Both are the same session, and the scan's
+    // session-id dedupe keeps only the newest read of the pair.
+    extensions: ['.zstd', '.jsonl'],
+    // Layout is <root>/<workspace-key>/<sessionId>/<log>: exactly two directory
+    // levels below the root, never deeper.
+    directoryPredicate: (_name, depth) => depth <= 1,
+    filePredicate: isDshSessionLogFile
   }
 }
 

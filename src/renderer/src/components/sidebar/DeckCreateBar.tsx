@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { FolderPlus, GitBranch, Plus, Search, TerminalSquare } from 'lucide-react'
+import { FolderPlus, GitBranch, Plus, TerminalSquare } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -8,7 +8,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AgentIcon, getAgentLabel } from '@/lib/agent-catalog'
 import { DeckAgentAccountPicker } from './DeckAgentAccountPicker'
 import { DeckAgentSessionPicker } from './DeckAgentSessionPicker'
-import { deckAccountLaunchIsLocal } from './deck-account-agent-launch'
+import { deckAccountLaunchIsLocal, deckAgentHasAccountStep } from './deck-account-agent-launch'
+import { launchClaude9Tab, loadClaude9Sessions } from './deck-claude9-launch'
 import { launchDeckAgentSession } from './deck-agent-session-launch'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { AiVaultSession } from '../../../../shared/ai-vault-types'
@@ -26,12 +27,19 @@ import {
 } from '@/lib/focus-terminal-tab-surface'
 import { openWorkspaceCreationComposerWithTourHandoff } from '../contextual-tours/workspace-creation-tour-handoff'
 import { resolveDeckAgentSplitTarget, type DeckAgentSplitTarget } from './deck-agent-split'
+import { selectWorktreeRunningAgentsKey } from '@/lib/deck-agent-activity'
+
+const QUICK_AGENTS = ['claude', 'codex', 'antigravity'] as const
 
 export function DeckCreateBar(): React.JSX.Element {
   const openModal = useAppStore((s) => s.openModal)
   const worktreeId = useAppStore((s) => s.activeWorktreeId)
   const groupId = useAppStore((s) =>
     worktreeId ? s.activeGroupIdByWorktree[worktreeId] : undefined
+  )
+  // Why: a primitive key keeps the bar from re-rendering on unrelated agent status writes.
+  const runningAgents = useAppStore((s) =>
+    worktreeId ? selectWorktreeRunningAgentsKey(s, worktreeId) : ''
   )
   const pendingTab = useRef<string | null>(null)
   const hoveredPane = useRef<HTMLElement | null>(null)
@@ -40,6 +48,7 @@ export function DeckCreateBar(): React.JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountAgent, setAccountAgent] = useState<TuiAgent | null>(null)
   const [chosenAccount, setChosenAccount] = useState<{ id?: string } | null>(null)
+  const [claude9Step, setClaude9Step] = useState(false)
   const chooseAccountAgent = (agent: TuiAgent): void => {
     cancelPendingTerminalTabFocus()
     pendingTab.current = null
@@ -48,14 +57,8 @@ export function DeckCreateBar(): React.JSX.Element {
     }
     setMenuOpen(false)
     setAccountAgent(agent)
-    setChosenAccount(
-      agent === 'claude' ||
-        agent === 'claude-agent-teams' ||
-        agent === 'codex' ||
-        agent === 'antigravity'
-        ? null
-        : {}
-    )
+    setClaude9Step(false)
+    setChosenAccount(deckAgentHasAccountStep(agent) ? null : {})
   }
 
   const openBlankTerminal = (): void => {
@@ -100,6 +103,24 @@ export function DeckCreateBar(): React.JSX.Element {
     }
   }
 
+  // Why: errors reach the session picker, which shows them inline like other agents.
+  const launchClaude9 = async (session?: AiVaultSession): Promise<void> => {
+    if (!worktreeId || !groupId) {
+      return
+    }
+    setLaunching(true)
+    try {
+      const tabId = await launchClaude9Tab(worktreeId, groupId, splitTarget, session)
+      setAccountAgent(null)
+      const state = useAppStore.getState()
+      if (!splitTarget && state.activeWorktreeId === worktreeId && state.activeTabId === tabId) {
+        focusTerminalTabSurface(tabId)
+      }
+    } finally {
+      setLaunching(false)
+    }
+  }
+
   useEffect(() => {
     const rememberPane = (event: PointerEvent): void => {
       if (event.buttons !== 0 || !(event.target instanceof Element)) {
@@ -126,84 +147,89 @@ export function DeckCreateBar(): React.JSX.Element {
       >
         <PopoverAnchor asChild>
           <div className="deck-agent-actions">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="glass"
-                  size="icon-sm"
-                  shape="circle"
-                  aria-label="New worktree"
-                  onClick={openWorkspaceCreationComposerWithTourHandoff}
-                >
-                  <GitBranch className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">New worktree</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="glass"
-                  size="icon-sm"
-                  shape="circle"
-                  aria-label="Add folder"
-                  onClick={() => openModal('add-repo')}
-                >
-                  <FolderPlus className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Add folder</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="glass"
-                  size="icon-sm"
-                  shape="circle"
-                  aria-label="Search workspaces and sessions"
-                  onClick={() => openModal('worktree-palette')}
-                >
-                  <Search className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Search workspaces and sessions</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="glass"
-                  size="icon-sm"
-                  shape="circle"
-                  aria-label="New blank terminal"
-                  disabled={!worktreeId || !groupId || launching}
-                  onClick={openBlankTerminal}
-                >
-                  <TerminalSquare className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">New blank terminal</TooltipContent>
-            </Tooltip>
-            {(['claude', 'codex', 'antigravity'] as const).map((agent) => (
-              <span key={agent} className="deck-agent-quick-button">
+            <div className="deck-dock-group" role="group" aria-label="Create">
+              <div className="deck-dock-buttons">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="glass"
+                      variant="ghost"
                       size="icon-sm"
                       shape="circle"
-                      aria-label={`New ${getAgentLabel(agent)} session`}
-                      disabled={!worktreeId || !groupId || launching}
-                      onClick={() => chooseAccountAgent(agent)}
+                      aria-label="New worktree"
+                      onClick={openWorkspaceCreationComposerWithTourHandoff}
                     >
-                      <AgentIcon agent={agent} size={16} />
+                      <GitBranch className="size-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {getAgentLabel(agent)} · Choose account
-                  </TooltipContent>
+                  <TooltipContent side="bottom">New worktree</TooltipContent>
                 </Tooltip>
-              </span>
-            ))}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      shape="circle"
+                      aria-label="Add folder"
+                      onClick={() => openModal('add-repo')}
+                    >
+                      <FolderPlus className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Add folder</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      shape="circle"
+                      aria-label="New blank terminal"
+                      disabled={!worktreeId || !groupId || launching}
+                      onClick={openBlankTerminal}
+                    >
+                      <TerminalSquare className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">New blank terminal</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+            <span className="deck-dock-divider" aria-hidden />
+            <div className="deck-dock-group" role="group" aria-label="Agents">
+              <div className="deck-dock-buttons">
+                {QUICK_AGENTS.map((agent) => {
+                  const running = runningAgents.split(',').includes(agent)
+                  return (
+                    <span
+                      key={agent}
+                      className="deck-agent-quick-button"
+                      data-running={running ? 'true' : undefined}
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            shape="circle"
+                            aria-label={`New ${getAgentLabel(agent)} session`}
+                            disabled={!worktreeId || !groupId || launching}
+                            onClick={() => chooseAccountAgent(agent)}
+                          >
+                            <AgentIcon agent={agent} size={16} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          {getAgentLabel(agent)} ·{' '}
+                          {deckAgentHasAccountStep(agent) ? 'Choose account' : 'Choose session'}
+                          {running ? ' · running' : ''}
+                        </TooltipContent>
+                      </Tooltip>
+                      {running ? <span className="deck-agent-running-dot" aria-hidden /> : null}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
             <DropdownMenu
               open={menuOpen}
               onOpenChange={(open) => {
@@ -217,7 +243,7 @@ export function DeckCreateBar(): React.JSX.Element {
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant="glass"
+                      variant="ghost"
                       size="icon-sm"
                       shape="circle"
                       disabled={!worktreeId || !groupId || launching}
@@ -289,7 +315,17 @@ export function DeckCreateBar(): React.JSX.Element {
           }}
         >
           {accountAgent && worktreeId && groupId ? (
-            chosenAccount !== null ? (
+            accountAgent === 'claude' && claude9Step ? (
+              <DeckAgentSessionPicker
+                key="claude9"
+                agent="claude"
+                worktreeId={worktreeId}
+                accountLabel="9router (claude9)"
+                loadSessions={loadClaude9Sessions}
+                onBack={() => setClaude9Step(false)}
+                onLaunch={launchClaude9}
+              />
+            ) : chosenAccount !== null ? (
               <DeckAgentSessionPicker
                 key={`${accountAgent}:${chosenAccount.id ?? 'default'}`}
                 agent={accountAgent}
@@ -303,12 +339,7 @@ export function DeckCreateBar(): React.JSX.Element {
                     : 'Workspace default account'
                 }
                 onBack={() => {
-                  if (
-                    accountAgent === 'claude' ||
-                    accountAgent === 'claude-agent-teams' ||
-                    accountAgent === 'codex' ||
-                    accountAgent === 'antigravity'
-                  ) {
+                  if (deckAgentHasAccountStep(accountAgent)) {
                     setChosenAccount(null)
                   } else {
                     setAccountAgent(null)
@@ -325,6 +356,7 @@ export function DeckCreateBar(): React.JSX.Element {
                 agent={accountAgent === 'claude-agent-teams' ? 'claude' : accountAgent}
                 local={deckAccountLaunchIsLocal(worktreeId)}
                 onClose={() => setAccountAgent(null)}
+                onLaunchClaude9={accountAgent === 'claude' ? () => setClaude9Step(true) : undefined}
                 onLaunch={(accountId, login) => {
                   if (login) {
                     void launchSession(undefined, true).catch((error: unknown) =>

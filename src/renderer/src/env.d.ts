@@ -80,6 +80,8 @@ declare global {
   // oxlint-disable-next-line typescript-eslint/consistent-type-definitions -- declaration merging requires interface
   interface Window {
     __paneManagers?: Map<string, PaneManager>
+    /** E2E counter: animations started on the surface holding the xterm canvases. */
+    __workbenchAnimateCalls?: number
     __onboardingFeatureSetupDeps?: OnboardingFeatureSetupDeps
     __terminalParkingDebug?: {
       parkDelayMs: number

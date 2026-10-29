@@ -45,9 +45,11 @@ export function sleepingRecordFromEntry(args: {
   }
   const tab = args.tab ?? findTabForAgentEntry(args.state, args.worktreeId, args.entry)
   const parsed = parsePaneKey(args.entry.paneKey)
-  const ptyId = parsed
-    ? args.state.terminalLayoutsByTabId[parsed.tabId]?.ptyIdsByLeafId?.[parsed.leafId]
-    : undefined
+  const layout = parsed ? args.state.terminalLayoutsByTabId?.[parsed.tabId] : undefined
+  const ptyId = parsed ? layout?.ptyIdsByLeafId?.[parsed.leafId] : undefined
+  // Why: a split tab's title is its focused pane's, so a sibling must not record it as its own.
+  const terminalTitle =
+    args.entry.terminalTitle ?? (layout?.root?.type === 'split' ? undefined : tab?.title)
   return {
     paneKey: args.entry.paneKey,
     ...(tab ? { tabId: tab.id } : {}),
@@ -62,9 +64,7 @@ export function sleepingRecordFromEntry(args: {
     state: args.entry.state,
     capturedAt: args.capturedAt,
     updatedAt: args.entry.updatedAt,
-    ...((args.entry.terminalTitle ?? tab?.title)
-      ? { terminalTitle: (args.entry.terminalTitle ?? tab?.title)! }
-      : {}),
+    ...(terminalTitle ? { terminalTitle } : {}),
     ...(args.entry.lastAssistantMessage
       ? { lastAssistantMessage: args.entry.lastAssistantMessage }
       : {}),

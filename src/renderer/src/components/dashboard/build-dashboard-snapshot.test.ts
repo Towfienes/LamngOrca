@@ -424,14 +424,8 @@ describe('buildDashboardSnapshot', () => {
     expect(snapshot.filterOptions?.projects[0].label).toHaveLength(DASHBOARD_MAX_LABEL_LENGTH)
   })
 
-  it('withholds generated titles until the setting enables them', () => {
+  it('never ships the generated tab title, a clipped prompt, as a conversation name', () => {
     const tabs = { w1: [{ ...tab(), generatedTitle: 'Fix the flaky pty test' }] }
-    const off = buildDashboardSnapshot(
-      baseState({ agentStatusByPaneKey: { [PANE_KEY]: entry({}) }, tabsByWorktree: tabs }),
-      NOW
-    )
-    expect(off.cards[0].conversationName).toBeUndefined()
-
     const on = buildDashboardSnapshot(
       baseState({
         agentStatusByPaneKey: { [PANE_KEY]: entry({}) },
@@ -440,7 +434,7 @@ describe('buildDashboardSnapshot', () => {
       } as unknown as Partial<DashboardSnapshotState>),
       NOW
     )
-    expect(on.cards[0].conversationName).toBe('Fix the flaky pty test')
+    expect(on.cards[0].conversationName).toBeUndefined()
   })
 
   it('ships one icon per card-bearing repo, and none for repos without cards', () => {

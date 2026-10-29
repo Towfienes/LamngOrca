@@ -1,5 +1,5 @@
 import React from 'react'
-import { Ellipsis, ListCollapse, Loader2, RefreshCw } from 'lucide-react'
+import { Ellipsis, Folder, ListCollapse, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -49,8 +49,9 @@ export function FileExplorerToolbar({
 }: FileExplorerToolbarProps): React.JSX.Element {
   return (
     <div className="flex h-8 min-h-8 items-center gap-2 border-b border-border px-2">
+      <Folder className="deck-explorer-root-icon size-4 shrink-0" aria-hidden />
       <span
-        className="min-w-0 flex-1 truncate text-xs font-medium text-foreground"
+        className="deck-explorer-root-name min-w-0 flex-1 truncate text-xs font-medium text-foreground"
         title={repoName}
       >
         {repoName}

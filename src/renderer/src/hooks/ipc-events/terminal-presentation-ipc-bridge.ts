@@ -2,8 +2,7 @@ import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/ba
 import { hasRegisteredRuntimeTerminalTab } from '@/runtime/sync-runtime-graph'
 import { planMobileTerminalTabMount } from '@/lib/mobile-terminal-tab-mount'
 import { resolveTerminalTabPtyOwnership } from '@/lib/terminal-tab-for-pty-id'
-import { SPLIT_TERMINAL_PANE_EVENT } from '@/constants/terminal'
-import type { SplitTerminalPaneDetail } from '@/constants/terminal'
+import { SPLIT_TERMINAL_PANE_EVENT, type SplitTerminalPaneDetail } from '@/constants/terminal'
 import { singlePaneLayoutSnapshot } from '@/store/slices/terminal-helpers'
 import { verifyTerminalRevealIdentity } from '@/lib/terminal-reveal-identity'
 import { initialAgentTabViewModeProps } from '@/lib/native-chat-initial-view-mode'
@@ -131,7 +130,10 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
           }
           if (shouldSurfaceOwner) {
             store.revealWorktreeInSidebar(worktreeId)
-            focusTerminalInitiatedTab(tab.id, leafId, worktreeId)
+            // Why: a non-activating split lands in a tab the user may be typing in; keep their pane focused.
+            if (!isSplitReveal || shouldActivate) {
+              focusTerminalInitiatedTab(tab.id, leafId, worktreeId)
+            }
           }
           // Why: only stamp the runtime title on fresh tabs; reused tabs may have a user customTitle it would overwrite on focus.
           if (title && !reusedTab) {
@@ -179,7 +181,8 @@ export function registerTerminalPresentationIpcBridge(unsubs: (() => void)[]): v
                     sourcePtyId,
                     telemetrySource: splitTelemetrySource,
                     newLeafId: leafId,
-                    ptyId
+                    ptyId,
+                    ...(shouldActivate ? {} : { activate: false })
                   }
                 })
               )

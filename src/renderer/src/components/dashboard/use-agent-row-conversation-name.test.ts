@@ -4,11 +4,13 @@ import { useAgentRowConversationName } from './use-agent-row-conversation-name'
 import type { DashboardAgentRow } from './useDashboardData'
 
 const storeState = vi.hoisted(() => ({
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: widens the empty seed to the slices tests assign.
   current: { settings: {}, tabsByWorktree: {} } as {
     settings: Record<string, unknown>
     tabsByWorktree: Record<string, unknown[]>
     terminalLayoutsByTabId?: Record<string, unknown>
     runtimePaneTitlesByTabId?: Record<string, unknown>
+    aiVaultSessionTitlesByKey?: Record<string, string>
   }
 }))
 
@@ -242,14 +244,29 @@ describe('useAgentRowConversationName', () => {
       expect(useAgentRowConversationName(splitRow(LEAF_B, '\u2733 Linear work log'))).toBeNull()
     })
 
-    it('still lends a tab-owned name to every pane', () => {
+    it('does not lend a tab-owned name to every pane', () => {
       setSplitStore('\u2733 Linear work log', 'Patient sync spike')
-      expect(useAgentRowConversationName(splitRow(LEAF_A, '\u2733 Linear work log'))).toBe(
+      expect(useAgentRowConversationName(splitRow(LEAF_A, '\u2733 Linear work log'))).not.toBe(
         'Patient sync spike'
       )
-      expect(useAgentRowConversationName(splitRow(LEAF_B, '\u2733 Linear work log'))).toBe(
+      expect(useAgentRowConversationName(splitRow(LEAF_B, '\u2733 Linear work log'))).not.toBe(
         'Patient sync spike'
       )
+    })
+
+    it("reads this row's own session title and the user's pane rename", () => {
+      setSplitStore('\u2733 Linear work log', null)
+      const row = splitRow(LEAF_B, '\u2733 Linear work log')
+      const sessionId = row.entry.providerSession?.id ?? 'session-b'
+      row.entry.providerSession = { key: 'session_id', id: sessionId }
+      storeState.current.aiVaultSessionTitlesByKey = {
+        [`claude\0${sessionId}`]: 'Session B name'
+      }
+      expect(useAgentRowConversationName(row)).toBe('Session B name')
+      storeState.current.terminalLayoutsByTabId = {
+        'tab-1': { ...SPLIT_LAYOUT, titlesByLeafId: { [LEAF_B]: 'My review' } }
+      }
+      expect(useAgentRowConversationName(row)).toBe('My review')
     })
 
     it('leaves a single-leaf tab on its tab title', () => {
@@ -271,16 +288,13 @@ describe('useAgentRowConversationName', () => {
     })
   })
 
-  it('honors the generated-titles setting for generated names', () => {
+  it('never names a row from the generated tab title, whatever the setting', () => {
     const agent = makeAgent({
       tab: { customTitle: null, title: '', generatedTitle: 'Fix intake flow' }
     } as Partial<DashboardAgentRow>)
-    storeState.current = { settings: {}, tabsByWorktree: {} }
-    expect(useAgentRowConversationName(agent)).toBeNull()
-    storeState.current = {
-      settings: { tabAutoGenerateTitle: true },
-      tabsByWorktree: {}
+    for (const settings of [{}, { tabAutoGenerateTitle: true }]) {
+      storeState.current = { settings, tabsByWorktree: {} }
+      expect(useAgentRowConversationName(agent)).toBeNull()
     }
-    expect(useAgentRowConversationName(agent)).toBe('Fix intake flow')
   })
 })

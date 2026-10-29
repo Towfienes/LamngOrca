@@ -13,13 +13,10 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 import { ShortcutKeyCombo } from '@/components/ShortcutKeyCombo'
-import {
-  getTerminalQuickCommandBody,
-  isTerminalAgentQuickCommand
-} from '../../../../shared/terminal-quick-commands'
-import { getAgentLabel } from '@/lib/agent-catalog'
 import { TabBarQuickCommandItem } from './TabBarQuickCommandItem'
+import { TabBarQuickCommandRunRecentButton } from './TabBarQuickCommandRunRecentButton'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useImeEnterGestureOwnership } from '@/lib/ime-composition-keyboard-event'
@@ -34,6 +31,7 @@ import type {
   TerminalQuickCommandHost
 } from '@/hooks/use-terminal-quick-command-hosts'
 type TabBarQuickCommandsMenuProps = {
+  iconOnly?: boolean
   repoCommands: readonly HostedTerminalQuickCommand[]
   globalCommands: readonly HostedTerminalQuickCommand[]
   mostRecent: HostedTerminalQuickCommand | null
@@ -48,6 +46,7 @@ type TabBarQuickCommandsMenuProps = {
 }
 
 export function TabBarQuickCommandsMenu({
+  iconOnly = false,
   repoCommands,
   globalCommands,
   mostRecent,
@@ -188,71 +187,45 @@ export function TabBarQuickCommandsMenu({
   const innerButtonBase =
     'flex items-center bg-transparent leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
   return (
-    <div className={splitButtonClass}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={() => mostRecent && runAndClose(mostRecent)}
-            disabled={!mostRecent}
-            className={cn(innerButtonBase, 'gap-1.5 rounded-l-md rounded-r-none px-1.5')}
-            aria-label={
-              mostRecent
-                ? translate(
-                    'auto.components.tab.bar.TabBarQuickCommandsButton.b775303755',
-                    'Run quick command: {{value0}}',
-                    { value0: mostRecent.command.label }
-                  )
-                : translate(
-                    'auto.components.tab.bar.TabBarQuickCommandsButton.85482c57bc',
-                    'Run quick command'
-                  )
-            }
-          >
-            <Play className="size-3 shrink-0" fill="currentColor" strokeWidth={0} />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={6}>
-          {mostRecent
-            ? isTerminalAgentQuickCommand(mostRecent.command)
-              ? translate(
-                  'auto.components.tab.bar.TabBarQuickCommandsButton.77ac113df0',
-                  'Start {{value0}}: {{value1}}',
-                  {
-                    value0: getAgentLabel(mostRecent.command.agent),
-                    value1: getTerminalQuickCommandBody(mostRecent.command)
-                  }
-                )
-              : translate(
-                  'auto.components.tab.bar.TabBarQuickCommandsButton.37e1bb90ce',
-                  'Run: {{value0}}',
-                  { value0: getTerminalQuickCommandBody(mostRecent.command) }
-                )
-            : translate(
-                'auto.components.tab.bar.TabBarQuickCommandsButton.85482c57bc',
-                'Run quick command'
-              )}
-        </TooltipContent>
-      </Tooltip>
+    <div className={cn(iconOnly ? 'inline-flex' : splitButtonClass)}>
+      {!iconOnly && (
+        <TabBarQuickCommandRunRecentButton
+          mostRecent={mostRecent}
+          className={cn(innerButtonBase, 'gap-1.5 rounded-l-md rounded-r-none px-1.5')}
+          onRun={runAndClose}
+        />
+      )}
       <DropdownMenu modal={false} open={menuOpen} onOpenChange={handleOpenChange}>
         <Tooltip open={moreCommandsTooltipOpen} onOpenChange={handleMoreCommandsTooltipOpenChange}>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  innerButtonBase,
-                  'justify-center rounded-l-none rounded-r-md border-l border-border/60 px-1'
-                )}
-                aria-label={moreCommandsLabel}
-                onPointerEnter={allowMoreCommandsTooltip}
-                onBlur={allowMoreCommandsTooltip}
-              >
-                <ChevronDown className="size-3" strokeWidth={2.5} />
-              </button>
+              {iconOnly ? (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={moreCommandsLabel}
+                  onPointerEnter={allowMoreCommandsTooltip}
+                  onBlur={allowMoreCommandsTooltip}
+                >
+                  <Play className="size-3.5" />
+                </Button>
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    innerButtonBase,
+                    'justify-center rounded-l-none rounded-r-md border-l border-border/60 px-1'
+                  )}
+                  aria-label={moreCommandsLabel}
+                  onPointerEnter={allowMoreCommandsTooltip}
+                  onBlur={allowMoreCommandsTooltip}
+                >
+                  <ChevronDown className="size-3" strokeWidth={2.5} />
+                </button>
+              )}
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={6}>
+          <TooltipContent side={iconOnly ? 'top' : 'bottom'} sideOffset={6}>
             <span className="inline-flex items-center gap-1.5">
               <span>{moreCommandsLabel}</span>
               {openMenuShortcutCombos.map((shortcut, index) => (
@@ -270,7 +243,7 @@ export function TabBarQuickCommandsMenu({
         </Tooltip>
         <DropdownMenuContent
           align="end"
-          side="bottom"
+          side={iconOnly ? 'top' : 'bottom'}
           sideOffset={6}
           className="w-80 p-0"
           onCompositionStart={() => {

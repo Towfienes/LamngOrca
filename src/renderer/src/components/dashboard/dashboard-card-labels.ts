@@ -1,4 +1,5 @@
 import { getAgentRowConversationName } from '../../../../shared/agent-row-conversation-name'
+import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault-session-title'
 import { DASHBOARD_MAX_LABEL_LENGTH } from '../../../../shared/dashboard-snapshot'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
@@ -30,9 +31,9 @@ export function boundedLabelOrUndefined(value: string | undefined): string | und
  *  same agent with the same name. */
 export function rowConversationName(
   row: DashboardAgentRow,
-  generatedTitlesEnabled: boolean,
   layout: TerminalLayoutSnapshot | undefined,
-  paneTitles: Record<number, string> | undefined
+  paneTitles: Record<number, string> | undefined,
+  sessionTitlesByKey: Readonly<Record<string, string>> | undefined
 ): string | undefined {
   const parentPaneKey = row.entry.orchestration?.parentPaneKey
   // Why: a child row rendered on its parent's tab does not own that tab's name.
@@ -43,18 +44,15 @@ export function rowConversationName(
   ) {
     return undefined
   }
-  const paneLiveTitle = resolveAgentRowPaneLiveTitle(
-    layout,
-    paneTitles,
-    parsePaneKey(row.paneKey)?.leafId
-  )
+  const leafId = parsePaneKey(row.paneKey)?.leafId
+  const paneLiveTitle = resolveAgentRowPaneLiveTitle(layout, paneTitles, leafId)
+  const providerSessionId = row.entry.providerSession?.id
   return (
-    getAgentRowConversationName(
-      row.tab,
-      row.agentType,
-      generatedTitlesEnabled,
-      paneLiveTitle,
-      row.entry.providerSession?.id
-    ) ?? undefined
+    getAgentRowConversationName(row.tab, row.agentType, paneLiveTitle, providerSessionId, {
+      manualPaneTitle: leafId ? layout?.titlesByLeafId?.[leafId] : undefined,
+      providerSessionTitle: providerSessionId
+        ? sessionTitlesByKey?.[aiVaultSessionTitleKey(row.agentType, providerSessionId)]
+        : undefined
+    }) ?? undefined
   )
 }

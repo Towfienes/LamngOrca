@@ -82,9 +82,37 @@ void i18n
     }
   })
 
+// Why: render paths call translate for the same static labels on every commit; i18next's
+// lookup is far costlier than a map hit. Interpolated calls stay uncached.
+const staticTranslations = new Map<string, string>()
+const clearStaticTranslations = (): void => staticTranslations.clear()
+const watchResourceStore = (): void => {
+  // Why: bundle changes are emitted by the resource store, not forwarded to the instance.
+  i18n.store?.on('added', clearStaticTranslations)
+  i18n.store?.on('removed', clearStaticTranslations)
+}
+i18n.on('languageChanged', clearStaticTranslations)
+i18n.on('loaded', clearStaticTranslations)
+if (i18n.store) {
+  watchResourceStore()
+} else {
+  i18n.on('initialized', watchResourceStore)
+}
+
 export function translate(key: string, fallback: string, options?: TOptions): string {
-  const value = i18n.t(key, { defaultValue: fallback, ...options })
-  return isPseudoLocalizationLocale(i18n.language) ? pseudoLocalizeString(value) : value
+  const cacheKey = options === undefined ? `${key}\0${fallback}` : null
+  if (cacheKey !== null) {
+    const cached = staticTranslations.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
+    }
+  }
+  const raw = i18n.t(key, { defaultValue: fallback, ...options })
+  const value = isPseudoLocalizationLocale(i18n.language) ? pseudoLocalizeString(raw) : raw
+  if (cacheKey !== null) {
+    staticTranslations.set(cacheKey, value)
+  }
+  return value
 }
 
 export async function setRendererUiLanguage(language: UiLanguage): Promise<void> {

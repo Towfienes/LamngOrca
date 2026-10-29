@@ -1,3 +1,5 @@
+import type { AiVaultSession } from '../../shared/ai-vault-types'
+import type { Claude9ModelList } from '../../shared/claude9-models'
 import type { SecretAtRestProtection } from '../../shared/secret-at-rest-protection'
 import type {
   ClaudeRateLimitAccountsState,
@@ -57,6 +59,12 @@ export type ClaudeAccountsApi = {
     runtime?: 'host' | 'wsl'
     wslDistro?: string | null
   }) => Promise<ClaudeRateLimitAccountsState>
+}
+
+export type Claude9Api = {
+  list: (args?: { force?: boolean }) => Promise<Claude9ModelList>
+  /** claude9 transcripts from ~/.claude-9router/projects, newest first. */
+  sessions: () => Promise<AiVaultSession[]>
 }
 
 export type GrokAccountsApi = {

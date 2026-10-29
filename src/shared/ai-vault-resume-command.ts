@@ -234,6 +234,11 @@ function buildAgentResumeInvocation(
     // falls through
     case 'omp':
     case 'prime-agent':
+    // Why: `dsh-tui --resume <id>` is workspace-scoped (the launcher keys the
+    // session store by cwd), so the cwd prefix from buildAiVaultResumeCommand
+    // is load-bearing here too.
+    // falls through
+    case 'dsh':
       return `${baseCommand} --resume ${sessionArg}`
     case 'antigravity':
       return `${baseCommand} --conversation ${sessionArg}`

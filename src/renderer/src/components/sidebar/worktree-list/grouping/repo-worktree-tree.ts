@@ -27,9 +27,8 @@ export function withRepoWorktreeTree(rows: Row[]): Row[] {
       end++
     }
     const group = rows.slice(index, end).filter((row): row is WorktreeRow => row.type === 'item')
-    const roots = group.filter((row) => row.depth === 0)
-    const mains = roots.filter((row) => row.worktree.isMainWorktree)
-    if (mains.length !== 1 || roots.length < 2) {
+    const mains = group.filter((row) => row.depth === 0 && row.worktree.isMainWorktree)
+    if (mains.length !== 1 || group.length < 2) {
       result.push(...group)
       index = end
       continue
@@ -40,22 +39,44 @@ export function withRepoWorktreeTree(rows: Row[]): Row[] {
     while (subtreeEnd < group.length && group[subtreeEnd].depth > main.depth) {
       subtreeEnd++
     }
-    const ordered = [
-      ...group.slice(mainIndex, subtreeEnd),
-      ...group.slice(0, mainIndex),
-      ...group.slice(subtreeEnd)
-    ]
-    const lastRoot = ordered.findLast((row) => row.depth === 0)
-    for (const row of ordered) {
-      result.push(
-        row.depth > 0
-          ? row
-          : {
-              ...row,
-              repoTree: row === main ? 'root' : row === lastRoot ? 'last' : 'branch'
-            }
-      )
+    const mainSubtree = group.slice(mainIndex, subtreeEnd)
+    const levels = new Map<WorktreeRow, number>()
+    // Lineage children hang off their parent like any worktree: one level deeper per lineage depth.
+    for (const row of mainSubtree) {
+      levels.set(row, row.depth)
     }
+    const ordered = [...mainSubtree, ...group.slice(0, mainIndex), ...group.slice(subtreeEnd)]
+    for (const row of ordered) {
+      levels.set(row, levels.get(row) ?? row.depth + 1)
+    }
+    const levelAt = (position: number): number => levels.get(ordered[position])!
+    const lastByLevel: boolean[] = []
+    ordered.forEach((row, position) => {
+      const level = levelAt(position)
+      let next = position + 1
+      while (next < ordered.length && levelAt(next) > level) {
+        next++
+      }
+      const isLast = next >= ordered.length || levelAt(next) < level
+      lastByLevel[level] = isLast
+      result.push({
+        ...row,
+        // Why: flattened so the card draws as a plain tree row; lineage data stays on the worktree.
+        depth: 0,
+        lineageTrail: [],
+        isLastLineageChild: false,
+        lineageChildCount: 0,
+        lineageGroupKey: undefined,
+        lineageCollapsed: undefined,
+        repoTree: position === 0 ? 'root' : isLast ? 'last' : 'branch',
+        repoTreeLevel: level,
+        repoTreeHasChildren: position + 1 < ordered.length && levelAt(position + 1) > level,
+        repoTreeTrail: Array.from(
+          { length: Math.max(0, level - 1) },
+          (_, trunk) => lastByLevel[trunk + 1] === false
+        )
+      })
+    })
     changed = true
     index = end
   }

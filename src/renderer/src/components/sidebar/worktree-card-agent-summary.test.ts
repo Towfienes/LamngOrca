@@ -85,6 +85,8 @@ describe('worktree card agent summary', () => {
   it('keeps monitoring visible before a compact row prompt', () => {
     const agent = monitoringAgent()
     agent.entry.prompt = 'Run background checks'
+    // Why: the row's name is its terminal title; the prompt alone never names it.
+    agent.tab.title = '✳ Run background checks'
 
     const markup = renderCompactAgentRow({ agent, now: 2000, onActivate: vi.fn() })
 
@@ -97,6 +99,8 @@ describe('worktree card agent summary', () => {
   it('hands the whole row to the send-target reason, and only then', () => {
     const agent = monitoringAgent()
     agent.entry.prompt = 'Run background checks'
+    // Why: the row's name is its terminal title; the prompt alone never names it.
+    agent.tab.title = '✳ Run background checks'
 
     const disabled = renderCompactAgentRow({
       agent,

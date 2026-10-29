@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { QuickLaunchAgentMenuItems } from './QuickLaunchButton'
+import { WorkspaceStripLabel } from '../tab-group/WorkspaceStripLabel'
+import { WorkspaceTabDots } from '../tab-group/WorkspaceTabDots'
 import TabBarCreateEntry from './TabBarCreateEntry'
 import { TabStripScrollIndicator } from './TabStripScrollIndicator'
 import { getTabStripScrollMaskClassName } from './tab-strip-scroll-metrics'
@@ -36,7 +38,8 @@ export function renderTabBarSurface({
   tabStripNavigation,
   tabStripDragScroll,
   activeClientHostedBrowserRowId,
-  togglePinned
+  togglePinned,
+  dotsOnly = false
 }: {
   props: TabBarProps
   runtime: TabBarRuntimeModel
@@ -46,12 +49,15 @@ export function renderTabBarSurface({
   tabStripDragScroll: ReturnType<typeof useTabStripDragScrollHandlers>
   activeClientHostedBrowserRowId: string | null
   togglePinned: (item: TabBarItem) => void
+  /** Deck: the strip hosting the workspace dots shows only the path and dots, no text tabs. */
+  dotsOnly?: boolean
 }): React.JSX.Element {
   const {
     worktreeId,
     terminalOnly = false,
     showAgentLaunchItems = true,
     onNewTerminalTab,
+    onClose,
     onOpenEntry,
     tabStripChrome = 'default'
   } = props
@@ -91,6 +97,120 @@ export function renderTabBarSurface({
   const { tabStripRef, tabStripOverflowState, activeTabDockSide, scrollTabStrip } =
     tabStripNavigation
   const includeTopTabBorder = tabStripChrome !== 'floating-panel'
+  const newTabMenu = (
+    <DropdownMenu
+      open={newTabMenuOpen}
+      onOpenChange={setNewTabMenuOpen}
+      // Why: modal would disable body pointer events, making the Mobile Emulator "Hide" re-enable toast unclickable.
+      modal={false}
+    >
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="mx-1 my-auto shrink-0"
+          title={translate('auto.components.tab.bar.TabBar.b1a132357f', 'New tab')}
+          // Why: aria-label matches the tooltip so E2E can locate the "+" via getByRole('button', { name: 'New tab' }).
+          aria-label={translate('auto.components.tab.bar.TabBar.b1a132357f', 'New tab')}
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        sideOffset={6}
+        className="w-72 max-w-[calc(100vw-1rem)]"
+        onCloseAutoFocus={(event) => {
+          // Why: Radix restores focus to the "+" trigger on close, stealing it from the freshly-mounted terminal.
+          event.preventDefault()
+          runPendingNewTabMenuFocusAfterClose()
+        }}
+      >
+        {!terminalOnly && onOpenEntry ? (
+          <>
+            <TabBarCreateEntry
+              worktreeId={worktreeId}
+              groupId={resolvedGroupId}
+              menuOpen={newTabMenuOpen}
+              menuOptions={createMenuOptions}
+              agentOptions={agentLaunchOptions}
+              onLaunchAgent={launchAgentFromNewTabEntry}
+              onOpenDefaultTerminal={() => {
+                queueNewActiveTerminalFocusAfterNewTabMenuClose()
+                onNewTerminalTab()
+              }}
+              onOpenEntry={onOpenEntry}
+              onQueryChange={setCreateMenuQuery}
+              onQueueSwitchFocus={queueFocusAfterNewTabMenuClose}
+              onSelectMenuOption={handleSelectCreateMenuOption}
+              onDidOpenEntry={() => setNewTabMenuOpen(false)}
+            />
+            {showStaticCreateMenuItems ? <DropdownMenuSeparator /> : null}
+          </>
+        ) : null}
+        {showStaticCreateMenuItems ? (
+          <TabBarStaticCreateMenu
+            props={props}
+            terminalOnly={terminalOnly}
+            mobileEmulatorEnabled={mobileEmulatorEnabled}
+            managedBrowserCreationEnabled={managedBrowserCreationEnabled}
+            mobileEmulatorCreationEnabled={mobileEmulatorCreationEnabled}
+            workspaceHasSimulatorTab={workspaceHasSimulatorTab}
+            showMobileEmulatorIntroCallout={showMobileEmulatorIntroCallout}
+            windowsShellEntries={windowsShellEntries}
+            defaultWindowsPowerShellImplementation={defaultWindowsPowerShellImplementation}
+            pwshAvailable={windowsTerminalCapabilities.pwshAvailable}
+            newTerminalShortcut={newTerminalShortcut}
+            newBrowserShortcut={newBrowserShortcut}
+            newSimulatorShortcut={newSimulatorShortcut}
+            newFileShortcut={newFileShortcut}
+            openMarkdownShortcut={openMarkdownShortcut}
+            queueNewActiveTerminalFocusAfterNewTabMenuClose={
+              queueNewActiveTerminalFocusAfterNewTabMenuClose
+            }
+          />
+        ) : null}
+        {showStaticCreateMenuItems && showAgentLaunchItems ? (
+          <>
+            <DropdownMenuSeparator />
+            <QuickLaunchAgentMenuItems
+              worktreeId={worktreeId}
+              groupId={resolvedGroupId}
+              onFocusTerminal={queueTerminalTabFocusAfterNewTabMenuClose}
+            />
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+  if (dotsOnly) {
+    // Dots replace the strip, so they need the strip's close routing per content type.
+    const closeDotTab = (unifiedTabId: string): void => {
+      const item = orderedItems.find((candidate) => candidate.unifiedTabId === unifiedTabId)
+      if (!item || item.isPinned) {
+        return
+      }
+      if (item.type === 'browser') {
+        props.onCloseBrowserTab?.(item.id)
+      } else if (item.type === 'editor' || item.type === 'simulator') {
+        props.onCloseFile?.(item.id)
+      } else {
+        onClose(item.id)
+      }
+    }
+    return (
+      <div className="deck-tab-bar deck-tab-bar-dots" data-native-file-drop-target="editor">
+        <WorkspaceStripLabel workspaceId={worktreeId} />
+        <WorkspaceTabDots
+          worktreeId={worktreeId}
+          groupId={resolvedGroupId}
+          onNewWorkspace={onNewTerminalTab}
+          onCloseTab={closeDotTab}
+        />
+        <div className="deck-tab-bar-dots-end">{newTabMenu}</div>
+      </div>
+    )
+  }
   const renderedItems = renderTabBarItems({
     items: orderedItems,
     props,
@@ -197,90 +317,8 @@ export function renderTabBarSurface({
           </TooltipContent>
         </Tooltip>
       ) : null}
-      <DropdownMenu
-        open={newTabMenuOpen}
-        onOpenChange={setNewTabMenuOpen}
-        // Why: modal would disable body pointer events, making the Mobile Emulator "Hide" re-enable toast unclickable.
-        modal={false}
-      >
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="mx-1 my-auto shrink-0"
-            title={translate('auto.components.tab.bar.TabBar.b1a132357f', 'New tab')}
-            // Why: aria-label matches the tooltip so E2E can locate the "+" via getByRole('button', { name: 'New tab' }).
-            aria-label={translate('auto.components.tab.bar.TabBar.b1a132357f', 'New tab')}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          sideOffset={6}
-          className="w-72 max-w-[calc(100vw-1rem)]"
-          onCloseAutoFocus={(event) => {
-            // Why: Radix restores focus to the "+" trigger on close, stealing it from the freshly-mounted terminal.
-            event.preventDefault()
-            runPendingNewTabMenuFocusAfterClose()
-          }}
-        >
-          {!terminalOnly && onOpenEntry ? (
-            <>
-              <TabBarCreateEntry
-                worktreeId={worktreeId}
-                groupId={resolvedGroupId}
-                menuOpen={newTabMenuOpen}
-                menuOptions={createMenuOptions}
-                agentOptions={agentLaunchOptions}
-                onLaunchAgent={launchAgentFromNewTabEntry}
-                onOpenDefaultTerminal={() => {
-                  queueNewActiveTerminalFocusAfterNewTabMenuClose()
-                  onNewTerminalTab()
-                }}
-                onOpenEntry={onOpenEntry}
-                onQueryChange={setCreateMenuQuery}
-                onQueueSwitchFocus={queueFocusAfterNewTabMenuClose}
-                onSelectMenuOption={handleSelectCreateMenuOption}
-                onDidOpenEntry={() => setNewTabMenuOpen(false)}
-              />
-              {showStaticCreateMenuItems ? <DropdownMenuSeparator /> : null}
-            </>
-          ) : null}
-          {showStaticCreateMenuItems ? (
-            <TabBarStaticCreateMenu
-              props={props}
-              terminalOnly={terminalOnly}
-              mobileEmulatorEnabled={mobileEmulatorEnabled}
-              managedBrowserCreationEnabled={managedBrowserCreationEnabled}
-              mobileEmulatorCreationEnabled={mobileEmulatorCreationEnabled}
-              workspaceHasSimulatorTab={workspaceHasSimulatorTab}
-              showMobileEmulatorIntroCallout={showMobileEmulatorIntroCallout}
-              windowsShellEntries={windowsShellEntries}
-              defaultWindowsPowerShellImplementation={defaultWindowsPowerShellImplementation}
-              pwshAvailable={windowsTerminalCapabilities.pwshAvailable}
-              newTerminalShortcut={newTerminalShortcut}
-              newBrowserShortcut={newBrowserShortcut}
-              newSimulatorShortcut={newSimulatorShortcut}
-              newFileShortcut={newFileShortcut}
-              openMarkdownShortcut={openMarkdownShortcut}
-              queueNewActiveTerminalFocusAfterNewTabMenuClose={
-                queueNewActiveTerminalFocusAfterNewTabMenuClose
-              }
-            />
-          ) : null}
-          {showStaticCreateMenuItems && showAgentLaunchItems ? (
-            <>
-              <DropdownMenuSeparator />
-              <QuickLaunchAgentMenuItems
-                worktreeId={worktreeId}
-                groupId={resolvedGroupId}
-                onFocusTerminal={queueTerminalTabFocusAfterNewTabMenuClose}
-              />
-            </>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {newTabMenu}
+      <WorkspaceStripLabel workspaceId={worktreeId} />
     </div>
   )
 }

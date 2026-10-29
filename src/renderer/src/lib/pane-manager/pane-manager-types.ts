@@ -30,6 +30,8 @@ export type PaneSpawnHints = {
 export type PaneSplitOptions = PaneSpawnHints & {
   ratio?: number
   leafId?: string
+  /** false keeps the current pane active and focused (background agent joins). */
+  activate?: boolean
 }
 
 export type ClosedPaneInfo = {

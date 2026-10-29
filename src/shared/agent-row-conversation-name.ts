@@ -1,22 +1,23 @@
-// Resolves the stable "conversation name" an agent row can show instead of the
-// live last-message preview. Sources, in the same precedence the tab bar uses
-// (tab-title-resolution.ts): manual rename → quick-command label → OpenCode's
-// semantic session title → provider session title → Orca's generated title →
-// the agent-set live title.
-// Live titles are accepted only when they carry a real name — pure status,
-// identity-echo, and spinner/cwd titles yield null so callers keep the
-// last-message label.
+// Resolves the stable name an agent session shows in the sidebar and its pane header.
+// Precedence: the user's pane rename → the tab's own rename/quick command when the tab
+// holds just this pane → DSH's native session title → the provider title of THIS
+// session → OpenCode's semantic title → the pane's live agent-set title.
+// A name must belong to this session: tab-wide names never label a split tab's
+// agents, and Orca's generated tab title (a clipped first prompt) is never a name.
+// Status, identity-echo, cwd, prompt-shaped and system text yield null so callers
+// fall back to a neutral label.
 import type { AgentType } from './agent-status-types'
 import { isClaudeManagementTitle } from './agent-title-core'
 import { stripLeadingAgentTitleDecorationOrEmpty } from './agent-title-decoration'
 import { formatAgentTypeLabel } from './agent-type-label'
 import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
+import { getDshTerminalSessionTitle } from './dsh-terminal-title'
 import { SYNTHETIC_AGENT_TITLE_PROFILES } from './synthetic-agent-title'
 import type { TerminalTab } from './terminal-tab-types'
 
 export type ConversationNameTab = Pick<
   TerminalTab,
-  'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title' | 'defaultTitle'
+  'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'title' | 'defaultTitle'
 >
 
 // Why: synthetic status titles ("Codex ready", "Cursor - action required") are
@@ -79,6 +80,40 @@ function isCwdLikeTitle(title: string): boolean {
   return !/\s/.test(title) && /[\\/]/.test(title)
 }
 
+// Why: injected harness/system text (`<local-command-caveat>`, skill front matter, a
+// line-numbered file dump) leaks into prompt-derived titles; it never names a session.
+const MARKUP_TAG_RE = /<\/?[a-z][\w-]*(?:\s[^>]*)?>/i
+const FRONT_MATTER_RE = /^(?:\d+\s+)?---(?:\s|$)/
+const YAML_KEYS_RE = /\b(?:name|description):\s/
+const SLASH_COMMAND_RE = /^\/[\w:-]+(?:\s|$)/
+// Why: generated session names are a few words; a long sentence is a prompt, and
+// clipping it would only fake a summary.
+const MAX_SESSION_NAME_WORDS = 10
+const MAX_SESSION_NAME_LENGTH = 80
+
+/** True when the text is system/markup output rather than something a person named. */
+export function isSystemTextTitle(text: string): boolean {
+  const trimmed = text.trim()
+  return (
+    /[\r\n]/.test(trimmed) ||
+    MARKUP_TAG_RE.test(trimmed) ||
+    FRONT_MATTER_RE.test(trimmed) ||
+    YAML_KEYS_RE.test(trimmed)
+  )
+}
+
+/** True when an automatic title is short, plain text that can stand as a session name. */
+export function isUsableAgentSessionName(text: string | null | undefined): text is string {
+  const trimmed = text?.trim() ?? ''
+  return (
+    trimmed.length > 0 &&
+    trimmed.length <= MAX_SESSION_NAME_LENGTH &&
+    trimmed.split(/\s+/).length <= MAX_SESSION_NAME_WORDS &&
+    !isSystemTextTitle(trimmed) &&
+    !SLASH_COMMAND_RE.test(trimmed)
+  )
+}
+
 function conversationNameFromLiveTitle(
   liveTitle: string,
   agentType: AgentType | null | undefined,
@@ -104,52 +139,67 @@ function conversationNameFromLiveTitle(
   if (defaultTitle && stripped === defaultTitle.trim()) {
     return null
   }
-  return stripped
+  return isUsableAgentSessionName(stripped) ? stripped : null
+}
+
+export type AgentSessionNameSources = {
+  /** The user's rename of this pane (`titlesByLeafId`), the strongest name. */
+  manualPaneTitle?: string | null
+  /** The provider title resolved for this row's own session id. */
+  providerSessionTitle?: string | null
+  /** This pane's own terminal title saved when it slept; stands in until it paints a new one. */
+  recordedTitle?: string | null
 }
 
 /**
- * The conversation name for an agent row, or null when no usable name exists
- * and the caller should keep its last-message label.
+ * The name for an agent session, or null when nothing trustworthy exists and the
+ * caller should show a neutral label.
  */
 export function getAgentRowConversationName(
   tab: ConversationNameTab,
   agentType: AgentType | null | undefined,
-  generatedTitlesEnabled: boolean,
   // Why: `tab.title` carries only the FOCUSED pane's title, so in a split tab it
   // names one pane and mislabels its siblings. Callers on a multi-pane tab pass
   // this row's own pane title, or `null` when none resolves; `undefined` (a
-  // single-pane tab) keeps the tab title. Tab-owned names above are unaffected:
-  // the user gave those to the whole tab and they do not flip on focus.
+  // single-pane tab) keeps the tab title and the tab's own names.
   paneLiveTitle?: string | null,
-  providerSessionId?: string
+  providerSessionId?: string,
+  sources: AgentSessionNameSources = {}
 ): string | null {
-  const customTitle = tab.customTitle?.trim()
+  const manualPaneTitle = sources.manualPaneTitle?.trim()
+  if (manualPaneTitle && !isSystemTextTitle(manualPaneTitle)) {
+    return manualPaneTitle
+  }
+  // Why: tab-wide names belong to one agent only when the tab holds just its pane.
+  const ownsTab = paneLiveTitle === undefined
+  const customTitle = ownsTab ? tab.customTitle?.trim() : ''
   if (customTitle) {
     return customTitle
   }
-  const quickCommandLabel = tab.quickCommandLabel?.trim()
+  const quickCommandLabel = ownsTab ? tab.quickCommandLabel?.trim() : ''
   if (quickCommandLabel) {
     return quickCommandLabel
   }
   const liveTitle =
-    paneLiveTitle === undefined ? (tab.title?.trim() ?? '') : (paneLiveTitle?.trim() ?? '')
-  if (isMeaningfulOpenCodeTerminalTitle(liveTitle)) {
-    return liveTitle
+    (ownsTab ? tab.title?.trim() : paneLiveTitle?.trim()) || sources.recordedTitle?.trim() || ''
+  // DSH owns its session title; a tab's generated prompt can belong to a sibling pane.
+  if (agentType === 'dsh') {
+    const dshTitle = getDshTerminalSessionTitle(liveTitle)
+    return isUsableAgentSessionName(dshTitle) ? dshTitle : formatAgentTypeLabel('dsh')
   }
   // Provider titles belong to their session, not every pane in the tab.
-  const aiVaultTitle = tab.aiVaultTitle
-  const providerTitle = aiVaultTitle?.title.trim()
-  if (
-    aiVaultTitle &&
-    providerTitle &&
-    aiVaultTitle.agent === agentType &&
-    aiVaultTitle.sessionId === providerSessionId
-  ) {
+  const providerTitle =
+    sources.providerSessionTitle?.trim() ||
+    (tab.aiVaultTitle &&
+    tab.aiVaultTitle.agent === agentType &&
+    tab.aiVaultTitle.sessionId === providerSessionId
+      ? tab.aiVaultTitle.title.trim()
+      : '')
+  if (providerSessionId && isUsableAgentSessionName(providerTitle)) {
     return providerTitle
   }
-  const generatedTitle = generatedTitlesEnabled ? tab.generatedTitle?.trim() : ''
-  if (generatedTitle) {
-    return generatedTitle
+  if (isMeaningfulOpenCodeTerminalTitle(liveTitle) && isUsableAgentSessionName(liveTitle)) {
+    return liveTitle
   }
   if (!liveTitle) {
     return null

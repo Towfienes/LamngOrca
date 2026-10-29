@@ -111,7 +111,7 @@ describe('ClaudeAccountService credential capture', () => {
     ).runClaudeLoginAndCapture = vi.fn(async () => ({
       credentialsJson: '{"new":true}\n',
       oauthAccount: { newOauth: true },
-      identity: { email: 'new@example.com', organizationUuid: null, organizationName: null }
+      identity: { email: 'old@example.com', organizationUuid: null, organizationName: null }
     }))
 
     await expect(service.reauthenticateAccount('account-1')).rejects.toThrow('materialize failed')
@@ -184,12 +184,12 @@ describe('ClaudeAccountService credential capture', () => {
     ).runClaudeLoginAndCapture = vi.fn(async () => ({
       credentialsJson: '{"new":true}\n',
       oauthAccount: { newOauth: true },
-      identity: { email: 'new@example.com', organizationUuid: null, organizationName: null }
+      identity: { email: 'old@example.com', organizationUuid: null, organizationName: null }
     }))
 
     await expect(service.reauthenticateAccount('account-1')).rejects.toThrow('materialize failed')
 
-    expect(store.getSettings().claudeManagedAccounts[0].email).toBe('new@example.com')
+    expect(store.getSettings().claudeManagedAccounts[0].email).toBe('old@example.com')
     expect(runtimeAuth.forceMaterializeCurrentSelectionForRollback).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalledWith(
       '[claude-accounts] Failed to restore managed credentials during rollback:',
@@ -256,7 +256,7 @@ describe('ClaudeAccountService credential capture', () => {
     ).runClaudeLoginAndCapture = vi.fn(async () => ({
       credentialsJson: '{"new":true}\n',
       oauthAccount: { newOauth: true },
-      identity: { email: 'new@example.com', organizationUuid: null, organizationName: null }
+      identity: { email: 'old@example.com', organizationUuid: null, organizationName: null }
     }))
 
     await expect(service.reauthenticateAccount('account-1')).rejects.toThrow(
@@ -336,7 +336,7 @@ describe('ClaudeAccountService credential capture', () => {
     ).runClaudeLoginAndCapture = vi.fn(async () => ({
       credentialsJson: '{"new":true}\n',
       oauthAccount: { newOauth: true },
-      identity: { email: 'new@example.com', organizationUuid: null, organizationName: null }
+      identity: { email: 'old@example.com', organizationUuid: null, organizationName: null }
     }))
 
     await expect(service.reauthenticateAccount('account-1')).rejects.toThrow('materialize failed')
@@ -406,7 +406,7 @@ describe('ClaudeAccountService credential capture', () => {
     ).runClaudeLoginAndCapture = vi.fn(async () => ({
       credentialsJson: '{"new":true}\n',
       oauthAccount: { newOauth: true },
-      identity: { email: 'new@example.com', organizationUuid: null, organizationName: null }
+      identity: { email: 'old@example.com', organizationUuid: null, organizationName: null }
     }))
 
     await service.reauthenticateAccount('account-1')
@@ -415,6 +415,68 @@ describe('ClaudeAccountService credential capture', () => {
     expect(rateLimits.refreshForClaudeAccountChange).toHaveBeenCalledWith(undefined, {
       runtime: 'host'
     })
-    expect(settings.claudeManagedAccounts[0].email).toBe('new@example.com')
+    expect(settings.claudeManagedAccounts[0].email).toBe('old@example.com')
+    expect(settings.claudeManagedAccounts[0].lastAuthenticatedAt).toBeGreaterThan(1)
+  })
+
+  it('refuses a login as a different account and leaves this one untouched', async () => {
+    setPlatform('linux')
+    tempDir = CLAUDE_SERVICE_TEST_ROOT
+    rmSync(tempDir, { recursive: true, force: true })
+    const managedAuthPath = join(tempDir, 'claude-accounts', 'account-1', 'auth')
+    mkdirSync(managedAuthPath, { recursive: true })
+    writeFileSync(join(managedAuthPath, '.orca-managed-claude-auth'), 'account-1\n', 'utf-8')
+    writeFileSync(join(managedAuthPath, '.credentials.json'), '{"old":true}\n', 'utf-8')
+    writeFileSync(join(managedAuthPath, 'oauth-account.json'), '{"oldOauth":true}\n', 'utf-8')
+    let settings = {
+      claudeManagedAccounts: [
+        {
+          id: 'account-1',
+          email: 'old@example.com',
+          managedAuthPath,
+          authMethod: 'subscription-oauth',
+          organizationUuid: null,
+          organizationName: null,
+          createdAt: 1,
+          updatedAt: 1,
+          lastAuthenticatedAt: 1
+        }
+      ],
+      activeClaudeManagedAccountId: 'account-1'
+    }
+    const store = {
+      getSettings: vi.fn(() => settings),
+      updateSettings: vi.fn((updates: Partial<typeof settings>) => {
+        settings = { ...settings, ...updates }
+        return settings
+      })
+    }
+    const runtimeAuth = {
+      clearLastWrittenCredentialsJson: vi.fn(),
+      syncForCurrentSelection: vi.fn(async () => {}),
+      forceMaterializeCurrentSelectionForRollback: vi.fn(async () => {})
+    }
+    const rateLimits = { evictInactiveClaudeCache: vi.fn(), refreshForClaudeAccountChange: vi.fn() }
+    const { ClaudeAccountService } = await import('./service')
+    const service = new ClaudeAccountService(
+      store as never,
+      rateLimits as never,
+      runtimeAuth as never
+    )
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: stubs the private login step, as the sibling tests do.
+    ;(service as unknown as { runClaudeLoginAndCapture: unknown }).runClaudeLoginAndCapture = vi.fn(
+      async () => ({
+        credentialsJson: '{"other":true}\n',
+        oauthAccount: { otherOauth: true },
+        identity: { email: 'other@example.com', organizationUuid: null, organizationName: null }
+      })
+    )
+
+    await expect(service.reauthenticateAccount('account-1')).rejects.toThrow(
+      'Signed in as other@example.com, but this account is old@example.com'
+    )
+    expect(readFileSync(join(managedAuthPath, '.credentials.json'), 'utf-8')).toBe('{"old":true}\n')
+    expect(store.updateSettings).not.toHaveBeenCalled()
+    expect(rateLimits.evictInactiveClaudeCache).not.toHaveBeenCalled()
   })
 })

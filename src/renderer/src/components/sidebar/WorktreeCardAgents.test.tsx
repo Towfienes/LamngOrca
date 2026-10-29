@@ -47,7 +47,8 @@ function mockAgent({
 }: MockAgentOptions = {}): unknown {
   return {
     paneKey,
-    tab: { id: tabId },
+    // Why: the row's name comes from its own terminal title, never from its prompt.
+    tab: { id: tabId, title: prompt },
     agentType,
     rowSource,
     state,
@@ -78,6 +79,7 @@ let capturedRowActivations: {
 
 const activationMocks = vi.hoisted(() => ({
   activateAndRevealWorktree: vi.fn(),
+  activateWorktreeFromSidebar: vi.fn(),
   activateTabAndFocusPane: vi.fn()
 }))
 
@@ -104,6 +106,10 @@ vi.mock('@/store', () => ({
 
 vi.mock('@/lib/worktree-activation', () => ({
   activateAndRevealWorktree: activationMocks.activateAndRevealWorktree
+}))
+
+vi.mock('@/lib/sidebar-worktree-activation', () => ({
+  activateWorktreeFromSidebar: activationMocks.activateWorktreeFromSidebar
 }))
 
 vi.mock('@/lib/activate-tab-and-focus-pane', () => ({
@@ -390,18 +396,21 @@ describe('WorktreeCardAgents', () => {
     expect(markup).toContain('data-pane-key="tab-1:2"')
   })
 
-  it('keeps retained completion rows passive when activated', async () => {
-    mockAgentActivityDisplayMode = 'full'
-    mockAgents = [mockAgent({ rowSource: 'retained', state: 'done' })]
-    const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
+  it.each(['wt-1', 'folder:folder-1'])(
+    'selects the owning workspace %s when a retained row is clicked',
+    async (worktreeId) => {
+      mockAgentActivityDisplayMode = 'full'
+      mockAgents = [mockAgent({ rowSource: 'retained', state: 'done' })]
+      const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
-    renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
-    expect(capturedRowActivations).toHaveLength(1)
-    capturedRowActivations[0].onActivate('tab-1', 'tab-1:1')
+      renderToStaticMarkup(<WorktreeCardAgents worktreeId={worktreeId} />)
+      capturedRowActivations[0].onActivate('tab-1', 'tab-1:1')
 
-    expect(activationMocks.activateAndRevealWorktree).not.toHaveBeenCalled()
-    expect(activationMocks.activateTabAndFocusPane).not.toHaveBeenCalled()
-  })
+      expect(activationMocks.activateWorktreeFromSidebar).toHaveBeenCalledWith(worktreeId)
+      expect(activationMocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+      expect(activationMocks.activateTabAndFocusPane).not.toHaveBeenCalled()
+    }
+  )
 
   it('shows orchestration child agent rows under their parent by default', async () => {
     mockAgentActivityDisplayMode = 'full'

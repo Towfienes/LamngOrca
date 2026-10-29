@@ -30,11 +30,13 @@ import { terminalQuickCommandMatchesWorkspaceProject } from '@/lib/terminal-quic
 type TabBarQuickCommandsButtonProps = {
   worktreeId: string
   groupId: string
+  iconOnly?: boolean
 }
 
 export function TabBarQuickCommandsButton({
   worktreeId,
-  groupId
+  groupId,
+  iconOnly = false
 }: TabBarQuickCommandsButtonProps): React.JSX.Element | null {
   const recentByGroup = useAppStore((s) => s.recentQuickCommandIdByGroup)
   const repos = useAppStore((s) => s.repos)
@@ -178,7 +180,7 @@ export function TabBarQuickCommandsButton({
             <Button
               type="button"
               variant="ghost"
-              size="xs"
+              size={iconOnly ? 'icon-xs' : 'xs'}
               onClick={() => addRepoCommand(defaultHostId)}
               className="my-auto"
               aria-label={translate(
@@ -187,10 +189,10 @@ export function TabBarQuickCommandsButton({
               )}
             >
               <Play className="size-3.5" />
-              <span>{translate('terminalQuickCommands.command', 'Command')}</span>
+              {!iconOnly && <span>{translate('terminalQuickCommands.command', 'Command')}</span>}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={6}>
+          <TooltipContent side={iconOnly ? 'top' : 'bottom'} sideOffset={6}>
             {translate(
               'auto.components.tab.bar.TabBarQuickCommandsButton.1d411fb6a5',
               'Save a quick command for this repo'
@@ -212,6 +214,7 @@ export function TabBarQuickCommandsButton({
   return (
     <>
       <TabBarQuickCommandsMenu
+        iconOnly={iconOnly}
         repoCommands={repoCommands}
         globalCommands={globalCommands}
         mostRecent={mostRecent}

@@ -1,3 +1,6 @@
+import { stripLeadingAgentTitleDecorationOrEmpty } from './agent-title-decoration'
+import { formatAgentTypeLabel } from './agent-type-label'
+
 /** DSH-TUI titles are always `<prefix> 🐋 <session title>` (its Chat screen's
  *  `useTerminalTitle`), and the whale is the only part no other agent emits. It has to
  *  outrank the Gemini glyphs below: DSH's IDLE prefix is `✦`, which is Gemini's WORKING
@@ -7,4 +10,12 @@ export const DSH_WHALE = '\u{1F40B}' // 🐋
 
 export function isDshTerminalTitle(title: string): boolean {
   return title.includes(DSH_WHALE)
+}
+
+export function getDshTerminalSessionTitle(title: string): string | null {
+  const undecorated = stripLeadingAgentTitleDecorationOrEmpty(title.trim())
+  if (!undecorated.startsWith(DSH_WHALE)) {
+    return null
+  }
+  return undecorated.slice(DSH_WHALE.length).trim() || formatAgentTypeLabel('dsh')
 }

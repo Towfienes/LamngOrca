@@ -1,4 +1,6 @@
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import { isUsableAgentSessionName } from '../../../shared/agent-row-conversation-name'
+import type { AgentStatusEntry, AgentType } from '../../../shared/agent-status-types'
+import { formatAgentTypeLabel } from '../../../shared/agent-type-label'
 import {
   findOrcaDispatchPreambleStart,
   findOrcaDispatchTaskMarkerIndex,
@@ -62,6 +64,39 @@ export function getAgentRowPrimaryText(
     return getOrcaDispatchTaskPreview(entry.prompt)
   }
   return entry.prompt.trim()
+}
+
+/**
+ * The row label when no session name exists. An Orca dispatch keeps its task label;
+ * anything else shows the agent's name, never its raw prompt.
+ */
+export function getAgentRowFallbackName(
+  entry: Pick<AgentStatusEntry, 'orchestration' | 'prompt'>,
+  agentType: AgentType | null | undefined
+): string {
+  const dispatchLabel = isOrcaDispatchPrompt(entry.prompt) ? getAgentRowPrimaryText(entry) : ''
+  return isUsableAgentSessionName(dispatchLabel) ? dispatchLabel : formatAgentTypeLabel(agentType)
+}
+
+/** Hover text that tells same-named sessions apart with facts about each session. */
+export function getAgentSessionTooltip(
+  label: string,
+  agentType: AgentType | null | undefined,
+  entry: Pick<AgentStatusEntry, 'model' | 'providerSession'>
+): string {
+  const sessionId = entry.providerSession?.id?.trim()
+  const model = entry.model?.trim()
+  if (!sessionId && !model) {
+    return label
+  }
+  const identity = [
+    formatAgentTypeLabel(agentType),
+    model,
+    sessionId ? `session ${sessionId.slice(0, 8)}` : undefined
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  return identity === label ? label : `${label}\n${identity}`
 }
 
 export function getAgentRowGeneratedTitleText(

@@ -26,6 +26,7 @@ vi.mock('../ui/command', () => ({
     onValueChange: (v: string) => void
   }) => <input {...props} value={value} onChange={(e) => onValueChange(e.target.value)} />,
   CommandList: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CommandGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   CommandItem: ({
     children,
     onSelect,

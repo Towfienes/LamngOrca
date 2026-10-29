@@ -32,6 +32,11 @@ export type GroupHeaderRow = {
 
 export type WorktreeRow = {
   repoTree?: 'root' | 'branch' | 'last'
+  /** Indent level in the Deck repo tree: 0 for the main worktree, one more per lineage depth. */
+  repoTreeLevel?: number
+  /** Per ancestor trunk (levels 1..level-1): true while that trunk keeps running past this row. */
+  repoTreeTrail?: boolean[]
+  repoTreeHasChildren?: boolean
   type: 'item'
   rowKey: string
   sectionKey: string

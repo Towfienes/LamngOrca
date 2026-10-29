@@ -23,7 +23,8 @@ export const AI_VAULT_AGENTS = [
   'droid',
   'cline',
   'kimi',
-  'muse'
+  'muse',
+  'dsh'
 ] as const satisfies readonly TuiAgent[]
 
 // Why: the aiVault.listSessions RPC schema CLAMPS scopePaths to this bound
@@ -72,7 +73,8 @@ export const AI_VAULT_AGENT_LABELS = {
   droid: 'Droid',
   cline: 'Cline',
   kimi: 'Kimi',
-  muse: 'Muse'
+  muse: 'Muse',
+  dsh: 'DeepSeek Harness'
 } as const satisfies Record<AiVaultAgent, string>
 
 export type AiVaultSessionPreviewMessage = {
@@ -131,6 +133,8 @@ export type AiVaultSession = {
   subagentTranscriptCount: number
   resumeCommand: string
   subagent: AiVaultSessionSubagentInfo | null
+  /** Provider marks a child session but may not expose its parent's identity. */
+  isSubagent?: boolean
   /** Present only when the negotiated client can open the native structured owner. */
   structuredSession?: {
     sessionId: string

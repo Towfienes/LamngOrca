@@ -68,7 +68,13 @@ export type DashboardSnapshotState = Pick<
   Partial<
     DashboardCardTerminalInputState &
       DashboardLaunchDetectionState &
-      Pick<AppState, 'runtimeEnvironments' | 'sshTargetLabels' | 'unifiedTabsByWorktree'>
+      Pick<
+        AppState,
+        | 'runtimeEnvironments'
+        | 'sshTargetLabels'
+        | 'unifiedTabsByWorktree'
+        | 'aiVaultSessionTitlesByKey'
+      >
   >
 
 /**
@@ -97,7 +103,6 @@ export function buildDashboardSnapshot(
   const clientHost = readDashboardClientHost()
   const repoIconsByRepoId: Record<string, RepoIcon | null> = {}
   const includeCardDetails = options.includeCardDetails !== false
-  const generatedTitlesEnabled = state.settings?.tabAutoGenerateTitle === true
   const showIdle = state.settings?.experimentalAgentDashboardShowIdle === true
   const activeWorktrees = collectActiveDashboardWorkspaces(state, includeCardDetails)
   const filterOptions =
@@ -251,9 +256,9 @@ export function buildDashboardSnapshot(
         conversationName: boundedLabelOrUndefined(
           rowConversationName(
             row,
-            generatedTitlesEnabled,
             terminalLayoutsByTabId[row.tab.id],
-            paneTitlesByTabId[row.tab.id]
+            paneTitlesByTabId[row.tab.id],
+            state.aiVaultSessionTitlesByKey
           )
         ),
         ...(terminalInput ? { terminalInput } : {})

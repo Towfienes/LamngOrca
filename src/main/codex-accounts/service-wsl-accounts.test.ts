@@ -564,7 +564,7 @@ describe('CodexAccountService config sync', () => {
       codexManagedAccounts: [
         {
           id: 'account-1',
-          email: 'old@example.com',
+          email: 'new@example.com',
           managedHomePath: wslManagedHomePath,
           managedHomeRuntime: 'wsl',
           wslDistro: 'Ubuntu',
@@ -700,7 +700,7 @@ describe('CodexAccountService config sync', () => {
       codexManagedAccounts: [
         {
           id: 'account-1',
-          email: 'old-wsl@example.com',
+          email: 'new-wsl@example.com',
           managedHomePath: wslManagedHomePath,
           managedHomeRuntime: 'wsl',
           wslDistro: 'Ubuntu',

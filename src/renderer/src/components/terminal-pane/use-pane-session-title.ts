@@ -1,52 +1,55 @@
-import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store'
-import { isAiVaultTitleAgent } from '../../../../shared/ai-vault-session-title'
-import type { AgentProviderSessionMetadata } from '../../../../shared/agent-session-resume'
-import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { getAgentRowConversationName } from '../../../../shared/agent-row-conversation-name'
+import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault-session-title'
+import type { AgentType } from '../../../../shared/agent-status-types'
+import { parsePaneKey } from '../../../../shared/stable-pane-id'
+import { resolveAgentRowPaneLiveTitle } from '@/components/dashboard/agent-row-pane-live-title'
 
+/**
+ * The pane header's session name, from the same resolver and per-session title store
+ * the sidebar row uses, so the two never disagree. Undefined when only a neutral
+ * label is honest.
+ */
 export function usePaneSessionTitle(
-  agent: string | undefined,
-  providerSession: AgentProviderSessionMetadata | undefined,
+  paneKey: string,
+  agentType: AgentType | null | undefined,
+  providerSessionId: string | undefined,
   worktreeId: string | undefined,
-  knownTitle: string | undefined
+  manualPaneTitle: string | undefined,
+  recordedTitle?: string
 ): string | undefined {
-  const executionHostId = useAppStore((state) =>
-    worktreeId ? getExecutionHostIdForWorktree(state, worktreeId) : undefined
+  const parsed = parsePaneKey(paneKey)
+  const tabId = parsed?.tabId
+  const leafId = parsed?.leafId
+  const tab = useAppStore((state) =>
+    worktreeId && tabId
+      ? state.tabsByWorktree?.[worktreeId]?.find((candidate) => candidate.id === tabId)
+      : undefined
   )
-  const sessionId = providerSession?.id
-  const transcriptPath = providerSession?.transcriptPath
-  const identity = `${executionHostId}\0${agent}\0${sessionId}`
-  const [resolved, setResolved] = useState<{ identity: string; title: string } | null>(null)
-  useEffect(() => {
-    if (
-      knownTitle ||
-      !isAiVaultTitleAgent(agent) ||
-      !sessionId ||
-      !executionHostId ||
-      !window.api?.aiVault?.resolveSessionTitles
-    ) {
-      return
-    }
-    let cancelled = false
-    void window.api.aiVault
-      .resolveSessionTitles({
-        executionHostScope: executionHostId,
-        requests: [{ agent, sessionId, ...(transcriptPath ? { transcriptPath } : {}) }]
-      })
-      .then(({ titles }) => {
-        const title = titles
-          .find((entry) => entry.agent === agent && entry.sessionId === sessionId)
-          ?.title.trim()
-        if (!cancelled && title) {
-          setResolved({ identity, title })
-        }
-      })
-      .catch(() => {
-        // Keep the saved title when the execution host is temporarily unavailable.
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [agent, sessionId, transcriptPath, executionHostId, identity, knownTitle])
-  return knownTitle || (resolved?.identity === identity ? resolved.title : undefined)
+  const paneLiveTitle = useAppStore((state) =>
+    tabId
+      ? resolveAgentRowPaneLiveTitle(
+          state.terminalLayoutsByTabId?.[tabId],
+          state.runtimePaneTitlesByTabId?.[tabId],
+          leafId
+        )
+      : null
+  )
+  const providerSessionTitle = useAppStore((state) =>
+    agentType && providerSessionId
+      ? state.aiVaultSessionTitlesByKey?.[aiVaultSessionTitleKey(agentType, providerSessionId)]
+      : undefined
+  )
+  if (!agentType) {
+    return manualPaneTitle?.trim() || undefined
+  }
+  return (
+    getAgentRowConversationName(
+      tab ?? { customTitle: null, title: '' },
+      agentType,
+      paneLiveTitle,
+      providerSessionId,
+      { manualPaneTitle, providerSessionTitle, recordedTitle }
+    ) ?? undefined
+  )
 }

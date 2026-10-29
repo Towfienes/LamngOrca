@@ -123,6 +123,48 @@ function getWorktreeItemRowGeometry(
   }
 }
 
+function getRepoTreeStyle(itemRow: WorktreeItemRow): React.CSSProperties | undefined {
+  if (itemRow.repoTreeLevel === undefined) {
+    return undefined
+  }
+  const level = itemRow.repoTreeLevel
+  // Why: custom properties drive the connector geometry in deck-chrome.css.
+  return Object.fromEntries([
+    ['--deck-tree-level', level],
+    ['--deck-tree-trunk-index', Math.max(0, level - 1)]
+  ])
+}
+
+// Lines of ancestor trunks that keep running past this row, plus this row's own trunk when it has children.
+function renderRepoTreeTrunks(itemRow: WorktreeItemRow): React.ReactNode {
+  const level = itemRow.repoTreeLevel
+  if (level === undefined || level === 0) {
+    return null
+  }
+  return (
+    <>
+      {itemRow.repoTreeTrail?.map((running, trunk) =>
+        running ? (
+          <span
+            key={trunk}
+            className="deck-tree-trunk"
+            style={Object.fromEntries([['--deck-tree-trunk-index', trunk]])}
+            aria-hidden
+          />
+        ) : null
+      )}
+      {itemRow.repoTreeHasChildren ? (
+        <span
+          className="deck-tree-trunk"
+          data-own="true"
+          style={Object.fromEntries([['--deck-tree-trunk-index', level]])}
+          aria-hidden
+        />
+      ) : null}
+    </>
+  )
+}
+
 export function renderWorktreeItemRow(
   ctx: WorktreeItemRowContext,
   itemRow: WorktreeItemRow,
@@ -157,6 +199,7 @@ export function renderWorktreeItemRow(
       data-worktree-host-identity={worktreeIdentity}
       data-worktree-row-key={itemRow.rowKey}
       data-repo-worktree-tree={itemRow.repoTree}
+      data-repo-worktree-level={itemRow.repoTreeLevel}
       data-worktree-section-key={itemRow.sectionKey}
       data-worktree-drag-id={worktreeDragGroupKey ? itemRow.worktree.id : undefined}
       data-worktree-drag-group-key={worktreeDragGroupKey}
@@ -183,9 +226,11 @@ export function renderWorktreeItemRow(
         ctx.onRowPointerDown(event, itemRow.worktree, itemRow.rowKey)
       }}
       style={{
-        paddingLeft: surfaceInset > 0 ? `${surfaceInset}px` : undefined
+        paddingLeft: surfaceInset > 0 ? `${surfaceInset}px` : undefined,
+        ...getRepoTreeStyle(itemRow)
       }}
     >
+      {renderRepoTreeTrunks(itemRow)}
       <WorktreeCard
         worktree={itemRow.worktree}
         repo={itemRow.repo}

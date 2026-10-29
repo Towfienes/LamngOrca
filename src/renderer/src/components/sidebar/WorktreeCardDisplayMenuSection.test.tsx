@@ -9,8 +9,13 @@ import { WorktreeCardDisplayMenuSection } from './WorktreeCardDisplayMenuSection
 const setWorktreeCardMode = vi.fn()
 const setWorktreeCardProperties = vi.fn()
 const setAgentActivityDisplayMode = vi.fn()
+const updateSettings = vi.fn()
 
-let settings = { compactWorktreeCards: false, experimentalNewWorktreeCardStyle: false }
+let settings: {
+  compactWorktreeCards: boolean
+  experimentalNewWorktreeCardStyle: boolean
+  showWorktreeCardHoverDetails?: boolean
+} = { compactWorktreeCards: false, experimentalNewWorktreeCardStyle: false }
 let projectGroups: unknown[] = []
 let worktreeCardProperties = [
   'status',
@@ -34,6 +39,7 @@ vi.mock('@/store', () => ({
       setWorktreeCardMode,
       setWorktreeCardProperties,
       settings,
+      updateSettings,
       worktreeCardProperties
     })
 }))
@@ -131,6 +137,7 @@ beforeEach(() => {
   setAgentActivityDisplayMode.mockReset()
   setWorktreeCardMode.mockReset()
   setWorktreeCardProperties.mockReset()
+  updateSettings.mockReset()
 })
 
 afterEach(() => {
@@ -176,5 +183,37 @@ describe('WorktreeCardDisplayMenuSection', () => {
 
     expect(container?.textContent).toContain('Branch / folder path')
     expect(container?.textContent).not.toContain('Branch name')
+  })
+
+  it('toggles the hover details setting from the card display menu', () => {
+    settings = { compactWorktreeCards: false, experimentalNewWorktreeCardStyle: true }
+
+    renderMenu()
+
+    const hoverDetailsButton = [...(container?.querySelectorAll('button') ?? [])].find(
+      (button) => button.textContent === 'Hover details'
+    )
+    expect(hoverDetailsButton?.getAttribute('data-checked')).toBe('false')
+
+    act(() => {
+      hoverDetailsButton?.click()
+    })
+
+    expect(updateSettings).toHaveBeenCalledWith({ showWorktreeCardHoverDetails: true })
+  })
+
+  it('shows the hover details setting as checked when it is on', () => {
+    settings = {
+      compactWorktreeCards: false,
+      experimentalNewWorktreeCardStyle: true,
+      showWorktreeCardHoverDetails: true
+    }
+
+    renderMenu()
+
+    const hoverDetailsButton = [...(container?.querySelectorAll('button') ?? [])].find(
+      (button) => button.textContent === 'Hover details'
+    )
+    expect(hoverDetailsButton?.getAttribute('data-checked')).toBe('true')
   })
 })

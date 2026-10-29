@@ -2,6 +2,9 @@
 import { OrcaRuntimeWithTerminalCreateDeduplication } from './orca-runtime-terminal-create-deduplication'
 import * as dependencies from './orca-runtime-create-terminal-dependencies'
 import { createDesktopTerminal } from './orca-runtime-create-terminal-desktop'
+import { agentJoinRevealSplit, resolveRevealedAgentJoin } from './runtime-agent-join-target'
+import { stampFreshPtyLaunch } from './runtime-pty-launch-stamp'
+import { revealCreatedTerminal } from './runtime-terminal-create-reveal'
 import { buildRuntimeAgentTeamsLaunchPlan } from './orca-runtime-agent-teams-launch-plan'
 import { createPtySpawnCommitReporter } from './orca-runtime-report-pty-spawn-commit'
 import { recordPtySurface, spawnSurfaceClaimSequence } from './pty-recorded-surface-topology'
@@ -42,6 +45,16 @@ export class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTerminalCreate
       let preAllocatedHandle =
         launchOpts.preAllocatedHandle ?? this.createPreAllocatedTerminalHandle()
       let { tabId, leafId, paneKey } = dependencies.allocateTerminalPaneIdentity(launchOpts)
+      // Agents join the worktree's open tab as a split; the pane key is minted under that tab so hooks match.
+      const joinTarget = resolveRevealedAgentJoin(
+        presentation !== 'background' && Boolean(this.notifier?.revealTerminalSession),
+        launchOpts,
+        this.mobileSessionTabsByWorktree.get(workspace.id)
+      )
+      if (joinTarget) {
+        tabId = joinTarget.tabId
+        paneKey = dependencies.makePaneKey(tabId, leafId)
+      }
       const claimedStablePaneCreate = this.ptyController.claimStablePaneCreate?.({
         worktreeId: workspace.id,
         connectionId: workspace.connectionId,
@@ -214,21 +227,15 @@ export class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTerminalCreate
         if (pty) {
           pty.runtimeSessionOwned = true
           if (!adoptedStablePane) {
-            if (launchOpts.title) {
-              const observedAt = this.nextTitleObservationSequence()
-              pty.title = launchOpts.title
-              pty.titleUpdatedAt = observedAt
-              this.setPtyManagementTitleFromObservedTitle(pty, launchOpts.title, observedAt)
-            } else {
-              pty.title = null
-              pty.titleUpdatedAt = null
-            }
-            pty.launchConfig = effectiveLaunchConfig
-              ? dependencies.copySleepingAgentLaunchConfig(effectiveLaunchConfig)
-              : null
-            pty.launchToken = launchToken ?? null
-            pty.launchIncarnationId = launchToken ? pty.incarnationId : null
-            pty.launchAgent = launchOpts.launchAgent ?? null
+            stampFreshPtyLaunch(
+              pty,
+              { ...launchOpts, launchConfig: effectiveLaunchConfig, launchToken },
+              {
+                nextObservation: () => this.nextTitleObservationSequence(),
+                setManagementTitle: (...args) =>
+                  this.setPtyManagementTitleFromObservedTitle(...args)
+              }
+            )
           }
           recordPtySurface(pty, tabId, paneKey, spawnSurfaceClaimSequence(this.graphSequence))
         }
@@ -244,32 +251,25 @@ export class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTerminalCreate
             ...(cwd !== workspace.path ? { startupCwd: cwd } : {})
           })
         }
-        let surface: dependencies.RuntimeTerminalCreate['surface'] = 'background'
-        let warning: string | undefined
-        if (presentation !== 'background' && this.notifier?.revealTerminalSession) {
-          try {
-            await this.notifier.revealTerminalSession(workspace.id, {
-              ptyId: result.id,
-              title: launchOpts.title ?? null,
-              ...(cwd !== workspace.path ? { cwd } : {}),
-              ...(effectiveLaunchConfig ? { launchConfig: effectiveLaunchConfig } : {}),
-              ...(launchToken ? { launchToken } : {}),
-              ...(launchOpts.launchAgent ? { launchAgent: launchOpts.launchAgent } : {}),
-              ...(launchOpts.viewMode ? { viewMode: launchOpts.viewMode } : {}),
-              activate: presentation === 'focused',
-              ...(presentation ? { presentation } : {}),
-              ...dependencies.ownerSurfacing(opts.surfaceOwner !== false),
-              tabId,
-              leafId
-            })
-            surface = 'visible'
-          } catch (err) {
-            console.warn(`[terminal-create] failed to create inactive tab for ${result.id}:`, err)
-            warning = dependencies.createTerminalRevealWarning(handle, err)
+        const { surface, warning } = await revealCreatedTerminal(
+          this.notifier,
+          workspace.id,
+          presentation,
+          handle,
+          {
+            ptyId: result.id,
+            title: launchOpts.title ?? null,
+            ...(cwd !== workspace.path ? { cwd } : {}),
+            ...(effectiveLaunchConfig ? { launchConfig: effectiveLaunchConfig } : {}),
+            ...(launchToken ? { launchToken } : {}),
+            ...(launchOpts.launchAgent ? { launchAgent: launchOpts.launchAgent } : {}),
+            ...(launchOpts.viewMode ? { viewMode: launchOpts.viewMode } : {}),
+            ...dependencies.ownerSurfacing(opts.surfaceOwner !== false),
+            tabId,
+            leafId,
+            ...agentJoinRevealSplit(joinTarget)
           }
-        } else if (presentation !== 'background') {
-          warning = dependencies.createTerminalRevealWarning(handle)
-        }
+        )
         return {
           handle,
           tabId,

@@ -16,6 +16,16 @@ import {
 
 export type DeckAccountAgent = Extract<TuiAgent, 'claude' | 'codex' | 'antigravity'>
 
+/** Whether a quick-slot agent first picks an account; the rest open session history directly. */
+export function deckAgentHasAccountStep(agent: TuiAgent): boolean {
+  return (
+    agent === 'claude' ||
+    agent === 'claude-agent-teams' ||
+    agent === 'codex' ||
+    agent === 'antigravity'
+  )
+}
+
 export function deckAccountLaunchIsLocal(worktreeId: string): boolean {
   const state = useAppStore.getState()
   const context = resolveAgentLaunchExecutionContext(state, { worktreeId })

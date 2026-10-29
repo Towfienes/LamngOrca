@@ -133,6 +133,9 @@ export async function getRuntimeBackedStoredSettings(): Promise<GlobalSettings> 
     if (typeof result.settings.compactWorktreeCards === 'boolean') {
       runtimeSettings.compactWorktreeCards = result.settings.compactWorktreeCards
     }
+    if (typeof result.settings.showWorktreeCardHoverDetails === 'boolean') {
+      runtimeSettings.showWorktreeCardHoverDetails = result.settings.showWorktreeCardHoverDetails
+    }
     if (typeof result.settings.minimaxGroupId === 'string') {
       runtimeSettings.minimaxGroupId = result.settings.minimaxGroupId
     }
@@ -203,6 +206,9 @@ export async function syncRuntimeBackedSettings(
   }
   if (typeof updates.compactWorktreeCards === 'boolean') {
     runtimeUpdates.compactWorktreeCards = updates.compactWorktreeCards
+  }
+  if (typeof updates.showWorktreeCardHoverDetails === 'boolean') {
+    runtimeUpdates.showWorktreeCardHoverDetails = updates.showWorktreeCardHoverDetails
   }
   if (typeof updates.minimaxGroupId === 'string') {
     runtimeUpdates.minimaxGroupId = updates.minimaxGroupId

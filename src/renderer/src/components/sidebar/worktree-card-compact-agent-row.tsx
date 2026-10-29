@@ -7,7 +7,11 @@ import { AgentIcon } from '@/lib/agent-catalog'
 import { agentTypeToIconAgent, formatAgentTypeLabel } from '@/lib/agent-status'
 import { cn } from '@/lib/utils'
 import { getAgentDotState } from './worktree-card-agent-summary'
-import { getAgentRowPrimaryText } from '@/lib/agent-row-primary-text'
+import {
+  getAgentRowFallbackName,
+  getAgentRowPrimaryText,
+  getAgentSessionTooltip
+} from '@/lib/agent-row-primary-text'
 import { formatAgentToolPreview } from '@/lib/agent-row-tool-preview'
 import { agentNoUpdateLabel } from '@/lib/agent-row-decay-state'
 import { useAgentRowConversationName } from '@/components/dashboard/use-agent-row-conversation-name'
@@ -20,8 +24,14 @@ function getCompactAgentPrimary(
   agent: DashboardAgentRowData,
   conversationName: string | null
 ): string {
-  const prompt = conversationName ?? getAgentRowPrimaryText(agent.entry)
-  return prompt || agentStateLabel(getAgentDotState(agent))
+  if (conversationName) {
+    return conversationName
+  }
+  // Why: subagent rows are named by their spawn description, which is already a label.
+  if (agent.rowSource === 'subagent') {
+    return getAgentRowPrimaryText(agent.entry) || agentStateLabel(getAgentDotState(agent))
+  }
+  return getAgentRowFallbackName(agent.entry, agent.agentType)
 }
 
 export function getCompactAgentSecondary(
@@ -136,7 +146,11 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   const leadingText = dotState === 'monitoring' ? secondary : primary
   const trailingText =
     dotState === 'monitoring' ? (primary === secondary ? '' : primary) : secondary
-  const rowTitle = `${leadingText}${trailingText ? ` - ${trailingText}` : ''}`
+  const rowTitle = getAgentSessionTooltip(
+    `${leadingText}${trailingText ? ` - ${trailingText}` : ''}`,
+    agent.agentType,
+    agent.entry
+  )
   const model = agent.entry.model?.trim() ?? ''
   const shortTime = getCompactAgentTime(agent, now)
   const cacheTimer = usePromptCacheCountdownForPane(agent.paneKey, cacheTimerActive)

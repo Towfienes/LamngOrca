@@ -35,6 +35,8 @@ export type TerminalState = {
   activeTabIdByWorktree: Record<string, string | null>
   ptyIdsByTabId: Record<string, string[]>
   runtimePaneTitlesByTabId: Record<string, Record<number, string>>
+  /** Provider titles by `aiVaultSessionTitleKey`, one per session; renderer-only and refetched on launch. */
+  aiVaultSessionTitlesByKey: Record<string, string>
   unreadTerminalTabs: Record<string, StoredAgentAttentionUnread>
   unreadTerminalPanes: Record<string, StoredAgentAttentionUnread>
   unreadAgentCompletionPanes: Record<string, StoredAgentAttentionUnread>

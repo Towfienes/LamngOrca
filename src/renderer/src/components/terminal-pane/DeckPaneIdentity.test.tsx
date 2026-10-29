@@ -252,10 +252,10 @@ it('does not reuse old reasoning after the live model changes', () => {
   expect(container.querySelector('[data-pane-reasoning]')).toBeNull()
 })
 
-it('shows a session placeholder when there is no title yet', () => {
+it('shows the neutral agent name, as the sidebar does, when there is no title yet', () => {
   render(<DeckPaneIdentity paneKey={paneKey} />)
   expectAccount('b@example.invalid')
-  expect(screen.getByText('Session')).toBeTruthy()
+  expect(screen.getByText('Codex')).toBeTruthy()
 })
 
 it('shows an existing Claude session account from its reported transcript without launch metadata', () => {

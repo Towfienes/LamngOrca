@@ -30,17 +30,43 @@ it('anchors visible repo siblings to the main worktree and preserves sibling ord
   expect(input.map((item) => item.repoTree)).toEqual([undefined, undefined, undefined])
 })
 
-it('moves the existing lineage subtree together without rewriting its ancestry', () => {
+it('draws lineage descendants as tree rows without rewriting their ancestry', () => {
   const nested = row('nested', false, { depth: 1, lineageTrail: [false] })
-  const input = [row('feature'), row('main', true, { lineageChildCount: 1 }), nested]
+  const grandchild = row('grandchild', false, { depth: 2, lineageTrail: [false, false] })
+  const input = [
+    row('feature'),
+    row('main', true, { lineageChildCount: 1, lineageGroupKey: 'lineage:main' }),
+    nested,
+    grandchild
+  ]
   const output = withRepoWorktreeTree(input)
-  expect(output.map((item) => item.type === 'item' && item.worktree.id)).toEqual([
-    'main',
-    'nested',
-    'feature'
+  const items = output.filter((item): item is WorktreeRow => item.type === 'item')
+  expect(items.map((item) => [item.worktree.id, item.repoTree, item.repoTreeLevel])).toEqual([
+    ['main', 'root', 0],
+    ['nested', 'branch', 1],
+    ['grandchild', 'last', 2],
+    ['feature', 'last', 1]
   ])
-  expect(output[1]).toBe(nested)
+  // Flattened so no lineage pill or nested card is drawn; the input rows keep their lineage data.
+  expect(items.every((item) => item.depth === 0 && item.lineageChildCount === 0)).toBe(true)
+  expect(items[0].lineageGroupKey).toBeUndefined()
   expect(nested.depth).toBe(1)
+  expect(items.map((item) => item.repoTreeHasChildren)).toEqual([true, true, false, false])
+  // The main trunk keeps running past the grandchild because `feature` follows it.
+  expect(items[2].repoTreeTrail).toEqual([true])
+})
+
+it('ends a trunk with the last child so deeper rows do not keep drawing it', () => {
+  const input = [
+    row('main', true),
+    row('child', false, { depth: 1 }),
+    row('grandchild', false, { depth: 2 })
+  ]
+  const items = withRepoWorktreeTree(input).filter(
+    (item): item is WorktreeRow => item.type === 'item'
+  )
+  expect(items.map((item) => item.repoTree)).toEqual(['root', 'last', 'last'])
+  expect(items[2].repoTreeTrail).toEqual([false])
 })
 
 it('leaves filtered, pinned and single-worktree groups unconnected', () => {

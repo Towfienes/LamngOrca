@@ -24,6 +24,7 @@ const useAppStoreMock = vi.fn(
       gitStatusByWorktree: Record<string, never[]>
       repos: never[]
       worktreesByRepo: Record<string, never[]>
+      getKnownWorktreeById: () => null
       unifiedTabsByWorktree: Record<string, unknown[]>
       activeGroupIdByWorktree: Record<string, string>
       pinTab: typeof pinTabMock
@@ -40,6 +41,7 @@ const useAppStoreMock = vi.fn(
       gitStatusByWorktree: {},
       repos: [],
       worktreesByRepo: {},
+      getKnownWorktreeById: () => null,
       unifiedTabsByWorktree: appStoreSnapshot.unifiedTabsByWorktree,
       activeGroupIdByWorktree: appStoreSnapshot.activeGroupIdByWorktree,
       pinTab: pinTabMock,
@@ -124,6 +126,9 @@ vi.mock('./BrowserTab', () => ({
   getBrowserTabLabel: () => ''
 }))
 
+vi.mock('../tab-group/WorkspaceTabDots', () => ({ WorkspaceTabDots: () => null }))
+// Why: these cases exercise the text tab strip, which the Deck dots mode replaces.
+vi.mock('@/lib/workspace-tab-dots', () => ({ selectIsTabDotsStrip: () => false }))
 vi.mock('./QuickLaunchButton', () => ({
   QuickLaunchAgentMenuItems: function QuickLaunchAgentMenuItems() {
     return null

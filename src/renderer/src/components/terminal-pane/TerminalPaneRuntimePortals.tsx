@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import CodexRestartChip from '../CodexRestartChip'
 import { CodexSharedServerBanner } from './CodexSharedServerBanner'
+import { CodexPaneSessionFooter } from './CodexPaneSessionFooter'
 import { TerminalSshReconnectOverlay } from './TerminalSshReconnectOverlay'
 import { TerminalRemoteRuntimeReconnectBanner } from './TerminalRemoteRuntimeReconnectBanner'
 import { TerminalProcessExitOverlay } from './TerminalProcessExitOverlay'
@@ -10,14 +11,24 @@ import { getFitOverrideForPty } from '@/lib/pane-manager/mobile-fit-overrides'
 import { shouldShowMobileDriverOverlay } from './mobile-driver-overlay-visibility'
 import { shouldChatTakeOverMobileSurface } from '../native-chat/native-chat-send-eligibility'
 import type { TerminalPaneController } from './use-terminal-pane-controller'
+import { makePaneKey } from '../../../../shared/stable-pane-id'
 
 export function TerminalPaneCodexRestartPortals({
   controller
 }: {
   controller: TerminalPaneController
 }): React.JSX.Element {
-  const { activePane, isActive, isVisible, managedPanes, paneTransportsRef, savedLayout, tabId } =
-    controller
+  const {
+    activePane,
+    chatLeafId,
+    effectiveChatViewMode,
+    isActive,
+    isVisible,
+    managedPanes,
+    paneTransportsRef,
+    savedLayout,
+    tabId
+  } = controller
   return (
     <>
       {managedPanes.map((pane) => {
@@ -42,6 +53,14 @@ export function TerminalPaneCodexRestartPortals({
               tabId={tabId}
               leafId={pane.leafId}
             />
+            {!effectiveChatViewMode || pane.leafId !== chatLeafId ? (
+              <CodexPaneSessionFooter
+                key={`codex-footer-${pane.id}-${ptyId}`}
+                paneKey={makePaneKey(tabId, pane.leafId)}
+                ptyId={ptyId}
+                terminal={pane.terminal}
+              />
+            ) : null}
           </>,
           pane.container,
           `codex-restart-${pane.id}`

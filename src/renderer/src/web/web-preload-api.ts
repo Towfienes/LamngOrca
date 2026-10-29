@@ -111,6 +111,16 @@ function createWebPreloadApi(): Partial<PreloadApi> {
     cursorAccounts: createCursorAccountsApi(),
     codexAccounts: createCodexAccountsApi(),
     claudeAccounts: createClaudeAccountsApi(),
+    claude9: {
+      // Why: claude9 runs a host binary; the web client has no host shell to run it in.
+      list: () =>
+        Promise.resolve({
+          available: false,
+          reason: 'claude9 is only available in the desktop app',
+          fetchedAt: Date.now()
+        } as const),
+      sessions: () => Promise.resolve([])
+    },
     cli: createCliApi(),
     macosTccPrompts: createMacosTccPromptsApi(),
     codexConfigSync: {

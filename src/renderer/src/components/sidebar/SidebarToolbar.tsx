@@ -1,4 +1,6 @@
 import SidebarNav from './SidebarNav'
+import { WorkspaceOpenButton } from './WorkspaceOpenButton'
+import { TabBarQuickCommandsButton } from '../tab-bar/TabBarQuickCommandsButton'
 import SetupScriptPromptCard from './SetupScriptPromptCard'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import React from 'react'
@@ -34,6 +36,10 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
   useTranslation()
   const [workspaceBoardMovedHintOpen, setWorkspaceBoardMovedHintOpen] = React.useState(false)
   const movedHintEligibleRef = React.useRef<boolean | null>(null)
+  const worktreeId = useAppStore((state) => state.activeWorktreeId)
+  const groupId = useAppStore((state) =>
+    state.activeWorktreeId ? state.activeGroupIdByWorktree[state.activeWorktreeId] : undefined
+  )
   const persistedUIReady = useAppStore((state) => state.persistedUIReady)
   const hasUsedWorkspaceBoard = useAppStore((state) =>
     hasFeatureInteraction(state.featureInteractions, 'workspace-board')
@@ -77,6 +83,8 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
       <div className="deck-sidebar-toolbar flex items-center justify-between border-t border-worktree-sidebar-border px-2 py-1.5">
         <div className="flex min-w-0 items-center gap-1">
           <SidebarSettingsHelpMenu />
+          <WorkspaceOpenButton application="vscode" />
+          <WorkspaceOpenButton application="file-manager" />
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon-xs" aria-label="Tools and search">
@@ -90,6 +98,9 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
           </Popover>
         </div>
         <div className="flex items-center gap-1">
+          {worktreeId && groupId ? (
+            <TabBarQuickCommandsButton worktreeId={worktreeId} groupId={groupId} iconOnly />
+          ) : null}
           <ScrollToCurrentWorkspaceToolbarButton />
           <Tooltip open={workspaceBoardMovedHintOpen ? true : undefined}>
             <TooltipTrigger asChild>

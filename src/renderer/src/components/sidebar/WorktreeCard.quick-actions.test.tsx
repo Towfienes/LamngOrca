@@ -21,6 +21,7 @@ let browserTabsByWorktree: Record<string, { id: string }[]> = {}
 let settings: Partial<GlobalSettings> | null = null
 let projectGroups: unknown[] = []
 let workspaceDeleteModifierPressed = false
+let workspaceSleeping = false
 let gitConflictOperationByWorktree: Record<string, GitConflictOperation> = {}
 let WorktreeCard: typeof WorktreeCardComponent
 
@@ -62,7 +63,7 @@ vi.mock('./use-worktree-activity-status', () => ({
 }))
 
 vi.mock('./use-worktree-sleep-state', () => ({
-  useIsSleepingWorktree: () => false
+  useIsSleepingWorktree: () => workspaceSleeping
 }))
 
 vi.mock('./CacheTimer', () => ({
@@ -145,7 +146,27 @@ describe('WorktreeCard quick actions', () => {
     settings = null
     projectGroups = []
     workspaceDeleteModifierPressed = false
+    workspaceSleeping = false
     gitConflictOperationByWorktree = {}
+  })
+
+  it('offers the sleep quick action on an awake workspace', () => {
+    const markup = renderToStaticMarkup(
+      <WorktreeCard worktree={makeWorktree()} repo={makeRepo()} isActive={false} />
+    )
+
+    expect(markup).toContain('data-worktree-sleep-quick-action=""')
+    expect(markup).toContain('aria-label="Sleep workspace"')
+    expect(markup).toContain('data-workspace-board-preserve-open=""')
+  })
+
+  it('hides the sleep quick action once the workspace has no live pane', () => {
+    workspaceSleeping = true
+    const markup = renderToStaticMarkup(
+      <WorktreeCard worktree={makeWorktree()} repo={makeRepo()} isActive={false} />
+    )
+
+    expect(markup).not.toContain('data-worktree-sleep-quick-action=""')
   })
 
   it('marks the unread toggle as a workspace-board-preserving action', () => {
@@ -482,7 +503,7 @@ describe('WorktreeCard quick actions', () => {
     expect(markup).not.toContain('aria-label="Delete workspace"')
   })
 
-  it('does not replace sleep with delete for a workspace with live activity', () => {
+  it('offers sleep without exposing delete while a workspace has live activity', () => {
     const worktree = makeWorktree()
     tabsByWorktree = { [worktree.id]: [{ id: 'tab-1' }] }
     ptyIdsByTabId = { 'tab-1': ['pty-1'] }
@@ -491,11 +512,11 @@ describe('WorktreeCard quick actions', () => {
       <WorktreeCard worktree={worktree} repo={makeRepo()} isActive={false} />
     )
 
-    expect(markup).not.toContain('aria-label="Sleep workspace"')
+    expect(markup).toContain('aria-label="Sleep workspace"')
     expect(markup).not.toContain('aria-label="Delete workspace"')
   })
 
-  it('does not show sleep as the top-right quick action for an active workspace', () => {
+  it('offers sleep on the active workspace too, since sleeping releases its live panes', () => {
     const worktree = makeWorktree()
     tabsByWorktree = { [worktree.id]: [{ id: 'tab-1' }] }
     ptyIdsByTabId = { 'tab-1': ['pty-1'] }
@@ -504,7 +525,7 @@ describe('WorktreeCard quick actions', () => {
       <WorktreeCard worktree={worktree} repo={makeRepo()} isActive />
     )
 
-    expect(markup).not.toContain('aria-label="Sleep workspace"')
+    expect(markup).toContain('aria-label="Sleep workspace"')
     expect(markup).not.toContain('aria-label="Delete workspace"')
   })
 

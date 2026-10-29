@@ -8,6 +8,8 @@ import { useTabBarCreateMenuController } from './use-tab-bar-create-menu-control
 import { useTabBarItemProjection } from './use-tab-bar-item-projection'
 import { renderTabBarSurface } from './tab-bar-surface'
 import { useActiveClientHostedBrowserRowId } from '@/lib/pane-manager/client-hosted-browser-row-state'
+import { useAppStore } from '@/store'
+import { selectIsTabDotsStrip } from '@/lib/workspace-tab-dots'
 
 function TabBarInner(props: TabBarProps): React.JSX.Element {
   const {
@@ -23,6 +25,9 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     onPinFile
   } = props
   const runtime = useTabBarRuntimeModel({ worktreeId, groupId })
+  const dotsOnly = useAppStore((state) =>
+    selectIsTabDotsStrip(state, worktreeId, runtime.resolvedGroupId)
+  )
   const createMenu = useTabBarCreateMenuController({
     worktreeId,
     resolvedGroupId: runtime.resolvedGroupId,
@@ -92,7 +97,8 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     tabStripNavigation,
     tabStripDragScroll,
     activeClientHostedBrowserRowId,
-    togglePinned
+    togglePinned,
+    dotsOnly
   })
 }
 

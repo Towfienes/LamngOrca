@@ -21,12 +21,11 @@ export function useDeckUsageOverview(range: CodexUsageRange, revision: number) {
     setLoading(true)
     setError(null)
     const query = { scope: 'all', range } as const
+    // Why: the Deck panel tracks Claude and Codex only, so other providers stay out of the total.
     void Promise.allSettled([
       window.api.claudeUsage.getSnapshot(query),
-      window.api.codexUsage.getSnapshot(query),
-      window.api.openCodeUsage.getSnapshot(query),
-      window.api.museUsage.getSnapshot(query)
-    ]).then(([claude, codex, opencode, muse]) => {
+      window.api.codexUsage.getSnapshot(query)
+    ]).then(([claude, codex]) => {
       if (cancelled) {
         return
       }
@@ -37,19 +36,12 @@ export function useDeckUsageOverview(range: CodexUsageRange, revision: number) {
           input: {
             claude: claude.status === 'fulfilled' && claude.value ? claude.value : fallback.claude,
             codex: codex.status === 'fulfilled' && codex.value ? codex.value : fallback.codex,
-            opencode:
-              opencode.status === 'fulfilled' && opencode.value
-                ? opencode.value
-                : fallback.opencode,
-            muse: muse.status === 'fulfilled' && muse.value ? muse.value : fallback.muse
+            opencode: EMPTY_USAGE.opencode,
+            muse: EMPTY_USAGE.muse
           }
         }
       })
-      if (
-        [claude, codex, opencode, muse].some(
-          (result) => result.status === 'rejected' || !result.value
-        )
-      ) {
+      if ([claude, codex].some((result) => result.status === 'rejected' || !result.value)) {
         setError('Some local usage data is unavailable. Retry or open usage settings.')
       }
       setLoading(false)

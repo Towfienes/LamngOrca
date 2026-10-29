@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { parseAiVaultListResult } from './session-list-result-validation'
 
 describe('parseAiVaultListResult', () => {
+  it.each([true, false, undefined])(
+    'preserves optional child ownership %s across hosts',
+    (isSubagent) => {
+      const result = parseAiVaultListResult({
+        sessions: [{ ...validSession(), isSubagent }],
+        issues: [],
+        scannedAt: '2026-10-25T00:00:00Z'
+      })
+      expect(result.sessions[0].isSubagent).toBe(isSubagent)
+    }
+  )
   it('keeps valid sessions when another wire entry is malformed', () => {
     const parsed = parseAiVaultListResult({
       sessions: [validSession(), { id: 42 }],

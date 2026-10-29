@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { useAppStore } from '@/store'
+import { useSurfaceEntryAnimation } from '@/hooks/use-surface-entry-animation'
 import { useActiveWorktree, useRepoById } from '@/store/selectors'
 import {
   getExplorerDisplayRootOptions,
@@ -90,6 +91,14 @@ function FileExplorerFiles(): React.JSX.Element {
     [expanded, visibleFilesWorktreePath, displayRootPath, worktreePath]
   )
   const tree = useFileExplorerTree(worktreePath, effectiveExpanded, activeWorktreeId)
+  const entryRef = useSurfaceEntryAnimation(
+    `${activeWorktreeId}:${activeWorktree?.hostId}:${displayRootPath}`,
+    rightSidebarOpen &&
+      isFilesViewActive &&
+      !!displayRootPath &&
+      tree.sourceWorkspaceId === activeWorktreeId &&
+      !!tree.dirCache[displayRootPath]
+  )
   const {
     nameFilterQuery,
     setNameFilterQuery,
@@ -320,7 +329,11 @@ function FileExplorerFiles(): React.JSX.Element {
         </div>
         {/* Why: the Files and Contents views share one body slot; layering them
            avoids remounting heavy virtualized panes while preserving full height. */}
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div
+          ref={entryRef}
+          data-explorer-file-surface
+          className="relative min-h-0 flex-1 overflow-hidden"
+        >
           <FileExplorerFilesTreePane
             displayRootPath={displayRootPath}
             activeRepo={activeRepo}

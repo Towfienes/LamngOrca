@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Loader2, Plus, RefreshCw, Settings } from 'lucide-react'
+import { Check, Loader2, Plus, RefreshCw, Settings, X } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { AgentIcon, getAgentLabel } from '@/lib/agent-catalog'
 import { getCodexAccountDisplayLabel } from '@/lib/codex-account-display-label'
 import { getUsageRosterRowState } from '../status-bar/usage-roster-row-state'
 import { getTightestUsageSection } from '../status-bar/UsageRosterPanel'
 import { Button } from '../ui/button'
+import { CodexLoginLinkNotice } from '../settings/CodexLoginLinkNotice'
 import { DeckAccountUsage } from './DeckAccountUsage'
+import { DeckClaude9Detail, DeckClaude9Section, useClaude9Models } from './DeckClaude9Section'
 import type { DeckAccountAgent } from './deck-account-agent-launch'
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
 
@@ -22,19 +24,29 @@ export function DeckAgentAccountPicker({
   agent,
   local,
   onLaunch,
+  onLaunchClaude9,
   onClose
 }: {
   agent: DeckAccountAgent
   local: boolean
   onLaunch: (accountId?: string, login?: boolean) => void
+  /** Present only where a claude9 (9router) launch is wired; adds the 9router row. */
+  onLaunchClaude9?: () => void
   onClose: () => void
 }): React.JSX.Element {
   const settings = useAppStore((s) => s.settings)
   const limits = useAppStore((s) => s.rateLimits)
+  // Why: hover only previews usage; the sign-in target changes on click or keyboard, so moving
+  // the pointer to the button can never retarget it to the last row crossed.
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [targetId, setTargetId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [signingIn, setSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const busyRef = useRef(false)
+  const showClaude9 = local && agent === 'claude' && Boolean(onLaunchClaude9)
+  const claude9 = useClaude9Models(showClaude9)
+  const [c9Preview, setC9Preview] = useState(false)
   const activeId =
     agent === 'claude'
       ? (settings?.activeClaudeManagedAccountIdsByRuntime?.host ??
@@ -67,12 +79,20 @@ export function DeckAgentAccountPicker({
     const roster = agent === 'claude' ? limits.inactiveClaudeAccounts : limits.inactiveCodexAccounts
     return roster.find((a) => a.accountId === id)?.rateLimits ?? null
   }
+  const fetchingForAccount = (id: string | null): boolean => {
+    if (id === null || id === (activeId ?? null) || agent === 'antigravity') {
+      return false
+    }
+    const roster = agent === 'claude' ? limits.inactiveClaudeAccounts : limits.inactiveCodexAccounts
+    return roster.find((a) => a.accountId === id)?.isFetching === true
+  }
   const selectedUsage = usageForAccount(selectedId)
-  const signedOut = accountNeedsSignIn(selectedUsage)
+  const signedOut = accountNeedsSignIn(usageForAccount(targetId))
 
   useEffect(() => {
     const state = useAppStore.getState()
     setSelectedId(activeId ?? null)
+    setTargetId(activeId ?? null)
     if (local && agent === 'claude') {
       void state.fetchInactiveClaudeAccountUsage().catch(() => {})
     }
@@ -91,35 +111,49 @@ export function DeckAgentAccountPicker({
     })
     state.openSettingsPage()
   }
-  const reauthenticate = async (): Promise<void> => {
-    if (!selectedId || agent === 'antigravity' || busyRef.current) {
+  const reauthenticate = async (accountId: string | null): Promise<void> => {
+    if (!accountId || agent === 'antigravity' || busyRef.current) {
       return
     }
     busyRef.current = true
+    setTargetId(accountId)
     setBusy(true)
+    setSigningIn(true)
     setError(null)
     try {
       await (agent === 'claude'
-        ? window.api.claudeAccounts.reauthenticate({ accountId: selectedId })
+        ? window.api.claudeAccounts.reauthenticate({ accountId })
         : window.api.codexAccounts.reauthenticate({
-            accountId: selectedId,
+            accountId,
             activateIfSelectionWasEmpty: false
           }))
       const state = useAppStore.getState()
       await state.fetchSettings()
-      await (agent === 'claude'
-        ? state.fetchInactiveClaudeAccountUsage()
-        : state.fetchInactiveCodexAccountUsage())
+      // Why: main reset the open-debounce for this account, so this re-probes it right away.
+      void (
+        agent === 'claude'
+          ? state.fetchInactiveClaudeAccountUsage()
+          : state.fetchInactiveCodexAccountUsage()
+      ).catch(() => {})
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not sign in. Try again.')
     } finally {
       busyRef.current = false
       setBusy(false)
+      setSigningIn(false)
     }
+  }
+  const cancelSignIn = (): void => {
+    void (
+      agent === 'claude'
+        ? window.api.claudeAccounts.cancelPendingLogin()
+        : window.api.codexAccounts.cancelPendingLogin()
+    ).catch(() => {})
   }
   const previewAccount = (id: string | null): void => {
     if (!busyRef.current) {
       setSelectedId(id)
+      setC9Preview(false)
       setError(null)
     }
   }
@@ -128,7 +162,10 @@ export function DeckAgentAccountPicker({
       return
     }
     previewAccount(id)
+    setTargetId(id)
+    // Why: choosing a signed-out account means renewing exactly that account.
     if (accountNeedsSignIn(usageForAccount(id))) {
+      void reauthenticate(id)
       return
     }
     busyRef.current = true
@@ -138,6 +175,7 @@ export function DeckAgentAccountPicker({
   const previewLabel =
     accounts.find((a) => a.id === selectedId)?.label ??
     (agent === 'antigravity' ? 'Current agy account' : 'Orca default')
+  const targetLabel = accounts.find((a) => a.id === targetId)?.label
   return (
     <div className="flex max-w-[calc(100vw-2rem)]" aria-label={`${getAgentLabel(agent)} accounts`}>
       <div className="w-80 shrink-0 space-y-3 p-3">
@@ -180,6 +218,7 @@ export function DeckAgentAccountPicker({
             const selected = selectedId === account.id
             const usage = usageForAccount(account.id)
             const tightest = usage ? getTightestUsageSection(usage) : null
+            const fetching = fetchingForAccount(account.id)
             return (
               <button
                 key={account.id ?? 'default'}
@@ -205,17 +244,40 @@ export function DeckAgentAccountPicker({
                     </span>
                   ) : null}
                 </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground">
+                <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+                  {/* Why: keep the last known figure while refreshing instead of a blank dash. */}
+                  {fetching ? (
+                    <Loader2 className="size-3 animate-spin" aria-label="Loading usage" />
+                  ) : null}
                   {accountNeedsSignIn(usage)
                     ? 'Sign in again'
                     : tightest
                       ? `${Math.round(100 - tightest.window.usedPercent)}% left`
-                      : '—'}
+                      : fetching
+                        ? 'Loading'
+                        : '—'}
                 </span>
               </button>
             )
           })}
         </div>
+        {showClaude9 && onLaunchClaude9 ? (
+          <DeckClaude9Section
+            list={claude9.list}
+            selected={c9Preview}
+            disabled={busy}
+            onPreview={() => !busyRef.current && setC9Preview(true)}
+            onRetry={claude9.refresh}
+            onLaunch={() => {
+              if (busyRef.current) {
+                return
+              }
+              busyRef.current = true
+              setBusy(true)
+              onLaunchClaude9()
+            }}
+          />
+        ) : null}
         {local && agent === 'antigravity' ? (
           <p className="text-xs text-muted-foreground">
             agy manages this login. Multiple saved accounts are not supported yet.
@@ -240,17 +302,31 @@ export function DeckAgentAccountPicker({
             <Plus />
             {agent === 'antigravity' ? 'Sign in' : 'Add account'}
           </Button>
-          {selectedId ? (
+          {signingIn ? (
+            <Button variant="ghost" size="xs" onClick={cancelSignIn}>
+              <X />
+              Cancel
+            </Button>
+          ) : targetId ? (
             <Button
               variant={signedOut ? 'default' : 'link'}
               size="xs"
               disabled={busy}
-              onClick={() => void reauthenticate()}
+              title={targetLabel}
+              onClick={() => void reauthenticate(targetId)}
             >
-              {busy ? <Loader2 className="animate-spin" /> : <RefreshCw />}Sign in again
+              <RefreshCw />
+              Sign in again
             </Button>
           ) : null}
         </div>
+        {signingIn ? (
+          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground" role="status">
+            <Loader2 className="size-3 animate-spin" />
+            <span className="min-w-0 truncate">Signing in {targetLabel} in your browser…</span>
+          </p>
+        ) : null}
+        {signingIn && agent === 'codex' ? <CodexLoginLinkNotice /> : null}
       </div>
       {local ? (
         <aside
@@ -258,11 +334,17 @@ export function DeckAgentAccountPicker({
           aria-label="Account usage preview"
           aria-live="polite"
         >
-          <p className="text-xs font-medium">Usage</p>
-          <p className="truncate text-xs text-muted-foreground" title={previewLabel}>
-            {previewLabel}
-          </p>
-          <DeckAccountUsage usage={selectedUsage} />
+          {c9Preview ? (
+            <DeckClaude9Detail list={claude9.list} />
+          ) : (
+            <>
+              <p className="text-xs font-medium">Usage</p>
+              <p className="truncate text-xs text-muted-foreground" title={previewLabel}>
+                {previewLabel}
+              </p>
+              <DeckAccountUsage usage={selectedUsage} />
+            </>
+          )}
         </aside>
       ) : null}
     </div>

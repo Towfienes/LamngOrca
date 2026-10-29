@@ -16,6 +16,7 @@ import {
   MIN_AGENT_HIBERNATION_IDLE_MS,
   getEffectiveAgentHibernationIdleMs
 } from '@/lib/agent-hibernation-planner'
+import { DECK_AGENT_HIBERNATION_DISABLED } from '@/lib/deck-agent-hibernation-switch'
 
 export { getExperimentalPaneSearchEntries }
 
@@ -45,9 +46,11 @@ export function ExperimentalPane({
   const showTerminalAttention = matchesSettingsSearch(searchQuery, [
     getExperimentalSearchEntry().terminalAttention
   ])
-  const showAgentHibernation = matchesSettingsSearch(searchQuery, [
-    getExperimentalSearchEntry().agentHibernation
-  ])
+  // Why: Deck keeps agent sleep off at build level, so the toggle must not reappear —
+  // a switch that does nothing would be worse than no switch.
+  const showAgentHibernation =
+    !DECK_AGENT_HIBERNATION_DISABLED &&
+    matchesSettingsSearch(searchQuery, [getExperimentalSearchEntry().agentHibernation])
   const showNewWorktreeCardStyle = matchesSettingsSearch(searchQuery, [
     getExperimentalSearchEntry().newWorktreeCardStyle
   ])

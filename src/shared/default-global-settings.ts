@@ -253,6 +253,8 @@ export function buildDefaultSettings(args: {
     experimentalNewWorktreeCardStyle: false,
     experimentalEphemeralVms: false,
     compactWorktreeCards: false,
+    // Why: the popover opens over the neighbouring rows on a plain pointer pass, so it stays opt-in.
+    showWorktreeCardHoverDetails: false,
     // Why: local desktop stays the default until the user picks a saved runtime environment.
     activeRuntimeEnvironmentId: null,
     // Why: hydrate a stable empty shape so renderer optional-chained reads never hit undefined.

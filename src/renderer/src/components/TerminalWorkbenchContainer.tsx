@@ -1,15 +1,20 @@
-import type React from 'react'
+import type { ReactNode } from 'react'
 import { useAnyBrowserGuestNeedsPaint } from './browser-pane/host-guest/browser-guest-paint-retention'
 
 // Why: the outermost ancestor of every browser <webview>. Parking it with `hidden` whenever
 // the user leaves the workspace view also stops the guest compositing, which silently kills
 // screencast frames for a phone or an agent driving that page.
+//
+// Why no entry animation: an opacity fade on this surface re-composites every xterm canvas
+// underneath it, which showed up as a hitch exactly when a new CLI started painting. The
+// pane's own reveal is enough; the grid must never move or fade (see
+// tests/e2e/deck-terminal-startup-stability.spec.ts).
 export function TerminalWorkbenchContainer({
   isVisible,
   children
 }: {
   isVisible: boolean
-  children: React.ReactNode
+  children: ReactNode
 }): React.JSX.Element {
   const retainBrowserGuestPaint = useAnyBrowserGuestNeedsPaint(!isVisible)
   return (

@@ -40,10 +40,16 @@ export function bindDeferredColdRestoreAndSnapshot(session: ConnectPanePtySessio
     startup: ColdRestoreAgentResumeStartup | null
   ): void => {
     if (startup && !startup.useLiveEntry && startup.sleepingRecordEntry) {
-      session.clearSleepingRecordProviderDuplicates(
-        useAppStore.getState(),
-        startup.sleepingRecordEntry
-      )
+      const state = useAppStore.getState()
+      const launch = state.agentLaunchConfigByPaneKey[session.cacheKey]
+      session.clearSleepingRecordProviderDuplicates(state, startup.sleepingRecordEntry)
+      // Consuming the old capture must not erase the replacement process's launch proof.
+      if (
+        launch?.identity.launchToken === startup.launchToken &&
+        !useAppStore.getState().agentLaunchConfigByPaneKey[session.cacheKey]
+      ) {
+        state.registerAgentLaunchConfig(session.cacheKey, launch.launchConfig, launch.identity)
+      }
     }
   }
   session.mergeStartupEnvWithPaneIdentity = (

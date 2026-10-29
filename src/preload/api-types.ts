@@ -1,4 +1,5 @@
 import type {
+  Claude9Api,
   ClaudeAccountsApi,
   CodexAccountsApi,
   CodexConfigSyncApi,
@@ -104,6 +105,7 @@ export type PreloadApi = {
   keybindings: KeybindingsApi
   codexAccounts: CodexAccountsApi
   claudeAccounts: ClaudeAccountsApi
+  claude9: Claude9Api
   cli: CliApi
   codexConfigSync: CodexConfigSyncApi
   preflight: PreflightApi

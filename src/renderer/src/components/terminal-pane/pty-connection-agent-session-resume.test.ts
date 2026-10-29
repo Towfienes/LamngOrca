@@ -233,6 +233,7 @@ describe('connectPanePty', () => {
     )
     expect(mockStoreState.registerAgentLaunchConfig).toHaveBeenCalledWith(paneKey, launchConfig, {
       agentType: 'codex',
+      providerSession: { key: 'session_id', id: 'codex-session-1' },
       launchToken,
       tabId: 'tab-1',
       leafId: LEAF_1
@@ -398,6 +399,7 @@ describe('connectPanePty', () => {
     )
     expect(mockStoreState.registerAgentLaunchConfig).toHaveBeenCalledWith(paneKey, launchConfig, {
       agentType: 'codex',
+      providerSession: { key: 'session_id', id: 'codex-session-1' },
       launchToken: expect.stringMatching(new RegExp(`^${UUID_RE}$`)),
       tabId: 'tab-1',
       leafId: LEAF_1

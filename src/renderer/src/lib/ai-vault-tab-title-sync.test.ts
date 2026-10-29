@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { AiVaultSessionTitlesResult } from '../../../shared/ai-vault-session-title'
+import {
+  aiVaultSessionTitleKey,
+  type AiVaultSessionTitlesResult
+} from '../../../shared/ai-vault-session-title'
 import { resolveTerminalTabTitle } from '../../../shared/tab-title-resolution'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import {
@@ -59,6 +62,7 @@ function makeState(args: {
     providerSession,
     stateHistory: []
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the sync reads only the slices this fixture fills.
   let state = {
     activeWorktreeId: args.worktreeId,
     activeWorkspaceExecutionHostId: args.executionHostId,
@@ -92,6 +96,25 @@ function makeState(args: {
     detectedWorktreesByRepo: {},
     folderWorkspaces: [],
     getKnownWorktreeById: () => ({ path: args.path }),
+    aiVaultSessionTitlesByKey: {},
+    setAiVaultSessionTitles: (titles: AiVaultSessionTitlesResult['titles']) => {
+      const previous = state
+      state = {
+        ...state,
+        aiVaultSessionTitlesByKey: {
+          ...state.aiVaultSessionTitlesByKey,
+          ...Object.fromEntries(
+            titles.map((title) => [
+              aiVaultSessionTitleKey(title.agent, title.sessionId),
+              title.title
+            ])
+          )
+        }
+      }
+      for (const listener of listeners) {
+        listener(state, previous)
+      }
+    },
     setAiVaultTabTitle: (tabId: string, aiVaultTitle: TerminalTab['aiVaultTitle'] | null) => {
       const previous = state
       state = {
@@ -119,6 +142,47 @@ function makeState(args: {
             { ...entry, updatedAt: entry.updatedAt + 1 }
           ])
         )
+      }
+      for (const listener of listeners) {
+        listener(state, previous)
+      }
+    },
+    addSplitSibling: (sessionId: string) => {
+      const previous = state
+      const paneKey = 'tab-1:leaf-2'
+      const sibling = {
+        ...state.agentStatusByPaneKey['tab-1:leaf-1'],
+        paneKey,
+        providerSession: { key: 'session_id' as const, id: sessionId }
+      }
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the fixture state is a partial AppState like its builder.
+      state = {
+        ...state,
+        agentStatusByPaneKey: { ...state.agentStatusByPaneKey, [paneKey]: sibling },
+        terminalLayoutsByTabId: {
+          'tab-1': {
+            root: {
+              type: 'split',
+              direction: 'vertical',
+              first: { type: 'leaf', leafId: 'leaf-1' },
+              second: { type: 'leaf', leafId: 'leaf-2' }
+            },
+            activeLeafId: 'leaf-1',
+            expandedLeafId: null
+          }
+        }
+      } as unknown as AppState
+      for (const listener of listeners) {
+        listener(state, previous)
+      }
+    },
+    focusLeaf: (leafId: string) => {
+      const previous = state
+      state = {
+        ...state,
+        terminalLayoutsByTabId: {
+          'tab-1': { ...state.terminalLayoutsByTabId['tab-1'], activeLeafId: leafId }
+        }
       }
       for (const listener of listeners) {
         listener(state, previous)
@@ -199,6 +263,76 @@ describe('AI Vault tab title sync', () => {
       stop()
     }
   )
+
+  it('titles every session of a split tab, and focus changes never swap them', async () => {
+    const store = makeState({
+      agent: 'claude',
+      executionHostId: 'ssh:dev-box',
+      worktreeId: 'worktree-1',
+      path: '/workspace/albacore'
+    })
+    store.addSplitSibling('sibling-session')
+    const titles: Record<string, string> = {
+      'claude-session': 'Kho skill MCP và plugin',
+      'sibling-session': 'Tối ưu claude9 giống Claude thuần'
+    }
+    const resolveSessionTitles = vi.fn(async (args: { requests: { sessionId: string }[] }) => ({
+      titles: args.requests.map((request) => ({
+        agent: 'claude' as const,
+        sessionId: request.sessionId,
+        title: titles[request.sessionId]!
+      }))
+    }))
+    const stop = startAiVaultTabTitleSync({ ...store, resolveSessionTitles })
+    const expected = {
+      [aiVaultSessionTitleKey('claude', 'claude-session')]: 'Kho skill MCP và plugin',
+      [aiVaultSessionTitleKey('claude', 'sibling-session')]: 'Tối ưu claude9 giống Claude thuần'
+    }
+    await vi.waitFor(() => expect(store.getState().aiVaultSessionTitlesByKey).toEqual(expected))
+    store.focusLeaf('leaf-2')
+    await vi.waitFor(() =>
+      expect(store.getState().tabsByWorktree['worktree-1'][0].aiVaultTitle?.sessionId).toBe(
+        'sibling-session'
+      )
+    )
+    expect(store.getState().aiVaultSessionTitlesByKey).toEqual(expected)
+    stop()
+  })
+
+  it('files a late reply under its own session, never under the session that replaced it', async () => {
+    const store = makeState({
+      agent: 'claude',
+      executionHostId: 'ssh:dev-box',
+      worktreeId: 'worktree-1',
+      path: '/workspace/albacore'
+    })
+    let settleOld: (result: AiVaultSessionTitlesResult) => void = () => {}
+    const resolveSessionTitles = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<AiVaultSessionTitlesResult>((resolve) => {
+            settleOld = resolve
+          })
+      )
+      .mockResolvedValue({
+        titles: [{ agent: 'claude', sessionId: 'new-session', title: 'New work' }]
+      })
+    const stop = startAiVaultTabTitleSync({ ...store, resolveSessionTitles })
+    await vi.waitFor(() => expect(resolveSessionTitles).toHaveBeenCalledTimes(1))
+    store.setProviderSessionId('new-session')
+    settleOld({ titles: [{ agent: 'claude', sessionId: 'claude-session', title: 'Old work' }] })
+    await vi.waitFor(() =>
+      expect(
+        store.getState().aiVaultSessionTitlesByKey[aiVaultSessionTitleKey('claude', 'new-session')]
+      ).toBe('New work')
+    )
+    expect(
+      store.getState().aiVaultSessionTitlesByKey[aiVaultSessionTitleKey('claude', 'claude-session')]
+    ).toBe('Old work')
+    expect(store.getState().tabsByWorktree['worktree-1'][0].aiVaultTitle?.title).toBe('New work')
+    stop()
+  })
 
   it('uses runtime host authority for folder workspaces', () => {
     const store = makeState({

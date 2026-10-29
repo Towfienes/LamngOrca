@@ -2,6 +2,35 @@ import { describe, expect, it } from 'vitest'
 import { resolveTerminalTabTitle, resolveUnifiedTabLabel } from './tab-title-resolution'
 
 describe('tab title resolution', () => {
+  it('keeps DSH terminal and unified labels aligned with its native session name', () => {
+    for (const [title, expected] of [
+      ['✦ 🐋 Check citations', 'Check citations'],
+      ['⠂ 🐋 Paper review', 'Paper review'],
+      ['✦ 🐋', 'DeepSeek Harness']
+    ]) {
+      const tab = {
+        title,
+        customTitle: null,
+        generatedTitle: 'The approval policy changed',
+        aiVaultTitle: { agent: 'claude' as const, sessionId: 'sibling', title: 'Old title' }
+      }
+      expect(resolveTerminalTabTitle(tab, true)).toBe(expected)
+      expect(
+        resolveUnifiedTabLabel(
+          {
+            label: title,
+            customLabel: null,
+            generatedLabel: tab.generatedTitle,
+            aiVaultTitle: tab.aiVaultTitle
+          },
+          true
+        )
+      ).toBe(expected)
+      expect(resolveTerminalTabTitle({ ...tab, customTitle: 'Manual' }, true)).toBe('Manual')
+      expect(resolveTerminalTabTitle({ ...tab, quickCommandLabel: 'Review' }, true)).toBe('Review')
+    }
+  })
+
   it('uses live terminal titles when generated titles are disabled', () => {
     expect(
       resolveTerminalTabTitle(

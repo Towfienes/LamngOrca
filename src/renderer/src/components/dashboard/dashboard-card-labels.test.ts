@@ -49,11 +49,27 @@ describe('rowConversationName', () => {
   it('publishes a provider title only for the split-pane session that owns it', () => {
     const paneTitles = { 1: '\u2733 Linear work log', 2: '\u2733 Redis cache strategy' }
 
-    expect(rowConversationName(row(LEAF_A, 'session-a'), false, LAYOUT, paneTitles)).toBe(
+    expect(rowConversationName(row(LEAF_A, 'session-a'), LAYOUT, paneTitles, undefined)).toBe(
       'Provider title'
     )
-    expect(rowConversationName(row(LEAF_B, 'session-b'), false, LAYOUT, paneTitles)).toBe(
+    expect(rowConversationName(row(LEAF_B, 'session-b'), LAYOUT, paneTitles, undefined)).toBe(
       'Redis cache strategy'
+    )
+  })
+
+  it("names a split sibling from its own session's title, not the tab owner's", () => {
+    const paneTitles = { 1: '\u2733 Linear work log', 2: '\u2733 Claude Code' }
+    const sessionTitles = { [`claude\0session-b`]: 'Redis cache strategy' }
+    expect(rowConversationName(row(LEAF_B, 'session-b'), LAYOUT, paneTitles, sessionTitles)).toBe(
+      'Redis cache strategy'
+    )
+  })
+
+  it('prefers the pane rename the user typed', () => {
+    const layout = { ...LAYOUT, titlesByLeafId: { [LEAF_B]: 'My parser review' } }
+    const sessionTitles = { [`claude\0session-b`]: 'Redis cache strategy' }
+    expect(rowConversationName(row(LEAF_B, 'session-b'), layout, {}, sessionTitles)).toBe(
+      'My parser review'
     )
   })
 })

@@ -13,6 +13,8 @@ export type SplitPaneAroundLeafIdsOptions = {
   leafId?: string
   ptyId?: string
   placement?: 'before' | 'after'
+  /** false inserts without taking the active pane or focus. */
+  activate?: boolean
 }
 
 type SplitPaneAroundLeafIdsArgs = {
@@ -33,6 +35,7 @@ type SplitPaneAroundLeafIdsArgs = {
   ) => void
   getDragCallbacks: () => DragReorderCallbacks
   setActivePaneId: (paneId: number | null) => void
+  getActivePaneId?: () => number | null
   isDestroyed: () => boolean
 }
 
@@ -61,6 +64,7 @@ export function splitPaneAroundMountedSubtree(
     publishPaneCreated: args.publishPaneCreated,
     getDragCallbacks: args.getDragCallbacks,
     setActivePaneId: args.setActivePaneId,
+    ...(args.getActivePaneId ? { getActivePaneId: args.getActivePaneId } : {}),
     isDestroyed: args.isDestroyed
   })
   if (!createdPane || args.opts?.placement !== 'before') {

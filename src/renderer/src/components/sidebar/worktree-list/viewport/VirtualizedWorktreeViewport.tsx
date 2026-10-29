@@ -28,6 +28,7 @@ import { EMPTY_PROJECT_GROUPS, type VirtualizedWorktreeViewportProps } from './v
 import { useWorktreeDropCommitContext } from '../drag/use-drop-commit-context'
 import { buildWorktreeVirtualRowContext } from './virtual-row-context'
 import { renderWorktreeVirtualRow } from '../rows/virtual-row-dispatch'
+import { DeckWorkspaceSelectionFrame } from '../../DeckWorkspaceSelectionFrame'
 
 const WORKTREE_SIDEBAR_SCROLL_STYLE: React.CSSProperties = {
   // Why: TanStack Virtual owns scroll correction; native overflow anchoring fights it and causes jumps.
@@ -365,6 +366,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
             const row = renderRows[vItem.index]
             return row ? renderWorktreeVirtualRow(rowContext, row, vItem) : null
           })}
+          <DeckWorkspaceSelectionFrame />
         </div>
       </div>
       {showScrollToTop ? <WorktreeListScrollToTopButton onClick={scrollToTop} /> : null}

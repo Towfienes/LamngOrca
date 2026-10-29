@@ -132,6 +132,41 @@ describe('ClaudeRuntimeAuthService', () => {
     expect(readFileSync(target, 'utf8')).toBe('{}')
   })
 
+  it.each([undefined, null])(
+    'inherits the statusline for a missing profile slot, preserves explicit %s',
+    async (statusLine) => {
+      const authPath = createManagedClaudeAuth(
+        testState.userDataDir,
+        'account-1',
+        createClaudeCredentialsJson('one@example.com', 'original')
+      )
+      const store = createStore(
+        createSettings({ claudeManagedAccounts: [createClaudeAccount('account-1', authPath)] })
+      )
+      const hook = getManagedLifecycleHook(getManagedScriptPath())
+      const sharedStatusLine = { type: 'command', command: 'node session-info.cjs', padding: 0 }
+      const source = JSON.stringify({
+        statusLine: sharedStatusLine,
+        hooks: { SessionStart: [{ hooks: [hook] }] }
+      })
+      const globalSettings = join(testState.fakeHomeDir, '.claude', 'settings.json')
+      writeFileSync(globalSettings, source)
+      const target = join(authPath, 'settings.json')
+      const { ClaudeRuntimeAuthService } = await import('./runtime-auth-service')
+      const service = new ClaudeRuntimeAuthService(store as never)
+      // Replacing a settings file during a CLI update must not strand a new session without its footer.
+      for (let launch = 0; launch < 2; launch++) {
+        writeFileSync(target, JSON.stringify({ statusLine, permissions: { allow: ['Read'] } }))
+        await service.prepareForClaudeLaunch({ runtime: 'host' }, 'account-1')
+        const configured = JSON.parse(readFileSync(target, 'utf8'))
+        expect(configured.statusLine).toEqual(statusLine === undefined ? sharedStatusLine : null)
+        expect(configured.permissions).toEqual({ allow: ['Read'] })
+        expect(readFileSync(globalSettings, 'utf8')).toBe(source)
+        expect(store.getSettings().activeClaudeManagedAccountId).toBeNull()
+      }
+    }
+  )
+
   it('does not clobber fresh Claude credentials after clearLastWrittenCredentialsJson', async () => {
     const runtimeCredentialsPath = join(testState.fakeHomeDir, '.claude', '.credentials.json')
     const originalCredentials = createClaudeCredentialsJson('user@example.com', 'original')

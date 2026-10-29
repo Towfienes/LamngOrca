@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { zstdCompressSync } from 'node:zlib'
 import Database from '../sqlite/sync-database'
 
 export async function writeOpenCode2SqliteFixture(root: string): Promise<string> {
@@ -78,7 +79,8 @@ export function isolatedScanRoots(root: string) {
     droidProjectsDir: join(root, 'droid-projects'),
     clineSessionsDir: join(root, 'cline-sessions'),
     kimiSessionsDir: join(root, 'kimi-sessions'),
-    museSessionsDir: join(root, 'muse-sessions')
+    museSessionsDir: join(root, 'muse-sessions'),
+    dshSessionsDir: join(root, 'dsh', 'sessions')
   }
 }
 
@@ -265,4 +267,71 @@ export async function writeMuseScannerFixture(sessionsDir: string): Promise<stri
     }
   ])
   return sessionFile
+}
+
+/**
+ * DeepSeek Harness commits `<root>/<workspace-key>/<sessionId>/session.vN.jsonl.zstd`.
+ * The rows below mirror a real log: a session header, one injected user row that
+ * must not count as the ask, the real prompt, a model route, an assistant turn,
+ * and the title rewrite dsh-tui's own picker shows.
+ */
+export async function writeDshScannerFixture(sessionsDir: string): Promise<string> {
+  const sessionDir = join(sessionsDir, '-tmp-dsh-', 'dsh-session')
+  const logPath = join(sessionDir, 'session.v4.jsonl.zstd')
+  const log = jsonLines([
+    {
+      type: 'session',
+      version: 4,
+      id: 'dsh-session',
+      createdAt: 1_777_634_400_000,
+      cwd: '/tmp/dsh'
+    },
+    {
+      type: 'user/message',
+      seq: 1,
+      time: 1_777_634_400_100,
+      data: {
+        role: 'user',
+        content: [
+          { type: 'text', text: '<system-reminder>injected instructions</system-reminder>' }
+        ],
+        source: { kind: 'agent-instructions' }
+      }
+    },
+    {
+      type: 'user/message',
+      seq: 2,
+      time: 1_777_634_400_200,
+      data: {
+        role: 'user',
+        content: [{ type: 'text', text: 'DSH vault title' }],
+        source: { kind: 'user' }
+      }
+    },
+    {
+      type: 'request/context',
+      seq: 3,
+      time: 1_777_634_400_300,
+      data: { provider: 'lamng', model: 'deepseek-v4-flash' }
+    },
+    {
+      type: 'assistant/message',
+      seq: 4,
+      time: 1_777_634_400_400,
+      data: {
+        turn: 1,
+        step: 1,
+        message: { role: 'assistant', content: [{ type: 'text', text: 'DSH answer' }] }
+      }
+    },
+    { type: 'session/title', seq: 5, time: 1_777_634_400_500, data: { title: 'DSH vault title' } }
+  ])
+  await mkdir(sessionDir, { recursive: true })
+  // One frame per write, the way dsh appends: a decoder that stops at the first
+  // frame would see only the header.
+  await writeFile(
+    logPath,
+    Buffer.concat(log.split('\n').map((row) => zstdCompressSync(Buffer.from(`${row}\n`))))
+  )
+  return logPath
 }

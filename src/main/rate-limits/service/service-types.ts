@@ -97,9 +97,11 @@ export const RATE_LIMITED_STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000
 export const LIVE_CLAUDE_INGEST_DEDUPE_MS = 30 * 1000
 export const INACTIVE_FETCH_DEBOUNCE_MS = 60 * 1000 // 60 seconds — debounce fetch-on-open
 // Why: each inactive Codex probe spawns a real codex process inside that
-// account's live credential home; pace them out instead of bursting every
-// account the moment the switcher opens.
-export const INACTIVE_CODEX_PROBE_STAGGER_MS = 2_000
+// account's live credential home; a small pool bounds the burst when the
+// switcher opens without making the last account wait for every other one.
+export const INACTIVE_CODEX_PROBE_CONCURRENCY = 3
+// Why: Claude probes are HTTP (plus an optional usage-panel PTY), so a few run at once.
+export const INACTIVE_CLAUDE_PROBE_CONCURRENCY = 4
 export const DEFERRED_STARTUP_ACTIVE_REFRESH_MS = 1000
 
 // Why: inactive account arrays are derived from provider caches on demand in getState()/pushToRenderer().
@@ -142,23 +144,6 @@ export function normalizeClaudeConfigDir(dir: string | null | undefined): string
   // Why: normalize mixed Windows separators for path attribution; preserve Linux case sensitivity.
   const trimmed = dir?.trim().replace(/\\/g, '/').replace(/\/+$/, '')
   return trimmed || null
-}
-
-export function delayUnlessAborted(ms: number, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) {
-    return Promise.resolve()
-  }
-  return new Promise((resolve) => {
-    const onAbort = (): void => {
-      clearTimeout(timer)
-      resolve()
-    }
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort)
-      resolve()
-    }, ms)
-    signal.addEventListener('abort', onAbort, { once: true })
-  })
 }
 
 export function isSameUsageWindow(

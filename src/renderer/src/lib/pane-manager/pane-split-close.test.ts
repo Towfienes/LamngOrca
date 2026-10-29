@@ -159,6 +159,41 @@ describe('splitManagedPane', () => {
     expect(publishPaneCreated).toHaveBeenCalledWith(newPane, { cwdPromise })
   })
 
+  it('keeps the current pane active and focused when the split must not activate', () => {
+    const existingPane = createPane(1, null)
+    const newPane = createPane(2, null)
+    const panes = new Map<number, ManagedPaneInternal>([[existingPane.id, existingPane]])
+    const root = new MockElement(['root'])
+    const existingContainer = existingPane.container as unknown as MockElement
+    existingContainer.parentElement = root
+    const setActivePaneId = vi.fn()
+
+    const result = splitManagedPane({
+      paneId: existingPane.id,
+      direction: 'vertical',
+      opts: { activate: false },
+      panes,
+      root: root as unknown as HTMLElement,
+      styleOptions: {},
+      managerOptions: { linkOpenHint: () => '' },
+      createPaneInternal: () => {
+        panes.set(newPane.id, newPane)
+        return newPane
+      },
+      createDivider: () => new MockElement(['pane-divider']) as unknown as HTMLElement,
+      publishPaneCreated: vi.fn(),
+      getDragCallbacks: () => ({}) as never,
+      setActivePaneId,
+      getActivePaneId: () => existingPane.id,
+      isDestroyed: () => false
+    })
+
+    expect(result?.id).toBe(newPane.id)
+    expect(setActivePaneId).not.toHaveBeenCalled()
+    expect(newPane.terminal.focus).not.toHaveBeenCalled()
+    expect(applyPaneOpacity).toHaveBeenCalledWith(expect.anything(), existingPane.id, {})
+  })
+
   it('prepares every pane under a moved mounted subtree for split reparenting', () => {
     const fallbackPane = createPane(1, { dispose: vi.fn() })
     const siblingPane = createPane(2, { dispose: vi.fn() })

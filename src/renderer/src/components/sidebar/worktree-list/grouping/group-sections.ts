@@ -32,6 +32,8 @@ import type {
 import { orderMainWorktreeFirst } from './section-order'
 
 /** Everything section emission reads that stays fixed for one buildRows call. */
+const NO_COLLAPSED_LINEAGE_GROUPS = new Set<string>()
+
 export type SectionAppendContext = {
   result: Row[]
   groupBy: WorktreeGroupBy
@@ -203,7 +205,8 @@ export function appendOrderedGroups(
         groupBy === 'repo' && hostContextLabelByRepoId ? undefined : mixedWorktreeHostContextLabels
       appendWorktreeRows(result, items, repoMap, lineageById, worktreeMap, {
         nestLineage,
-        collapsedGroups,
+        // Why: the repo tree draws lineage children as ordinary rows, so there is no per-parent toggle to honour.
+        collapsedGroups: groupBy === 'repo' ? NO_COLLAPSED_LINEAGE_GROUPS : collapsedGroups,
         groupDepth: projectGroupDepth,
         sectionKey: key,
         hostContextLabelByRepoId,

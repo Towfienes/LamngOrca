@@ -1,49 +1,97 @@
 // @vitest-environment happy-dom
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
+import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { usePaneSessionTitle } from './use-pane-session-title'
-const resolve = vi.fn()
-vi.mock('@/store', () => ({ useAppStore: (selector: (s: object) => unknown) => selector({}) }))
-vi.mock('@/lib/worktree-runtime-owner', () => ({ getExecutionHostIdForWorktree: () => 'local' }))
+
+const LEAF_A = '11111111-1111-4111-8111-111111111111'
+const LEAF_B = '22222222-2222-4222-8222-222222222222'
+let state: Record<string, unknown> = {}
+vi.mock('@/store', () => ({
+  useAppStore: (selector: (s: Record<string, unknown>) => unknown) => selector(state)
+}))
+
+function splitState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    tabsByWorktree: {
+      wt: [
+        {
+          id: 'tab',
+          title: '✳ Kho skill MCP và plugin',
+          customTitle: 'Workspace',
+          aiVaultTitle: { agent: 'claude', sessionId: 'a', title: 'Kho skill MCP và plugin' }
+        }
+      ]
+    },
+    terminalLayoutsByTabId: {
+      tab: {
+        root: {
+          type: 'split',
+          direction: 'vertical',
+          first: { type: 'leaf', leafId: LEAF_A },
+          second: { type: 'leaf', leafId: LEAF_B }
+        },
+        activeLeafId: LEAF_A,
+        expandedLeafId: null
+      }
+    },
+    runtimePaneTitlesByTabId: {},
+    aiVaultSessionTitlesByKey: { 'claude\0b': 'Tối ưu claude9 giống Claude thuần' },
+    ...overrides
+  }
+}
+
 afterEach(() => {
   cleanup()
-  vi.clearAllMocks()
+  state = {}
 })
-it('loads the existing history title once and ignores a late answer for the previous session', async () => {
-  Object.defineProperty(window, 'api', {
-    configurable: true,
-    value: { aiVault: { resolveSessionTitles: resolve } }
+
+it("shows each split pane its own session's title, never the focused sibling's", () => {
+  state = splitState()
+  const { result: a } = renderHook(() =>
+    usePaneSessionTitle(`tab:${LEAF_A}`, 'claude', 'a', 'wt', undefined)
+  )
+  const { result: b } = renderHook(() =>
+    usePaneSessionTitle(`tab:${LEAF_B}`, 'claude', 'b', 'wt', undefined)
+  )
+  expect(a.current).toBe('Kho skill MCP và plugin')
+  expect(b.current).toBe('Tối ưu claude9 giống Claude thuần')
+})
+
+it('follows the session id, so a resumed session never keeps the previous title', () => {
+  state = splitState({
+    aiVaultSessionTitlesByKey: { 'claude\0old': 'Old work', 'claude\0new': 'New work' }
   })
-  let settle: (value: {
-    titles: { agent: string; sessionId: string; title: string }[]
-  }) => void = () => {}
-  resolve
-    .mockImplementationOnce(
-      () =>
-        new Promise((r) => {
-          settle = r
-        })
-    )
-    .mockResolvedValue({
-      titles: [{ agent: 'claude', sessionId: 'new', title: 'New session title' }]
-    })
   const { result, rerender } = renderHook(
-    ({ id }) => usePaneSessionTitle('claude', { key: 'session_id', id }, 'wt', undefined),
+    ({ id }) => usePaneSessionTitle(`tab:${LEAF_B}`, 'claude', id, 'wt', undefined),
     { initialProps: { id: 'old' } }
   )
+  expect(result.current).toBe('Old work')
   rerender({ id: 'new' })
-  await waitFor(() => expect(result.current).toBe('New session title'))
-  await act(async () =>
-    settle({ titles: [{ agent: 'claude', sessionId: 'old', title: 'Wrong session' }] })
-  )
-  expect(result.current).toBe('New session title')
-  rerender({ id: 'new' })
-  expect(resolve).toHaveBeenCalledTimes(2)
+  expect(result.current).toBe('New work')
 })
-it('keeps a known title without scanning history', () => {
+
+it("keeps the user's pane rename over every automatic title", () => {
+  state = splitState()
   const { result } = renderHook(() =>
-    usePaneSessionTitle('codex', { key: 'session_id', id: 'saved' }, 'wt', 'Review parser')
+    usePaneSessionTitle(`tab:${LEAF_B}`, 'claude', 'b', 'wt', 'Review parser')
   )
   expect(result.current).toBe('Review parser')
-  expect(resolve).not.toHaveBeenCalled()
+})
+
+it('shows no title rather than a prompt when the session has no trustworthy name', () => {
+  state = splitState({
+    aiVaultSessionTitlesByKey: { 'claude\0b': '--- name: paper-referee description: x' }
+  })
+  const { result } = renderHook(() =>
+    usePaneSessionTitle(`tab:${LEAF_B}`, 'claude', 'b', 'wt', undefined)
+  )
+  expect(result.current).toBeUndefined()
+})
+
+it('shows a plain terminal pane only its manual title', () => {
+  state = splitState()
+  const { result } = renderHook(() =>
+    usePaneSessionTitle(`tab:${LEAF_B}`, undefined, undefined, 'wt', 'Logs')
+  )
+  expect(result.current).toBe('Logs')
 })

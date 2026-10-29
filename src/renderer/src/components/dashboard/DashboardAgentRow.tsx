@@ -16,7 +16,11 @@ import {
 } from '../../../../shared/agent-main-agent-verdict'
 import { agentVerdictStatusLine } from '@/lib/agent-verdict-status-line'
 import type { DashboardAgentRow as DashboardAgentRowData } from './useDashboardData'
-import { getAgentRowPrimaryText } from '@/lib/agent-row-primary-text'
+import {
+  getAgentRowFallbackName,
+  getAgentRowPrimaryText,
+  getAgentSessionTooltip
+} from '@/lib/agent-row-primary-text'
 import { useAgentRowConversationName } from './use-agent-row-conversation-name'
 import { lastEnteredDoneAt } from './agent-finished-timestamp'
 import {
@@ -140,13 +144,15 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   const startedAt = agent.startedAt > 0 ? agent.startedAt : null
   const doneAt = lastEnteredDoneAt(agent)
   const conversationName = useAgentRowConversationName(agent)
-  const prompt = conversationName ?? getAgentRowPrimaryText(agent.entry)
-  // Why: prompt is '' when unknown, so fall back to the state label to keep the row labeled.
+  // Why: subagent rows are named by their spawn description, which is already a label.
   const displayLabel =
-    prompt ||
-    agentStateLabel(
-      agent.childRow?.displayState ?? asDotState(agent.state, agent.entry.workingMode)
-    )
+    conversationName ??
+    (agent.rowSource === 'subagent'
+      ? getAgentRowPrimaryText(agent.entry) ||
+        agentStateLabel(
+          agent.childRow?.displayState ?? asDotState(agent.state, agent.entry.workingMode)
+        )
+      : getAgentRowFallbackName(agent.entry, agent.agentType))
   const model = agent.entry.model?.trim() ?? ''
   const isMonitoring = agent.state === 'working' && agent.entry.workingMode === 'monitoring'
   const isWorking = agent.state === 'working' && !isMonitoring
@@ -276,7 +282,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
             // Why: the selected-row fill washes out muted text — keep it readable.
             isFocusedPane && !isUnvisited && 'text-foreground/90'
           )}
-          title={displayLabel}
+          title={getAgentSessionTooltip(displayLabel, agent.agentType, agent.entry)}
           role={rail ? 'button' : undefined}
           tabIndex={rail ? 0 : undefined}
           onKeyDown={

@@ -40,6 +40,10 @@ const AGENT_ROOT_ENV_ALLOWLIST = [
   'CLINE_SESSION_DATA_DIR',
   'COPILOT_HOME',
   'DEVIN_HOME',
+  // Why: dsh-tui resolves its session store from these, so a relocated DSH home
+  // must reach the scanner or that install's sessions vanish from history.
+  'DSH_HOME',
+  'DSH_TUI_SESSION_ROOT',
   'GROK_HOME',
   'KIMI_CODE_HOME',
   'OMP_CODING_AGENT_DIR',

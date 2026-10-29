@@ -474,10 +474,11 @@ describe('WorktreeCard agent-list <-> child-worktrees expansion coupling', () =>
     setAgentLineageState({ agentActivityDisplayMode: 'full' })
     const { container } = await renderWorktreeList()
 
-    // Same-tab lineage children must not inherit the parent's conversation name.
-    expect(container.textContent).toContain('Parent Terminal')
+    // Same-tab lineage children must not inherit the parent's conversation name,
+    // and a raw prompt never names a row.
+    expect(container.textContent?.split('Parent Terminal')).toHaveLength(2)
     expect(container.textContent).not.toContain('PARENT_AGENT_PROMPT')
-    expect(container.textContent).toContain('CHILD_AGENT_PROMPT')
+    expect(container.textContent).not.toContain('CHILD_AGENT_PROMPT')
 
     // Both controls exist and are independent DOM elements.
     expect(childWorktreeChip(container)).not.toBeNull()
