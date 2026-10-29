@@ -28,11 +28,14 @@ test('folder workspace also asks before opening a terminal', async ({
       parentPath: folderPath,
       createdFrom: 'folder-scan'
     })
-    await state.fetchProjectGroups()
+    await state.fetchProjectGroups({ runtimeEnvironmentId: null, throwOnError: true })
     if (!group) {
       throw new Error('Could not create folder group')
     }
-    await state.createFolderWorkspace({ projectGroupId: group.id, name: 'Deck folder', folderPath })
+    await state.createFolderWorkspace(
+      { projectGroupId: group.id, name: 'Deck folder', folderPath },
+      { runtimeEnvironmentId: null }
+    )
   }, folderPath)
   await page.getByRole('option').filter({ hasText: 'Deck folder' }).click()
   await expect(page.getByRole('menuitem', { name: 'Blank terminal', exact: true })).toBeVisible()

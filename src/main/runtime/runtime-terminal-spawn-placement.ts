@@ -8,11 +8,16 @@ export function newTabIn(opts: {
   targetGroupId?: string
   title?: string
   presentation?: RuntimeTerminalPresentation
+  agentJoin?: { leafId: string; direction: TerminalPaneSplitDirection }
 }): {
   placement: TerminalPanePlacement
   groupId?: string
 } {
   const { viewMode, targetGroupId } = opts
+  if (opts.agentJoin) {
+    // Deck: an agent joining the open workspace splits its pane instead of opening a tab.
+    return { placement: runtimeSplitPlacement(opts.agentJoin.leafId, opts.agentJoin.direction) }
+  }
   const title = opts.presentation === 'background' ? undefined : opts.title
   const row = {
     ...(viewMode ? { viewMode } : {}),

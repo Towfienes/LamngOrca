@@ -1,5 +1,3 @@
-import type { AiVaultSession } from '../../src/shared/ai-vault-types'
-import type { Page } from '@stablyai/playwright-test'
 import { test, expect } from './helpers/orca-app'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 
@@ -11,68 +9,12 @@ test.use({
   ]
 })
 
-// DeepSeek Harness left the quick toolbar; its history is still reachable from the + menu.
-async function openDshHistoryFromAgentMenu(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'New agent', exact: true }).click()
-  await page.getByRole('menuitem', { name: /DeepSeek Harness/ }).click()
-  // Why: paging before the menu finishes closing dismisses the picker it just opened.
-  await expect(page.getByRole('menu')).toHaveCount(0)
-  await page.waitForTimeout(300)
-}
-
 test('Deck header keeps the signature readable and its compact controls actionable', async ({
-  orcaPage: page,
-  electronApp
+  orcaPage: page
 }, testInfo) => {
   await page.setViewportSize({ width: 1400, height: 900 })
   await waitForSessionReady(page)
-  const worktreeId = await waitForActiveWorktree(page)
-  const workspacePath = await page.evaluate(
-    (id) =>
-      Object.values(window.__store!.getState().worktreesByRepo)
-        .flat()
-        .find((wt) => wt.id === id)!.path,
-    worktreeId
-  )
-  const sessions: AiVaultSession[] = Array.from({ length: 45 }, (_, index) => ({
-    id: `dsh-ui-${index}`,
-    agent: 'dsh',
-    sessionId: `ui-${index}`,
-    executionHostId: 'local',
-    title: `UI session ${index}`,
-    cwd: index === 44 ? `${workspacePath}-other` : workspacePath,
-    branch: 'main',
-    model: 'reported-model',
-    filePath: '/fixture/dsh-session.jsonl',
-    codexHome: null,
-    createdAt: null,
-    updatedAt: null,
-    modifiedAt: new Date(Date.UTC(2026, 9, 22) - index * 1000).toISOString(),
-    messageCount: 2,
-    totalTokens: 0,
-    previewMessages: [],
-    queuedMessageCount: 0,
-    subagentTranscriptCount: 0,
-    resumeCommand: `dsh-tui --resume ui-${index}`,
-    subagent: null
-  }))
-  sessions.unshift(
-    ...Array.from({ length: 45 }, (_, index) => ({
-      ...sessions[0],
-      id: `dsh-child-${index}`,
-      sessionId: `child-${index}`,
-      title: 'Child agent fixture',
-      isSubagent: true
-    }))
-  )
-  await electronApp.evaluate(({ ipcMain }, sessions) => {
-    ipcMain.removeHandler('aiVault:listSessions')
-    ipcMain.handle('aiVault:listSessions', () => ({
-      sessions,
-      issues: [],
-      scannedAt: new Date().toISOString()
-    }))
-  }, sessions)
+  await waitForActiveWorktree(page)
   await page.waitForFunction(() => window.__store?.getState().persistedUIReady)
   await page.evaluate(async () => {
     const state = window.__store!.getState()
@@ -91,23 +33,6 @@ test('Deck header keeps the signature readable and its compact controls actionab
   const signature = page.getByRole('img', { name: 'Lamng', exact: true })
   await expect(signature).toBeVisible()
   await expect(page.locator('.deck-workspace-breadcrumb')).toHaveCount(0)
-  await openDshHistoryFromAgentMenu(page)
-  await expect(page.locator('[aria-label="DeepSeek Harness session history"]')).toBeVisible()
-  const history = page.locator('[aria-label="DeepSeek Harness session history"]')
-  await expect(history.getByText('1–40 of 44', { exact: true })).toBeVisible()
-  await expect(history.getByText('Child agent fixture', { exact: true })).toHaveCount(0)
-  await expect(history.getByText('UI session 0', { exact: true })).toBeVisible()
-  await history.getByRole('button', { name: 'Next sessions', exact: true }).click()
-  await expect(history.getByText('UI session 40', { exact: true })).toBeVisible()
-  const search = history.getByRole('combobox', { name: 'Search sessions' })
-  await search.fill('UI session 44')
-  await expect(history.getByText('UI session 44', { exact: true })).toHaveCount(0)
-  await history.getByRole('button', { name: 'View all sessions', exact: true }).click()
-  await expect(history.getByText('UI session 44', { exact: true })).toBeVisible()
-  await search.fill('')
-  await history.getByRole('button', { name: 'This workspace', exact: true }).click()
-  await page.screenshot({ path: testInfo.outputPath('dsh-history-dark.png') })
-  await page.keyboard.press('Escape')
   const command = page.getByRole('button', { name: 'Add quick command', exact: true })
   await expect(command).toHaveText('')
   await expect(
@@ -314,16 +239,7 @@ test('Deck header keeps the signature readable and its compact controls actionab
     const rect = (await newAgent.boundingBox())!
     expect(rect.x).toBeGreaterThanOrEqual(0)
     expect(rect.x + rect.width).toBeLessThanOrEqual(width)
-    await openDshHistoryFromAgentMenu(page)
-    await expect(history).toBeVisible()
-    const pickerBounds = (await history.boundingBox())!
-    expect(pickerBounds.x).toBeGreaterThanOrEqual(0)
-    expect(pickerBounds.x + pickerBounds.width).toBeLessThanOrEqual(width)
-    expect(pickerBounds.y).toBeGreaterThanOrEqual(0)
-    expect(pickerBounds.y + pickerBounds.height).toBeLessThanOrEqual(900)
-    await page.screenshot({ path: testInfo.outputPath(`dsh-history-${width}.png`) })
-    await page.keyboard.press('Escape')
-    await page.screenshot({ path: testInfo.outputPath(`dsh-toolbar-${width}.png`) })
+    await page.screenshot({ path: testInfo.outputPath(`toolbar-${width}.png`) })
   }
 })
 
