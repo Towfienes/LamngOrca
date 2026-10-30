@@ -24,10 +24,12 @@ import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion
 import { translate } from '@/i18n/i18n'
 import { toast } from 'sonner'
 import { closeSidebarAgentPane } from './close-sidebar-agent-pane'
-import { activateSidebarAgentTab } from './sidebar-agent-tab-activation'
+import {
+  activateRetainedSidebarAgentRow,
+  activateSidebarAgentTab
+} from './sidebar-agent-tab-activation'
 import { SidebarSubagentBadge } from './SidebarSubagentBadge'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
-import { activateRetainedAgentRow } from './activate-retained-agent-row'
 import { selectAgentRowsUnread } from './worktree-card-agent-ack-inputs'
 
 export const SUPPRESS_WORKTREE_LIST_SCROLL_ADJUSTMENT_EVENT =
@@ -165,7 +167,7 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
     [worktreeId]
   )
   const handleActivateRetainedAgent = useCallback(
-    (tabId: string, paneKey: string) => activateRetainedAgentRow(worktreeId, tabId, paneKey),
+    (tabId: string, paneKey: string) => activateRetainedSidebarAgentRow(worktreeId, tabId, paneKey),
     [worktreeId]
   )
 

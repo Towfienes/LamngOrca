@@ -11,10 +11,17 @@ import { stablePaneHasLivePty } from '@/lib/sleeping-agent-pane-ownership'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import { getPtyExecutionHost } from '../../../../shared/terminal-execution-host'
 
-export function activateRetainedAgentRow(worktreeId: string, tabId: string, paneKey: string): void {
+/** 'no-live-pane': nothing left to open; Deck then selects the workspace instead. */
+export type RetainedAgentRowActivation = 'activated' | 'no-live-pane' | 'refused'
+
+export function activateRetainedAgentRow(
+  worktreeId: string,
+  tabId: string,
+  paneKey: string
+): RetainedAgentRowActivation {
   const parsed = parsePaneKey(paneKey)
   if (!parsed || parsed.tabId !== tabId) {
-    return
+    return 'refused'
   }
   const state = useAppStore.getState()
   const nativeTab = state.unifiedTabsByWorktree[worktreeId]?.find(
@@ -31,14 +38,17 @@ export function activateRetainedAgentRow(worktreeId: string, tabId: string, pane
     : getPtyExecutionHost(
         layout?.ptyIdsByLeafId?.[parsed.leafId] ?? state.ptyIdsByTabId[tabId]?.[0]
       )
-  if ((nativeTab ? !target : !hasLiveTerminal) || owner === 'foreign') {
-    return
+  if (owner === 'foreign') {
+    return 'refused'
+  }
+  if (nativeTab ? !target : !hasLiveTerminal) {
+    return 'no-live-pane'
   }
   // Verify an existing destination before workspace activation can resume sleeping panes.
   if (
     activateAndRevealWorkspace(worktreeId, owner ? { executionHostId: owner } : undefined) === false
   ) {
-    return
+    return 'refused'
   }
   if (nativeTab && target) {
     activateStructuredAgentSessionTab({ worktreeId, tabId, target })
@@ -50,4 +60,5 @@ export function activateRetainedAgentRow(worktreeId: string, tabId: string, pane
     })
     activateTerminalTabOnOwner(worktreeId, tabId, parsed.leafId)
   }
+  return 'activated'
 }

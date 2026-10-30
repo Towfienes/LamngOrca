@@ -67,29 +67,18 @@ test('Linux Deck keeps status controls at the top and chrome seamless when narro
       .poll(() =>
         page.locator('.deck-create-bar').evaluate((bar) => {
           const area = bar.getBoundingClientRect()
+          // Dock B is icon-only; every button must stay inside the pill.
           return [...bar.querySelectorAll('button')].every((button) => {
             const box = button.getBoundingClientRect()
-            const text = [...button.childNodes].find(
-              (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
-            )
-            if (!text) {
-              return false
-            }
-            const range = document.createRange()
-            range.selectNode(text)
-            const label = range.getBoundingClientRect()
-            return (
-              box.left >= area.left &&
-              box.right <= area.right + 1 &&
-              label.left >= box.left &&
-              label.right <= box.right + 1
-            )
+            return box.width > 0 && box.left >= area.left - 1 && box.right <= area.right + 1
           })
         })
       )
       .toBe(true)
-    for (const name of ['Worktree', 'Folder', 'New agent']) {
-      await expect(page.getByRole('button', { name, exact: true })).toBeVisible()
+    for (const name of ['New worktree', 'Add folder', 'New blank terminal', 'New agent']) {
+      await expect(
+        page.locator('.deck-create-bar').getByRole('button', { name, exact: true })
+      ).toBeVisible()
     }
   }
   await expect

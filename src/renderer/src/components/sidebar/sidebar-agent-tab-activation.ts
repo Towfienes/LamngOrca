@@ -5,6 +5,8 @@ import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structure
 import { activateTerminalTabOnOwner } from '@/lib/terminal-tab-owner-activation'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import { dismissStaleAgentRowByKey } from '../terminal-pane/stale-agent-row'
+import { activateWorktreeFromSidebar } from '@/lib/sidebar-worktree-activation'
+import { activateRetainedAgentRow } from './activate-retained-agent-row'
 
 /** Opens the pane behind a sidebar agent row, dropping rows whose pane can no longer be resolved. */
 export function activateSidebarAgentTab(worktreeId: string, tabId: string, paneKey: string): void {
@@ -41,5 +43,16 @@ export function activateSidebarAgentTab(worktreeId: string, tabId: string, paneK
       return
     }
     dismissStaleAgentRowByKey(paneKey)
+  }
+}
+
+/** Deck: a slept row whose pane has no live terminal still selects its workspace through the sidebar wake path. */
+export function activateRetainedSidebarAgentRow(
+  worktreeId: string,
+  tabId: string,
+  paneKey: string
+): void {
+  if (activateRetainedAgentRow(worktreeId, tabId, paneKey) === 'no-live-pane') {
+    void activateWorktreeFromSidebar(worktreeId)
   }
 }

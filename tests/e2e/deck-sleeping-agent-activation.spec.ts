@@ -28,16 +28,16 @@ test('clicking a retained sleeping agent selects its workspace in both sidebar m
             paneKey,
             tabId: tab.id,
             worktreeId,
-            agentType: 'dsh',
+            agentType: 'claude',
             state: 'done',
-            prompt: 'Sleeping DSH click fixture',
+            prompt: 'Sleeping agent click fixture',
             updatedAt: now,
             stateStartedAt: now,
             stateHistory: []
           },
           worktreeId,
           tab,
-          agentType: 'dsh',
+          agentType: 'claude',
           startedAt: now
         }
       }
@@ -58,7 +58,13 @@ test('clicking a retained sleeping agent selects its workspace in both sidebar m
         },
         { worktreeId, mode }
       )
-      const row = page.getByText('Sleeping DSH click fixture', { exact: true }).first()
+      // Rows show the session or provider name, never the prompt (DECK_AGENT_UX session names).
+      const agents = page.getByRole('option').getByRole('group', { name: 'Agents' })
+      // Compact rows are buttons; full rows are tree items.
+      const row = agents
+        .getByRole('button', { name: 'Claude', exact: true })
+        .or(agents.getByRole('treeitem'))
+        .first()
       await expect(row).toBeVisible()
       await row.click()
       await expect

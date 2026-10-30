@@ -34,8 +34,19 @@ test('sidebar Agent tiles into the last hovered pane without adding tabs', async
     state.markCodexTerminalServerIsolationNoticeSeen()
     localStorage.setItem('orca.workspaceBoardMovedHintSeen.v1', 'true')
   })
-  const tabs = page.getByTestId('sortable-tab')
-  const tabCount = await tabs.count()
+  const tabCount = (): Promise<number> =>
+    page.evaluate(() => {
+      const state = window.__store!.getState()
+      return (state.tabsByWorktree[state.activeWorktreeId!] ?? []).length
+    })
+  const initialTabs = await tabCount()
+  // Clicks through the DOM so the pointer never leaves the hovered pane.
+  const press = (locator: ReturnType<typeof page.locator>): Promise<void> =>
+    locator.evaluate((element) => {
+      if (element instanceof HTMLElement) {
+        element.click()
+      }
+    })
   const original = page.locator('.pane:visible').first()
   const originalLeaf = await original.getAttribute('data-leaf-id')
   await original.hover()
@@ -44,8 +55,11 @@ test('sidebar Agent tiles into the last hovered pane without adding tabs', async
     await page.locator(`.pane[data-leaf-id="${originalLeaf}"]`).hover()
     await page.getByRole('button', { name: 'New agent', exact: true }).click()
     await page.getByRole('menuitem', { name: /^Codex(?:\s|$)/i }).click()
+    // Agent → Account → Session (DECK_AGENT_UX).
+    await press(page.locator('[aria-label="Launch account"] button').first())
+    await press(page.getByRole('option', { name: 'New session', exact: true }))
     await waitForPaneCount(page, count)
-    await expect(tabs).toHaveCount(tabCount)
+    expect(await tabCount()).toBe(initialTabs)
     await expect
       .poll(
         () =>

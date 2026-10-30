@@ -201,13 +201,11 @@ test('Deck Usage, compact commands and pane mouse interactions', async ({
   await capture('deck-usage-docked-light.png')
   await page.evaluate(() => window.__store!.getState().updateSettings({ theme: 'dark' }))
   await page.evaluate(() => window.__store!.getState().setRightSidebarWidth(348))
-  const command = page.locator('.deck-quick-command:visible').first()
+  // Quick commands live in the bottom sidebar toolbar now.
+  const command = page
+    .locator('.deck-sidebar-toolbar')
+    .getByRole('button', { name: 'Add quick command', exact: true })
   await expect(command).toBeVisible()
-  const bounds = await command.boundingBox()
-  const statusBounds = await page
-    .getByRole('group', { name: 'System status', exact: true })
-    .boundingBox()
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(statusBounds!.x)
   await command.click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.keyboard.press('Escape')

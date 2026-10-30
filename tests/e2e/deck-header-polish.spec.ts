@@ -289,6 +289,8 @@ test('workspace frame follows selection and workspace actions follow the selecte
       return animate(...args)
     }
   })
+  // Notes now open from the pinned prompts panel's notes toggle.
+  await page.getByRole('button', { name: 'Toggle notes', exact: true }).click()
   const notes = page.getByRole('textbox', { name: 'Global notes' })
   await expect(notes).toBeVisible()
   await notes.fill('Global draft: finish UI, then review API')
@@ -374,6 +376,7 @@ test('workspace frame follows selection and workspace actions follow the selecte
     window.api.ui.setZoomLevel(0)
   })
   await expect(page.locator('.deck-usage-total')).toHaveText('$1400.00')
+  await page.getByRole('button', { name: 'Toggle notes', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Global notes' })).toHaveValue(
     'Global draft: finish UI, then review API'
   )

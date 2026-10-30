@@ -12,7 +12,8 @@ test.use({
   ]
 })
 
-test('folder workspace also asks before opening a terminal', async ({
+// DECK_AGENT_UX: selecting a workspace only selects it; agents start from the toolbar.
+test('selecting a folder workspace opens nothing', async ({
   orcaPage: page,
   registerPostElectronShutdownCleanup
 }) => {
@@ -38,13 +39,11 @@ test('folder workspace also asks before opening a terminal', async ({
     )
   }, folderPath)
   await page.getByRole('option').filter({ hasText: 'Deck folder' }).click()
-  await expect(page.getByRole('menuitem', { name: 'Blank terminal', exact: true })).toBeVisible()
+  await expect(page.getByRole('menu')).toHaveCount(0)
   await expect(page.locator('.pane:visible')).toHaveCount(0)
-  await page.keyboard.press('Escape')
-  await expect(page.locator('.workspace-tab:visible')).toHaveCount(0)
 })
 
-test('empty workspace asks what to launch and cancelling keeps it empty', async ({
+test('selecting an empty worktree opens nothing until the toolbar launches a terminal', async ({
   orcaPage: page
 }) => {
   await page.setViewportSize({ width: 1400, height: 900 })
@@ -52,19 +51,11 @@ test('empty workspace asks what to launch and cancelling keeps it empty', async 
   await waitForActiveWorktree(page)
   const workspace = page.getByRole('option').filter({ hasText: 'e2e-secondary' })
   await workspace.click()
-  await expect(page.getByRole('menu')).toBeVisible()
-  await expect(page.getByRole('menuitem', { name: 'Blank terminal', exact: true })).toBeVisible()
+  await expect(page.getByRole('menu')).toHaveCount(0)
   await expect(page.locator('.pane:visible')).toHaveCount(0)
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('menu')).toBeHidden()
-  await expect(page.locator('.workspace-tab:visible')).toHaveCount(0)
-  await workspace.click()
-  await expect(page.getByRole('menu')).toBeVisible()
-  await page.getByRole('menuitem', { name: 'Blank terminal', exact: true }).click()
+  await page.getByRole('button', { name: 'New blank terminal', exact: true }).click()
   await expect(page.locator('.pane:visible')).toHaveCount(1)
-  await expect(page.locator('.workspace-tab:visible')).toHaveCount(1)
-  await expect(page.getByRole('menu')).toBeHidden()
   await workspace.click()
-  await expect(page.getByRole('menu')).toBeHidden()
-  await expect(page.locator('.workspace-tab:visible')).toHaveCount(1)
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await expect(page.locator('.pane:visible')).toHaveCount(1)
 })

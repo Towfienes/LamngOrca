@@ -85,9 +85,7 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
     .click({ position: { x: 50, y: 80 } })
   await splitActiveTerminalPane(page, 'horizontal')
   await waitForPaneCount(page, 4)
-  await expect(
-    page.locator('[data-testid="sortable-tab"]').filter({ hasText: 'Workspace · 4 panes' })
-  ).toHaveCount(1)
+  await expect(page.locator('.deck-tab-dot:visible[aria-label*=", 4 panes"]')).toHaveCount(1)
   await expect(page.locator('.pane[data-active-pane]:visible')).toHaveCount(1)
   await expect(page.locator('.pane[data-active-pane]:visible')).toHaveCSS(
     'background-color',
@@ -145,7 +143,10 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   })
   const rows = page.locator('[data-deck-agent]')
   await expect(rows).toHaveCount(4)
-  const waitingRow = rows.filter({ hasText: 'Refine the sidebar layout' })
+  // Rows show the session or provider name, never the prompt (DECK_AGENT_UX session names).
+  const agentRow = (name: string) =>
+    rows.filter({ has: page.getByRole('button', { name, exact: true }) })
+  const waitingRow = agentRow('Claude')
   await expect(waitingRow.locator('.deck-agent-state-slot')).toHaveAttribute(
     'aria-label',
     'Waiting for input'
@@ -177,16 +178,10 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
       })
     )
     .toBe(true)
-  await rows
-    .filter({ hasText: 'Refine the sidebar layout' })
-    .locator('[title="Refine the sidebar layout"]')
-    .click()
-  await expect(rows.filter({ hasText: 'Refine the sidebar layout' })).toHaveAttribute(
-    'data-focused-agent-pane',
-    'true'
-  )
-  const keyboardRow = rows.filter({ hasText: 'Verify the terminal layout' })
-  await keyboardRow.getByRole('button', { name: 'Verify the terminal layout', exact: true }).focus()
+  await waitingRow.locator('.deck-agent-heading > [role="button"]').click()
+  await expect(waitingRow).toHaveAttribute('data-focused-agent-pane', 'true')
+  const keyboardRow = agentRow('Codex')
+  await keyboardRow.getByRole('button', { name: 'Codex', exact: true }).focus()
   await page.keyboard.press('Enter')
   await expect(keyboardRow).toHaveAttribute('data-focused-agent-pane', 'true')
   const iconAlignment = await keyboardRow.evaluate((row) => {
@@ -292,11 +287,16 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
   })
   await page.evaluate(() => window.__store!.getState().updateSettings({ theme: 'light' }))
   await expect(page.locator('html')).not.toHaveClass(/dark/)
-  expect(
-    await page
-      .locator('.pane[data-active-pane]:visible')
-      .evaluate((pane) => getComputedStyle(pane, '::after').borderColor)
-  ).toBe(borderColors.find((pane) => pane.active)?.color)
+  // The active pane keeps a distinct border in the light theme too.
+  const lightBorders = await page.locator('.pane:visible').evaluateAll((panes) =>
+    panes.map((pane) => ({
+      active: pane.hasAttribute('data-active-pane'),
+      color: getComputedStyle(pane, '::after').borderColor
+    }))
+  )
+  expect(lightBorders.find((pane) => pane.active)?.color).not.toBe(
+    lightBorders.find((pane) => !pane.active)?.color
+  )
   await page.screenshot({
     path: testInfo.outputPath('deck-workspace-light.png')
   })
@@ -304,5 +304,5 @@ test('Deck rail navigates real split panes and keeps tools reachable', async ({
     const state = window.__store!.getState()
     state.setTabCustomTitle(state.activeTabId!, 'Agent team')
   })
-  await expect(page.getByTestId('sortable-tab').filter({ hasText: 'Agent team' })).toHaveCount(1)
+  await expect(page.locator('.deck-tab-dot:visible[aria-label^="Agent team,"]')).toHaveCount(1)
 })

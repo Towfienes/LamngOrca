@@ -42,7 +42,7 @@ test('restores both tabs, split panes and working terminal input', async (// oxl
     const marker = `DECK_RESTORE_${Date.now()}`
     await execInTerminal(first.page, ptyId, `echo ${marker}`)
     await waitForTerminalOutput(first.page, marker)
-    const tabsBefore = await first.page.locator('[data-testid="sortable-tab"]').count()
+    const tabsBefore = await first.page.locator('.deck-tab-dot:not([data-empty]):visible').count()
     expect(tabsBefore).toBe(2)
     await expect(first.page.locator('.pane[data-leaf-id]:visible')).toHaveCount(2)
 
@@ -52,9 +52,30 @@ test('restores both tabs, split panes and working terminal input', async (// oxl
     secondApp = second.app
     await second.page.setViewportSize({ width: 1400, height: 900 })
     await waitForSessionReady(second.page)
-    await expect(second.page.locator('[data-testid="sortable-tab"]')).toHaveCount(tabsBefore)
+    await expect(second.page.locator('.deck-tab-dot:not([data-empty]):visible')).toHaveCount(
+      tabsBefore
+    )
     await expect(second.page.locator('.pane[data-leaf-id]:visible')).toHaveCount(2)
-    await waitForTerminalOutput(second.page, marker)
+    // Upstream v1.4.244 restores the tab's first pane as active after a split, so look in every pane.
+    await expect
+      .poll(
+        () =>
+          second.page.evaluate((marker) => {
+            const state = window.__store!.getState()
+            const panes = window.__paneManagers?.get(state.activeTabId!)?.getPanes() ?? []
+            return panes.some(({ terminal }) => {
+              const buffer = terminal.buffer.active
+              return Array.from(
+                { length: buffer.length },
+                (_, i) => buffer.getLine(i)?.translateToString(true) ?? ''
+              )
+                .join('')
+                .includes(marker)
+            })
+          }, marker),
+        { timeout: 15_000, message: `No restored pane contained ${marker}` }
+      )
+      .toBe(true)
     await second.page.evaluate(() => {
       const state = window.__store!.getState()
       const manager = window.__paneManagers?.get(state.activeTabId!)
