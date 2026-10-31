@@ -24,6 +24,10 @@ import { registerHostFrameNavigationGuard } from './host-frame-navigation-guard'
 import { installPrivilegedWindowNavigationPolicy } from './privileged-window-navigation'
 import { parseChromeExtensionUrl } from '../../shared/browser-extension-url'
 import { getBrowserExtensionSessionForProfile } from '../browser/extensions/browser-extension-session-loader'
+import {
+  attachVSCodeEditorGuest,
+  isVSCodeEditorAttach
+} from '../vscode-editor/vscode-editor-service'
 
 /** orca-preview is outside normal browser URL admission; require the doc partition and a main-minted user-preview grant. */
 function isAdmissibleDocPreviewAttach(partition: string, src: string): boolean {
@@ -79,11 +83,13 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
     const isLocalSshPartition = isLocalSshBrowserPartition(partition)
     const isDocPreviewAttach = isAdmissibleDocPreviewAttach(partition, src)
     const isExtensionPageAttach = isAdmissibleExtensionPageAttach(partition, src)
+    const isEditorAttach = isVSCodeEditorAttach(partition, src)
 
     // Require an allowlisted src/partition; renderer mistakes must not grant preload/Node authority.
     if (
       !isDocPreviewAttach &&
       !isExtensionPageAttach &&
+      !isEditorAttach &&
       (!normalizedSrc ||
         (!isProfilePartition && !isRoutePartition && !isLocalSshPartition) ||
         (isRoutePartition && normalizedSrc !== ORCA_BROWSER_BLANK_URL))
@@ -118,6 +124,9 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
   })
 
   mainWindow.webContents.on('did-attach-webview', (_event, guest) => {
+    if (attachVSCodeEditorGuest(guest)) {
+      return
+    }
     if (isDocPreviewSession(guest.session)) {
       // workspace-doc guests cannot use browser routing/popups/auth identity; attach this live host as their read-failure sink.
       setDocPreviewFailureSink(mainWindow.webContents)

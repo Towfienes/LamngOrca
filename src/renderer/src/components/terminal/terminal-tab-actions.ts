@@ -20,7 +20,6 @@ import {
   shouldConfirmRunningTerminalClose
 } from './running-terminal-close-guard'
 import { closeLocalTerminalTabState } from './close-local-terminal-tab-state'
-import { runAsAutomaticDeselection } from '@/store/active-worktree-deselection-intent'
 import { getTerminalIncarnationHandle } from './terminal-close-incarnation'
 import {
   getWorktreeTerminalTabIds,
@@ -225,10 +224,8 @@ export function closeTerminalTab(
           if (browserTab) {
             current.setActiveBrowserTab(browserTab.id)
             current.setActiveTabType('browser', owningWorktreeId)
-          } else if (options?.reason === 'pty-exit') {
-            runAsAutomaticDeselection(() => current.setActiveWorktree(null))
           } else {
-            current.setActiveWorktree(null)
+            current.ensureWorktreeRootGroup(owningWorktreeId)
           }
         }
       }

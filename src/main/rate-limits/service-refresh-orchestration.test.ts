@@ -11,6 +11,8 @@ import { fetchZcodeRateLimits } from './zcode-usage-fetcher'
 import { readGrokAuthSession } from './grok-auth'
 import { fetchOpenCodeGoUsage } from './opencode-go-usage-source-selection'
 import {
+  asRateLimitWindow,
+  FakeRateLimitWindow,
   deferred,
   errorProvider,
   flushMicrotasks,
@@ -80,6 +82,37 @@ function serviceInternals(service: RateLimitService): { fetchAll: () => Promise<
 describe('RateLimitService', () => {
   beforeEach(() => {
     resetRateLimitProviderMocks()
+  })
+
+  it('refreshes only Deck quota providers at most once per 30 seconds and respects Retry-After', async () => {
+    const now = 1_800_000_000_000
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+    vi.mocked(fetchClaudeRateLimits).mockResolvedValue({
+      ...okProvider('claude', 20),
+      usageMetadata: { retryAtMs: now + 120_000 }
+    })
+    vi.mocked(fetchCodexRateLimits).mockResolvedValue(okProvider('codex', 30))
+    const service = new RateLimitService()
+    const window = new FakeRateLimitWindow()
+    service.attach(asRateLimitWindow(window))
+    try {
+      await service.refreshQuota()
+      await service.refreshQuota()
+      expect(fetchClaudeRateLimits).toHaveBeenCalledTimes(1)
+      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(1)
+      expect(fetchGeminiRateLimits).not.toHaveBeenCalled()
+      clock.mockReturnValue(now + 30_000)
+      await service.refreshQuota()
+      expect(fetchClaudeRateLimits).toHaveBeenCalledTimes(1)
+      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
+      window.focused = false
+      clock.mockReturnValue(now + 60_000)
+      await service.refreshQuota()
+      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
+    } finally {
+      service.stop()
+      clock.mockRestore()
+    }
   })
 
   it('publishes a ZCode quota snapshot alongside the other providers', async () => {

@@ -1,4 +1,5 @@
 import type { KeybindingContext } from '../../../shared/keybindings'
+import { useWorkspaceLaunchSelection } from '@/store/workspace-launch-selection'
 import { toVisibleTabType, type Tab } from '../../../shared/tab-types'
 import { useAppStore } from '@/store'
 import { guardPinnedTabClose, resolvePinnedTabLabel } from '@/store/pinned-tab-close-guard'
@@ -106,6 +107,18 @@ function resolveCloseTarget(
 /** Input adapters describe intent; targeting and tab operations live here. */
 export function dispatchWorkspaceTabCommand(command: WorkspaceTabCommand): boolean {
   const state = useAppStore.getState()
+  const draft = useWorkspaceLaunchSelection.getState()
+  if (
+    state.activeWorktreeId &&
+    draft.workspaceId === state.activeWorktreeId &&
+    !isFloatingWorkspacePanelFocused() &&
+    (command.type !== 'close' || !command.target)
+  ) {
+    draft.dismiss(state.activeWorktreeId)
+    if (command.type === 'close') {
+      return true
+    }
+  }
   if (command.type === 'close') {
     if (!command.target) {
       if (selectEmptyFloatingWorkspacePanelVisible(state)) {

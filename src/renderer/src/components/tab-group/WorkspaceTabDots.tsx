@@ -1,7 +1,13 @@
 import { useState } from 'react'
+import {
+  useWorkspaceLaunchSelection,
+  workspaceSlotLayoutKey
+} from '@/store/workspace-launch-selection'
 import { CLOSE_TERMINAL_PANE_EVENT, type CloseTerminalPaneDetail } from '@/constants/terminal'
 import { useAppStore } from '@/store'
 import { FileText, Globe, Smartphone, TerminalSquare, X, type LucideIcon } from 'lucide-react'
+import { useVSCodeEditorPanes } from '../editor/vscode-editor-panes'
+import { OpenInApplicationIcon } from '@/lib/open-in-app-catalog'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
@@ -10,7 +16,7 @@ import { activateStructuredAgentSessionTab } from '@/lib/agent-session/structure
 import { activateWebRuntimeSessionTab } from '@/runtime/web-runtime-session-tab-lifecycle'
 import { isWebRuntimeSessionActive } from '@/runtime/web-runtime-session-environment'
 import {
-  WORKSPACE_EMPTY_SLOTS,
+  WORKSPACE_MIN_SLOTS,
   createWorkspaceTabDotsSelector,
   selectTabDotsHostGroupId,
   type WorkspaceTabDot
@@ -30,6 +36,7 @@ function activateDotTab(worktreeId: string, dot: WorkspaceTabDot, leafId?: strin
   if (!tab) {
     return
   }
+  useWorkspaceLaunchSelection.getState().dismiss(worktreeId)
   if (tab.contentType === 'agent-session') {
     activateStructuredAgentSessionTab({ worktreeId, tabId: tab.id })
     return
@@ -119,9 +126,29 @@ function DotGlyphs({ dot }: { dot: WorkspaceTabDot }): React.JSX.Element {
   )
 }
 
+function EditorDotGlyph({ fileId }: { fileId: string }): React.JSX.Element {
+  const path = useAppStore((state) => state.openFiles.find((file) => file.id === fileId)?.filePath)
+  const embedded = useVSCodeEditorPanes(
+    (state) =>
+      path !== undefined &&
+      !state.nativePaths.has(path) &&
+      Object.values(state.panes).some((pane) => pane.fileIds.includes(fileId))
+  )
+  return embedded ? (
+    <span data-vscode-workspace-icon aria-hidden>
+      <OpenInApplicationIcon application={{ command: 'code' }} size={12} />
+    </span>
+  ) : (
+    <FileText className="size-3" aria-hidden />
+  )
+}
+
 function DotGlyph({ dot }: { dot: WorkspaceTabDot }): React.JSX.Element {
   if (dot.agent) {
     return <AgentIcon agent={dot.agent} size={12} />
+  }
+  if (dot.contentType === 'editor') {
+    return <EditorDotGlyph fileId={dot.entityId} />
   }
   const Icon = CONTENT_ICONS[dot.contentType] ?? FileText
   return <Icon className="size-3" aria-hidden />
@@ -168,72 +195,106 @@ export function WorkspaceTabDots({
 }: {
   worktreeId: string
   groupId: string | undefined
-  onNewWorkspace: () => void
+  onNewWorkspace: (slotIndex: number) => void
   /** Unified tab id; dots replace the text strip, so they carry its close action. */
   onCloseTab: (tabId: string) => void
 }): React.JSX.Element | null {
   const dots = useWorkspaceTabDots(worktreeId)
+  const draftSelected = useWorkspaceLaunchSelection((state) => state.workspaceId === worktreeId)
+  const draftSlot = useWorkspaceLaunchSelection((state) =>
+    state.workspaceId === worktreeId ? state.slotIndex : -1
+  )
+  const layout = useWorkspaceLaunchSelection(
+    (state) => state.layouts[workspaceSlotLayoutKey(worktreeId, dots[0]?.groupId ?? '')]
+  )
   const hostGroupId = useAppStore((state) => selectTabDotsHostGroupId(state, worktreeId))
   if (dots.length === 0 || hostGroupId !== groupId) {
     return null
   }
+  const remaining = new Map(dots.map((dot) => [dot.id, dot]))
+  const slots = (layout ?? dots.map((dot) => dot.id)).map((id) => {
+    const dot = id ? remaining.get(id) : undefined
+    if (id) {
+      remaining.delete(id)
+    }
+    return dot ?? null
+  })
+  for (const dot of remaining.values()) {
+    const empty = slots.indexOf(null)
+    if (empty === -1) {
+      slots.push(dot)
+    } else {
+      slots[empty] = dot
+    }
+  }
+  const count = Math.max(WORKSPACE_MIN_SLOTS, slots.length + 1, draftSelected ? draftSlot + 2 : 0)
   return (
     <div className="deck-tab-dots" role="group" aria-label="Workspace tabs">
-      {dots.map((dot, index) => (
-        <HoverCard key={dot.id} openDelay={120} closeDelay={60}>
-          <HoverCardTrigger asChild>
+      {Array.from({ length: count }, (_, index) => {
+        const dot = slots[index]
+        if (!dot) {
+          return (
             <button
+              key={`empty-${index}`}
               type="button"
               className="deck-tab-dot"
-              data-active={dot.active ? 'true' : undefined}
-              data-attention={dot.attention ?? undefined}
-              aria-current={dot.active ? 'true' : undefined}
-              aria-label={describeDot(dot)}
-              onClick={(event) => activateDotTab(worktreeId, dot, paneLeafAt(event.target))}
-              // Middle click closes the pane icon under the pointer, else the whole workspace.
-              onAuxClick={(event) => {
-                if (event.button !== 1) {
-                  return
-                }
-                event.preventDefault()
-                const leafId = paneLeafAt(event.target)
-                if (leafId && dot.previewTabId) {
-                  closeDotPane(dot.previewTabId, leafId)
-                } else {
-                  onCloseTab(dot.id)
-                }
-              }}
-            >
-              <DotGlyphs dot={dot} />
-            </button>
-          </HoverCardTrigger>
-          <HoverCardContent side="bottom" align="start" sideOffset={6}>
-            <div className="deck-tab-preview">
-              <TabPreview dot={dot} index={index} />
+              data-workspace-slot={index + 1}
+              data-empty="true"
+              data-active={draftSelected && index === draftSlot ? 'true' : undefined}
+              aria-current={draftSelected && index === draftSlot ? 'true' : undefined}
+              aria-label={`New workspace ${index + 1}`}
+              title="New workspace"
+              onClick={() => onNewWorkspace(index)}
+            />
+          )
+        }
+        return (
+          <HoverCard key={dot.id} openDelay={120} closeDelay={60}>
+            <HoverCardTrigger asChild>
               <button
                 type="button"
-                className="deck-tab-preview-close"
-                aria-label={`Close ${dot.title}`}
-                onClick={() => onCloseTab(dot.id)}
+                className="deck-tab-dot"
+                data-workspace-slot={index + 1}
+                data-workspace-tab-id={dot.id}
+                data-active={dot.active && !draftSelected ? 'true' : undefined}
+                data-attention={dot.attention ?? undefined}
+                aria-current={dot.active && !draftSelected ? 'true' : undefined}
+                aria-label={describeDot(dot)}
+                onClick={(event) => activateDotTab(worktreeId, dot, paneLeafAt(event.target))}
+                // Middle click closes the pane icon under the pointer, else the whole workspace.
+                onAuxClick={(event) => {
+                  if (event.button !== 1) {
+                    return
+                  }
+                  event.preventDefault()
+                  const leafId = paneLeafAt(event.target)
+                  if (leafId && dot.previewTabId) {
+                    closeDotPane(dot.previewTabId, leafId)
+                  } else {
+                    onCloseTab(dot.id)
+                  }
+                }}
               >
-                <X className="size-3" aria-hidden />
-                Close
+                <DotGlyphs dot={dot} />
               </button>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
-      ))}
-      {Array.from({ length: WORKSPACE_EMPTY_SLOTS }, (_, slot) => (
-        <button
-          key={`empty-${slot}`}
-          type="button"
-          className="deck-tab-dot"
-          data-empty="true"
-          aria-label={`New workspace ${dots.length + slot + 1}`}
-          title="New workspace"
-          onClick={onNewWorkspace}
-        />
-      ))}
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" align="start" sideOffset={6}>
+              <div className="deck-tab-preview">
+                <TabPreview dot={dot} index={index} />
+                <button
+                  type="button"
+                  className="deck-tab-preview-close"
+                  aria-label={`Close ${dot.title}`}
+                  onClick={() => onCloseTab(dot.id)}
+                >
+                  <X className="size-3" aria-hidden />
+                  Close
+                </button>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        )
+      })}
     </div>
   )
 }

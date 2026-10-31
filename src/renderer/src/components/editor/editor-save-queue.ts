@@ -1,5 +1,3 @@
-import type { StoreApi } from 'zustand'
-import type { AppState } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
 import { findWorktreeById } from '@/store/slices/worktree-helpers'
 import { getEditorFileOperationContext } from '@/lib/editor-file-operation-owner'
@@ -52,22 +50,10 @@ import { createEditorSaveSlots, type EditorSaveRequest } from './editor-save-slo
 import { EditorSaveDiscardedError, editorDiscardEpoch } from './editor-discard-epoch'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 import { releaseNonUtf8PausesWithoutDirtyTab } from './editor-non-utf8-autosave-pause'
+import { vscodeSessionForFile, saveVSCodeEditorFile } from './vscode-editor-sessions'
 
-export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'subscribe'>
-
-export type EditorSaveQueue = {
-  queueSave: (
-    file: OpenFile,
-    fallbackContent: string,
-    trigger?: EditorSaveTrigger
-  ) => Promise<EditorSaveResult>
-  /** Flushes pending text, drops the autosave timer, then waits for the running and queued saves. */
-  settleFileSaves: (fileId: string, flush?: boolean) => Promise<void>
-  /** Pauses autosave of these files (hold keys), in every workspace, until the release runs. */
-  holdAutoSave: (keys: ReadonlySet<string>) => () => void
-  syncAutoSave: () => void
-  dispose: () => void
-}
+import type { AppStoreApi, EditorSaveQueue } from './editor-save-queue-contracts'
+export type { AppStoreApi, EditorSaveQueue } from './editor-save-queue-contracts'
 
 // Keep debounce and settle coordination with the queue to prevent competing saves.
 export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
@@ -257,6 +243,9 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     fallbackContent: string,
     trigger: EditorSaveTrigger = 'user'
   ): Promise<EditorSaveResult> => {
+    if (vscodeSessionForFile(store.getState(), file)) {
+      return saveVSCodeEditorFile(store.getState(), file).then(() => 'written')
+    }
     const key = recordKeyOf(file.id)
     clearScheduledAutoSave(key)
     const requestedDirty = store

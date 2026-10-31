@@ -23,6 +23,7 @@ export type GuestShortcutForwardContext = {
   resolveWorktreeId?: (browserTabId: string) => string | null
   resolveWorkspaceId?: (browserTabId: string) => string | null
   forwardBrowserPageZoom: (event: Electron.Event, direction: BrowserPageZoomDirection) => void
+  onCloseTab?: () => void
 }
 
 export function forwardGuestShortcutInput(
@@ -121,7 +122,9 @@ export function forwardGuestShortcutInput(
       direction: 'forward'
     })
   } else if (keybindingMatchesAction('tab.close', input, process.platform, keybindings)) {
-    if (isFloatingGuest) {
+    if (ctx.onCloseTab) {
+      ctx.onCloseTab()
+    } else if (isFloatingGuest) {
       renderer.send('ui:closeFloatingItem', { sourceId: browserTabId })
     } else {
       // Guest focus may leave active-tab state stale in splits; close by source ID.

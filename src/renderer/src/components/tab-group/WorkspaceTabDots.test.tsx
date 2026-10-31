@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type * as TabDotsModule from '@/lib/workspace-tab-dots'
 import type { WorkspaceTabDot } from '@/lib/workspace-tab-dots'
+import { useVSCodeEditorPanes } from '../editor/vscode-editor-panes'
+import { useWorkspaceLaunchSelection } from '@/store/workspace-launch-selection'
 
 const mocks = vi.hoisted(() => {
   const dots: WorkspaceTabDot[] = []
@@ -48,6 +50,7 @@ vi.mock('@/store', () => {
         { id: 'b', groupId: 'g1', contentType: 'terminal', entityId: 'term-b' }
       ]
     },
+    openFiles: [{ id: 'notebook', filePath: '/repo/talk.ipynb' }],
     terminalLayoutsByTabId: { 'term-b': { activeLeafId: 'leaf-b' } }
   }
   return {
@@ -60,6 +63,7 @@ const { WorkspaceTabDots } = await import('./WorkspaceTabDots')
 
 const dot = (overrides: Partial<WorkspaceTabDot>): WorkspaceTabDot => ({
   id: 'a',
+  entityId: 'term-a',
   groupId: 'g1',
   title: 'Review',
   paneCount: 3,
@@ -77,7 +81,11 @@ const setDots = (...items: WorkspaceTabDot[]): void => {
 }
 
 let host: HTMLDivElement
+let mountedRoot: ReturnType<typeof createRoot> | undefined
 beforeEach(() => {
+  newWorkspace.mockReset()
+  useVSCodeEditorPanes.setState({ panes: {}, nativePaths: new Set() })
+  useWorkspaceLaunchSelection.setState({ workspaceId: null, tabCount: 0, layouts: {} })
   Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
   host = document.createElement('div')
   document.body.append(host)
@@ -87,16 +95,22 @@ beforeEach(() => {
     }
   }
 })
-afterEach(() => host.remove())
+afterEach(() => {
+  act(() => mountedRoot?.unmount())
+  mountedRoot = undefined
+  host.remove()
+})
 
 const newWorkspace = vi.fn()
 const closeTab = vi.fn()
 
 function render(groupId: string | undefined): void {
+  act(() => mountedRoot?.unmount())
   host.replaceChildren()
   const container = document.createElement('div')
   host.append(container)
   const root = createRoot(container)
+  mountedRoot = root
   act(() =>
     root.render(
       <WorkspaceTabDots
@@ -162,18 +176,34 @@ it('activates the clicked tab through the tab activation actions', () => {
   expect(mocks.focusSurface).toHaveBeenCalledWith('term-b', 'leaf-b')
 })
 
-it('appends three hollow slots that each open a new workspace', () => {
+it('fills four slots and each empty slot opens a new workspace', () => {
   newWorkspace.mockClear()
   setDots(dot({}), dot({ id: 'b', active: false }))
   render('g1')
   const slots = host.querySelectorAll<HTMLButtonElement>('button.deck-tab-dot[data-empty]')
   expect([...slots].map((slot) => slot.getAttribute('aria-label'))).toEqual([
     'New workspace 3',
-    'New workspace 4',
-    'New workspace 5'
+    'New workspace 4'
   ])
   act(() => slots[1].click())
   expect(newWorkspace).toHaveBeenCalledTimes(1)
+})
+
+it.each([
+  [1, 4],
+  [2, 4],
+  [3, 4],
+  [4, 5],
+  [5, 6]
+])('shows %i occupied workspaces in %i slots', (occupied, total) => {
+  setDots(
+    ...Array.from({ length: occupied }, (_, index) =>
+      dot({ id: `tab-${index}`, active: index === 0 })
+    )
+  )
+  render('g1')
+  expect(host.querySelectorAll('button.deck-tab-dot')).toHaveLength(total)
+  expect(host.querySelectorAll('button.deck-tab-dot[data-empty]')).toHaveLength(total - occupied)
 })
 
 it('draws the agent icon inside an agent workspace and a content icon otherwise', () => {
@@ -183,6 +213,18 @@ it('draws the agent icon inside an agent workspace and a content icon otherwise'
   expect(agentDot.querySelector('svg, img')).not.toBeNull()
   expect(browserDot.querySelector('svg.lucide-globe, svg')).not.toBeNull()
   expect(agentDot.innerHTML).not.toBe(browserDot.innerHTML)
+})
+
+it('selects a draft dot and returns to an occupied workspace without creating a tab', () => {
+  setDots(dot({}), dot({ id: 'b', active: false }))
+  useWorkspaceLaunchSelection.getState().open('wt', 2)
+  render('g1')
+  expect(host.querySelector('button[data-empty][aria-current="true"]')).not.toBeNull()
+  expect(host.querySelector('button:not([data-empty])[aria-current="true"]')).toBeNull()
+  const occupied = host.querySelector<HTMLButtonElement>('button.deck-tab-dot:not([data-empty])')!
+  act(() => occupied.click())
+  expect(useWorkspaceLaunchSelection.getState().workspaceId).toBeNull()
+  expect(mocks.activateTab).toHaveBeenCalledWith('a')
 })
 
 it('closes a workspace with a middle click on its dot', () => {
@@ -226,4 +268,65 @@ it('draws one icon per pane and middle click closes only the pane under the poin
   window.removeEventListener('orca-close-terminal-pane', onClosePane)
   expect(closed).toEqual([{ tabId: 'term-a', leafId: 'l2' }])
   expect(closeTab).not.toHaveBeenCalled()
+})
+
+it('shows the VS Code brand for registered notebook views and removes it when the editor stops', () => {
+  setDots(dot({ id: 'notebook-view', entityId: 'notebook', contentType: 'editor' }))
+  render('g1')
+  expect(host.querySelector('[data-vscode-workspace-icon]')).toBeNull()
+  act(() =>
+    useVSCodeEditorPanes.getState().select({
+      paneKey: 'pane',
+      groupId: 'g1',
+      rootPath: '/repo',
+      viewId: 'notebook-view',
+      file: {
+        id: 'notebook',
+        filePath: '/repo/talk.ipynb',
+        relativePath: 'talk.ipynb',
+        worktreeId: 'wt',
+        language: 'json',
+        isDirty: false,
+        mode: 'edit'
+      }
+    })
+  )
+  expect(host.querySelector('[data-vscode-workspace-icon] img')?.getAttribute('src')).toContain(
+    'code.visualstudio.com'
+  )
+  act(() => useVSCodeEditorPanes.getState().remove('pane'))
+  expect(host.querySelector('[data-vscode-workspace-icon]')).toBeNull()
+})
+
+it('selects each empty slot independently without creating a tab', () => {
+  setDots(dot({}))
+  newWorkspace.mockImplementation((slotIndex: number) =>
+    useWorkspaceLaunchSelection.getState().open('wt', 1, slotIndex)
+  )
+  render('g1')
+  for (const position of [1, 2, 3, 2, 1]) {
+    const slots = host.querySelectorAll<HTMLButtonElement>('button.deck-tab-dot')
+    act(() => slots[position].click())
+    expect(newWorkspace).toHaveBeenLastCalledWith(position)
+    expect(host.querySelectorAll('[aria-current="true"]')).toHaveLength(1)
+    expect(
+      host.querySelectorAll('button.deck-tab-dot')[position].getAttribute('aria-current')
+    ).toBe('true')
+    expect(mocks.dots).toHaveLength(1)
+  }
+  newWorkspace.mockReset()
+})
+
+it('keeps a tab in workspace 3 while workspace 2 is empty', () => {
+  const selection = useWorkspaceLaunchSelection.getState()
+  selection.reconcile('wt', 'g1', ['a'])
+  selection.open('wt', 1, 2, 'g1')
+  selection.reconcile('wt', 'g1', ['a', 'b'])
+  selection.dismiss('wt')
+  setDots(dot({ active: false }), dot({ id: 'b', active: true }))
+  render('g1')
+  const buttons = host.querySelectorAll('button.deck-tab-dot')
+  expect(buttons[1].getAttribute('data-empty')).toBe('true')
+  expect(buttons[2].getAttribute('aria-current')).toBe('true')
+  expect(buttons[2].getAttribute('data-empty')).toBeNull()
 })

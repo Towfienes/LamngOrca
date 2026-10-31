@@ -7,7 +7,14 @@ export function registerRateLimitHandlers(
   rateLimits: RateLimitService,
   codexAccounts: CodexAccountService
 ): void {
-  ipcMain.handle('rateLimits:get', () => rateLimits.getState())
+  ipcMain.handle('rateLimits:get', (_event, options: unknown) =>
+    typeof options === 'object' &&
+    options !== null &&
+    'refreshQuota' in options &&
+    options.refreshQuota === true
+      ? rateLimits.refreshQuota()
+      : rateLimits.getState()
+  )
   ipcMain.handle('rateLimits:refresh', () => rateLimits.refresh())
   ipcMain.handle('rateLimits:refreshCodexForTarget', (_event, target: RateLimitRuntimeTarget) =>
     rateLimits.refreshCodexForTarget(target)

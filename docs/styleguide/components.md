@@ -116,4 +116,11 @@ Three scrollbar classes are defined globally in `main.css`. Apply one of these t
 
 - **`.scrollbar-sleek`** — the default thin, neutral scrollbar for sidebars, lists, popovers. Pair with `.scrollbar-sleek-parent` on a hover-target ancestor if you want the thumb to fade in only on parent hover.
 - **`.scrollbar-editor`** — slightly heavier, used inside Monaco-adjacent surfaces.
-- **`.worktree-sidebar-scrollbar`** — no reserved gutter: paired with `overflow-y-auto`, the scrollbar (and its width) exists only while content actually overflows, so a short list stays flush with the fixed header controls and classic-scrollbar Windows shows no arrow buttons on empty lists. The thumb stays invisible until the parent (`.scrollbar-sleek-parent`) is hovered. Used only in the worktree sidebar.
+- **`.worktree-sidebar-scrollbar`** — keeps the worktree sidebar scrollable without exposing a scrollbar. Used only in the worktree sidebar.
+
+## Manga notes
+
+- The Usage portrait opens the existing global notes as a checklist in a Popover above its head. Escape, outside click and Close hide it; editing saves immediately to the same profile-local notes used by the Notes panel.
+- This user-requested surface uses `--manga-paper` / `--manga-ink` from `main.css` in both themes. The paper remains white with black ink so it reads as a manga speech balloon.
+- Patrick Hand is a scoped exception to Geist in the speech balloon only; status/error text stays Geist. The original font is bundled locally, loaded on demand, and supports Vietnamese. Source: [Google Fonts Patrick Hand](https://github.com/google/fonts/tree/main/ofl/patrickhand); OFL copyright/license ships at `src/renderer/public/licenses/PatrickHand-OFL.txt`.
+- Reuse the Popover, Checkbox, Input and Button primitives. No decorative motion, background process, cloud sync or AI request accompanies the notes.

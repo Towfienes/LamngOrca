@@ -19,6 +19,7 @@ export type WorkspaceTabPane = {
 export type WorkspaceTabDot = {
   /** Unified tab id. */
   id: string
+  entityId: string
   groupId: string
   title: string
   paneCount: number
@@ -44,8 +45,8 @@ type DotsState = Pick<
   | 'settings'
 >
 
-/** Hollow slots after the occupied dots; clicking one opens a new workspace (Hyprland-style). */
-export const WORKSPACE_EMPTY_SLOTS = 3
+/** Keep four slots until occupied, then leave one empty slot for the next workspace. */
+export const WORKSPACE_MIN_SLOTS = 4
 
 export const NO_WORKSPACE_TAB_DOTS: readonly WorkspaceTabDot[] = Object.freeze([])
 
@@ -117,6 +118,7 @@ export function selectWorkspaceTabDots(
     const terminalId = tab.contentType === 'terminal' ? tab.entityId : null
     return {
       id: tab.id,
+      entityId: tab.entityId,
       groupId: group.id,
       title: resolveUnifiedTabLabel(tab, titlesGenerated, `Tab ${index + 1}`),
       paneCount: Math.max(
@@ -178,6 +180,7 @@ export function workspaceTabDotsEqual(
       const other = b[index]
       return (
         dot.id === other.id &&
+        dot.entityId === other.entityId &&
         dot.groupId === other.groupId &&
         dot.title === other.title &&
         dot.paneCount === other.paneCount &&

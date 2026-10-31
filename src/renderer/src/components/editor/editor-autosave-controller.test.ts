@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createStore, type StoreApi } from 'zustand/vanilla'
-import { createEditorSlice } from '@/store/slices/editor'
 import type { AppState } from '@/store'
 import {
   ORCA_EDITOR_PREPARE_HOT_EXIT_EVENT,
@@ -16,9 +14,12 @@ import {
 } from '@/runtime/runtime-compatibility-test-fixture'
 import { clearRuntimeCompatibilityCacheForTests } from '@/runtime/runtime-rpc-client'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
-import { emptyTabLayoutState } from '../../store/slices/editor-slice-test-harness'
-import { withLoadedBaselines } from './editor-autosave-controller-test-fixture'
+import {
+  createLegacyEditorStore as createEditorStore,
+  withLoadedBaselines
+} from './editor-autosave-controller-test-fixture'
 import { makeFolderWorkspace } from '@/store/slices/worktrees-slice-test-fixtures'
+import { vscodeEditorSessions, vscodeSessionForFile } from './vscode-editor-sessions'
 
 const mocks = vi.hoisted(() => ({
   getConnectionIdForFile: vi.fn()
@@ -35,6 +36,7 @@ type WindowStub = {
   setTimeout: Window['setTimeout']
   clearTimeout: Window['clearTimeout']
   api: {
+    vscodeEditor?: { save: ReturnType<typeof vi.fn>; discard: ReturnType<typeof vi.fn> }
     fs: {
       writeFile: ReturnType<typeof vi.fn>
     }
@@ -42,29 +44,6 @@ type WindowStub = {
       call: ReturnType<typeof vi.fn>
     }
   }
-}
-
-function createEditorStore(): StoreApi<AppState> {
-  // oxlint-disable-next-line typescript/no-explicit-any, typescript/consistent-type-assertions -- SAFETY: a partial store; tests read only the slices it builds.
-  return createStore<any>()((...args: any[]) => ({
-    ...emptyTabLayoutState(),
-    activeWorktreeId: 'wt-1',
-    settings: {
-      editorAutoSave: true,
-      editorAutoSaveDelayMs: 1000
-    },
-    repos: [],
-    worktreesByRepo: {
-      'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }]
-    },
-    detectedWorktreesByRepo: {},
-    runtimeEnvironments: [],
-    runtimeEnvironmentCatalogHydrated: true,
-    removedRuntimeEnvironmentIds: new Set(),
-    sshConnectionStates: new Map(),
-    sshStateByEnvironment: new Map(),
-    ...createEditorSlice(...(args as Parameters<typeof createEditorSlice>))
-  })) as unknown as StoreApi<AppState>
 }
 
 async function requestDirtyFileSave(): Promise<void> {
@@ -144,15 +123,75 @@ function makeSessionReadyState(): Partial<AppState> {
 
 describe('attachEditorAutosaveController', () => {
   beforeEach(() => {
+    vscodeEditorSessions.clear()
     vi.useFakeTimers()
     mocks.getConnectionIdForFile.mockReset()
     mocks.getConnectionIdForFile.mockReturnValue(undefined)
   })
 
   afterEach(() => {
+    vscodeEditorSessions.clear()
     vi.useRealTimers()
     vi.unstubAllGlobals()
     __clearSelfWriteRegistryForTests()
+  })
+
+  it('saves and discards a VS Code notebook without writing a stale Orca JSON buffer', async () => {
+    const writeFile = vi.fn()
+    const save = vi.fn().mockResolvedValue(undefined)
+    const discard = vi.fn().mockResolvedValue(undefined)
+    const events = new EventTarget()
+    vi.stubGlobal('window', {
+      addEventListener: events.addEventListener.bind(events),
+      removeEventListener: events.removeEventListener.bind(events),
+      dispatchEvent: events.dispatchEvent.bind(events),
+      setTimeout: globalThis.setTimeout.bind(globalThis),
+      clearTimeout: globalThis.clearTimeout.bind(globalThis),
+      api: { fs: { writeFile }, vscodeEditor: { save, discard } }
+    } satisfies WindowStub)
+    const store = createEditorStore()
+    store.getState().openFile({
+      filePath: '/repo/notebook.ipynb',
+      relativePath: 'notebook.ipynb',
+      worktreeId: 'wt-1',
+      language: 'json',
+      mode: 'edit'
+    })
+    const file = store.getState().openFiles[0]!
+    store.getState().markFileDirty(file.id, true)
+    vscodeEditorSessions.set(file.filePath, { id: 'vscode-pane' })
+    const cleanup = attachEditorAutosaveController(withLoadedBaselines(store))
+    try {
+      await requestEditorFileSave({ fileId: file.id })
+      expect(save).toHaveBeenCalledWith({ id: 'vscode-pane', filePath: file.filePath })
+      expect(writeFile).not.toHaveBeenCalled()
+      await requestEditorSaveQuiesce({ fileId: file.id, discard: true })
+      expect(discard).toHaveBeenCalledWith({ id: 'vscode-pane', filePath: file.filePath })
+      expect(vscodeEditorSessions.has(file.filePath)).toBe(false)
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('never routes a remote or read-only copy of a path to the local VS Code session', () => {
+    const store = createEditorStore()
+    store.getState().openFile({
+      filePath: '/repo/file.py',
+      relativePath: 'file.py',
+      worktreeId: 'wt-1',
+      language: 'python',
+      mode: 'edit'
+    })
+    const file = store.getState().openFiles[0]!
+    vscodeEditorSessions.set(file.filePath, { id: 'local-pane' })
+    expect(vscodeSessionForFile(store.getState(), file)).toEqual({ id: 'local-pane' })
+    expect(
+      vscodeSessionForFile(store.getState(), { ...file, externalSshTargetId: 'remote' })
+    ).toBeUndefined()
+    expect(
+      vscodeSessionForFile(store.getState(), { ...file, runtimeEnvironmentId: 'server' })
+    ).toBeUndefined()
+    expect(vscodeSessionForFile(store.getState(), { ...file, readOnly: true })).toBeUndefined()
   })
 
   it('saves dirty files even when the visible EditorPanel is not mounted', async () => {

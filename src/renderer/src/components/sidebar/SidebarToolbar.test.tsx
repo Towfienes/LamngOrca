@@ -30,14 +30,6 @@ vi.mock('@/components/ui/tooltip', () => ({
     mocks.activeTooltipOpen ? <span>{children}</span> : null
 }))
 
-vi.mock('./ScrollToCurrentWorkspaceToolbarButton', () => ({
-  ScrollToCurrentWorkspaceToolbarButton: () => <button type="button">Current workspace</button>
-}))
-
-vi.mock('./SidebarSettingsHelpMenu', () => ({
-  SidebarSettingsHelpMenu: () => <button type="button">Settings</button>
-}))
-
 const roots: Root[] = []
 
 async function renderToolbar(onWorkspaceBoardToggle = vi.fn()): Promise<{
@@ -146,6 +138,7 @@ describe('SidebarToolbar moved workspace board hint', () => {
     const { container } = await renderToolbar()
 
     expect(container.textContent).not.toContain('Profile')
-    expect(container.textContent).toContain('Settings')
+    expect(container.querySelector('button[aria-label="Settings"]')).not.toBeNull()
+    expect(container.querySelector('.lucide-circle-help, .lucide-crosshair')).toBeNull()
   })
 })

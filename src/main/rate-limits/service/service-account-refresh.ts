@@ -2,6 +2,7 @@ import { consumeCodexRateLimitResetCredit } from '../codex-fetcher'
 import { RateLimitServiceInactiveAccounts } from './service-inactive-accounts'
 import { hasUsageWindows } from './service-result-policy'
 import {
+  MIN_POLL_MS,
   normalizeCodexAccountSelectionTarget,
   normalizeClaudeAccountSelectionTarget,
   type CodexAccountSelectionTarget,
@@ -12,6 +13,42 @@ import {
 } from './service-types'
 
 export abstract class RateLimitServiceAccountRefresh extends RateLimitServiceInactiveAccounts {
+  private lastQuotaRefreshAt = 0
+  private quotaRefreshInFlight = false
+
+  async refreshQuota(): Promise<RateLimitState> {
+    const now = Date.now()
+    if (
+      !this.shouldBackgroundPoll() ||
+      this.isFetching ||
+      this.quotaRefreshInFlight ||
+      now - this.lastQuotaRefreshAt < MIN_POLL_MS
+    ) {
+      return this.getState()
+    }
+    this.lastQuotaRefreshAt = now
+    this.quotaRefreshInFlight = true
+    try {
+      await this.fetchClaudeOnly()
+      if (!this.shouldBackgroundPoll()) {
+        return this.getState()
+      }
+      if (!this.isRetryAfterActive(this.state.codex)) {
+        await this.fetchCodexOnly()
+      }
+      if (!this.shouldBackgroundPoll()) {
+        return this.getState()
+      }
+      await Promise.all([
+        this.fetchInactiveClaudeAccountsOnOpen(MIN_POLL_MS),
+        this.fetchInactiveCodexAccountsOnOpen(MIN_POLL_MS)
+      ])
+      return this.getState()
+    } finally {
+      this.quotaRefreshInFlight = false
+    }
+  }
+
   async refresh(): Promise<RateLimitState> {
     // User refresh must bypass recent poll/focus throttles.
     await this.fetchAll({ force: true })

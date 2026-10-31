@@ -189,7 +189,7 @@ describe('closing a browser workspace owned by more than one runtime environment
     expect(setActiveWorktree).not.toHaveBeenCalled()
   })
 
-  it('leaves the worktree when a real close empties it', () => {
+  it('keeps the empty worktree selected for Quick Launch', () => {
     mocks.isWebRuntimeSessionActive.mockReturnValue(false)
     const setActiveWorktree = vi.fn()
     useAppStore.setState({
@@ -201,7 +201,7 @@ describe('closing a browser workspace owned by more than one runtime environment
     commands().closeItem('unified-browser')
 
     expect(closeBrowserTab).toHaveBeenCalledWith('workspace-a', undefined)
-    expect(setActiveWorktree).toHaveBeenCalledWith(null)
+    expect(setActiveWorktree).not.toHaveBeenCalled()
   })
 
   // Bulk close must resolve staged and host-mirrored ownership per item.

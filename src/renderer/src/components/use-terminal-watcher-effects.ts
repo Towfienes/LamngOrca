@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { findActivityTerminalPortal } from './activity/activity-terminal-portal'
-import { shouldAutoCreateInitialTerminal } from './terminal/initial-terminal'
 import { findPendingWorktreeCreationId } from '@/lib/pending-worktree-creation'
 import {
   canWatcherCoverParkedTerminalTab,
@@ -11,15 +10,12 @@ import {
   type ParkedTerminalTabWatcherSyncEntry
 } from './terminal-pane/terminal-parked-tab-watchers'
 import { useAppStore } from '@/store'
-import { isWorkspaceKeptEmpty } from './terminal/workspace-kept-empty'
 import { gateWorktreeAgentActivation } from '@/lib/worktree-agent-activation-gate'
 import { createWorkspaceTerminalHostAuthoritySelector } from '@/lib/workspace-terminal-host-authority'
 import { hasStructuredAgentLaunchInWorktree } from '@/lib/structured-agent-session-launch'
 import { isEmptyWorkspaceDefaultSurfacePending } from '@/lib/empty-workspace-default-surface-claims'
 import type { TerminalColdActivationController } from './terminal-cold-activation'
 import { selectParkedEquivalentMountTabIds } from './terminal/startup-terminal-tab-hold'
-import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
-import { createInitialTerminalThroughLayoutOwner } from '@/store/terminals/terminal-tab-create-through-layout-owner'
 
 // Why shared: surfaces without watchable live tabs need no per-pass allocation.
 const NO_PARKED_TAB_IDS: ReadonlySet<string> = new Set()
@@ -246,25 +242,7 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
       if (hasStructuredAgentLaunchInWorktree(activeWorktreeId)) {
         return
       }
-      // Why: the activation gate reconciles durable/live agent state first; only an actually empty, never-visited workspace receives a default shell.
-      const { renderableTabCount } = reconcileWorktreeTabModel(activeWorktreeId)
-      // Only recorded closes preserve emptiness; reread at decision time because rows can change while waiting.
-      const activeWorktreeHasTerminalState = isWorkspaceKeptEmpty(
-        useAppStore.getState(),
-        activeWorktreeId
-      )
-      if (shouldAutoCreateInitialTerminal(renderableTabCount, activeWorktreeHasTerminalState)) {
-        if (
-          ORCA_LAYOUT_OWNER_IS_MAIN &&
-          createInitialTerminalThroughLayoutOwner(useAppStore.getState, activeWorktreeId, () =>
-            createTab(activeWorktreeId, undefined, undefined, { pendingActivationSpawn: true })
-          )
-        ) {
-          return
-        }
-        // Initial default tabs must not count as user activity and reorder the sidebar; explicit New Tab still does.
-        createTab(activeWorktreeId, undefined, undefined, { pendingActivationSpawn: true })
-      }
+      useAppStore.getState().ensureWorktreeRootGroup(activeWorktreeId)
     })
     return () => {
       cancelled = true

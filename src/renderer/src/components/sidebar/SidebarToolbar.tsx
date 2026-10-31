@@ -4,12 +4,10 @@ import { TabBarQuickCommandsButton } from '../tab-bar/TabBarQuickCommandsButton'
 import SetupScriptPromptCard from './SetupScriptPromptCard'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import React from 'react'
-import { Kanban, Grid2X2 } from 'lucide-react'
+import { Kanban, Grid2X2, Settings } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { ScrollToCurrentWorkspaceToolbarButton } from './ScrollToCurrentWorkspaceToolbarButton'
-import { SidebarSettingsHelpMenu } from './SidebarSettingsHelpMenu'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { hasFeatureInteraction } from '../../../../shared/feature-interactions'
@@ -30,6 +28,7 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
 }: SidebarToolbarProps) {
   // Subscribe across this memo boundary so asynchronously applied locale changes relabel the toolbar and its children.
   useTranslation()
+  const openSettingsPage = useAppStore((state) => state.openSettingsPage)
   const [workspaceBoardMovedHintOpen, setWorkspaceBoardMovedHintOpen] = React.useState(false)
   const movedHintEligibleRef = React.useRef<boolean | null>(null)
   const worktreeId = useAppStore((state) => state.activeWorktreeId)
@@ -77,7 +76,24 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
     <div className="mt-auto shrink-0">
       <div className="deck-sidebar-toolbar flex items-center justify-between border-t border-worktree-sidebar-border px-2 py-1.5">
         <div className="flex min-w-0 items-center gap-1">
-          <SidebarSettingsHelpMenu />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label={translate(
+                  'auto.components.sidebar.SidebarSettingsHelpMenu.a428c25998',
+                  'Settings'
+                )}
+                onClick={openSettingsPage}
+              >
+                <Settings className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {translate('auto.components.sidebar.SidebarSettingsHelpMenu.a428c25998', 'Settings')}
+            </TooltipContent>
+          </Tooltip>
           <WorkspaceOpenButton application="vscode" />
           <WorkspaceOpenButton application="file-manager" />
           <Popover>
@@ -101,7 +117,6 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
               iconOnly
             />
           ) : null}
-          <ScrollToCurrentWorkspaceToolbarButton />
           <Tooltip open={workspaceBoardMovedHintOpen ? true : undefined}>
             <TooltipTrigger asChild>
               <Button

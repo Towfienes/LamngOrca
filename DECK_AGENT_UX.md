@@ -1,5 +1,19 @@
 # Deck agent launch UX
 
+- VS Code in Quick Launch (2026-10-31): show an embedded-editor shortcut alongside Terminal. It opens Orca's existing Go to file picker, then the selected local source file/notebook in the embedded editor. Cancel keeps Quick Launch; never create a terminal or scratch file. Support reordering/removing/restoring the shortcut; version 2 adds it once to existing nonempty tool lists while preserving deliberately empty lists. Disable on SSH/remote hosts or without the local VS Code runtime.
+
+- Notebook memory (2026-10-31): do not start the Python language server in the embedded profile; retain syntax highlighting and notebook execution, while trading language-server completion/diagnostics for lower RAM. Keep kernels/variables live across workspace switches for presentations; release resources when the last editor closes. Avoid copying full notebook output JSON into Orca on save. Preserve editor appearance, Python environments, installed extensions and all account/model settings.
+
+- Embedded editor (2026-10-30): use the official VS Code Web workbench for local source files and `.ipynb`, retaining Orca's tree, workspace controls and file tabs. Hide VS Code's own tabs, tree, status bar and minimap; import the user's editor appearance into a separate profile and match Orca's canvas. Keep native Markdown/CSV previews, recovery drafts, remote/SSH, untitled, read-only and diff/conflict flows. Launch lazily, share the server and stop it after the last editor closes. See [the runtime and verification notes](docs/vscode-editor.md). Never change agent models, accounts or provider settings.
+
+- Empty workspace dots (2026-10-30): select a renderer-only Quick Launch draft, never create a terminal on click. Existing tabs keep their processes; selecting an occupied dot or closing the draft returns to them. A deliberate launch creates a separate tab, not a split of the previous session. Drafts are temporary and are not restored as agent/terminal sessions. Move the activity bell to the left of its footer row and lower Boruto by 8px without reserving extra Usage height.
+
+- Workspace strip refinement (2026-10-31): compact fixed-size targets, transparent outer strip and solid empty markers. Only the selected slot has an outline; no idle/attention rings or outer capsule/glow. Each empty slot keeps its own selected index and refreshes Quick Launch without creating a process. Launching in slot 3 leaves slot 2 empty; closing another tab never compacts the remaining slots. Persist positions per workspace/group in profile-local browser storage, reconcile only after session restoration, and preserve occupied sessions and keyboard focus. Narrow windows shorten the signature and keep workspace clicks clear of the right sidebar toggle.
+
+- Compact chrome (2026-10-30): keep at least four workspace-dot slots; once all four are occupied, keep only one trailing empty slot. Remove the Help (?) and reveal-current-workspace crosshair buttons from the sidebar footer. The Usage portrait must not reserve extra height below the provider figures above Quota.
+
+- Quick Launch (2026-10-30): selecting an empty git/folder workspace and closing its last tab retain that workspace and show the session chooser; never seed a shell merely for navigation. The chooser uses the existing host-aware agent/account/session and tool launch flows. Its ordered agent/tool shortcuts are profile-global and persisted; removing a shortcut never disables/deletes an agent or changes its command, model or account. Keep the orbital artwork static and create no terminal/browser/emulator until a deliberate launch. New named custom agent definitions are outside this feature; existing catalog command overrides remain supported.
+
 User preferences confirmed on 2026-10-14:
 
 - Keep Claude, Codex and Antigravity quick icons beside **+ Agent**.

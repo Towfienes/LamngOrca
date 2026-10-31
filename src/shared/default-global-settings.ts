@@ -1,4 +1,5 @@
 import type { GlobalSettings } from './global-settings-types'
+import { normalizeWorkspaceQuickLaunch } from './workspace-quick-launch'
 import type { NotificationSettings } from './notification-settings-types'
 import type { VoiceSettings } from './speech-types'
 import { DEFAULT_TERMINAL_FONT_WEIGHT, DEFAULT_TERMINAL_FONT_WEIGHT_BOLD } from './terminal-fonts'
@@ -194,6 +195,7 @@ export function buildDefaultSettings(args: {
     terminalHiddenDeliveryGate: true,
     terminalModelQueryAuthority: true,
     defaultTuiAgent: null,
+    workspaceQuickLaunch: normalizeWorkspaceQuickLaunch(undefined),
     disabledTuiAgents: [...DEFAULT_DISABLED_TUI_AGENTS],
     pluginSystemEnabled: false,
     disabledPlugins: [],

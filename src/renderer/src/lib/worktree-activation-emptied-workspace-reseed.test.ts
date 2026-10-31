@@ -87,6 +87,7 @@ describe('activating a workspace whose last terminal was closed', () => {
 
   // An empty gate invalidates agent-based suppression; only an explicit caller surface survives.
   it.each([
+    ['user navigation to Quick Launch', { navigationIntent: 'user-open' as const }, 0],
     ['an agent selection', { agent: 'codex' as const }, 1],
     [
       'an agent selection whose caller promised its own surface',
@@ -405,6 +406,8 @@ describe('activating a folder workspace whose last terminal was closed', () => {
 
   // This must use the folder entry point; setActiveWorktree(folderWorkspaceKey(...)) takes the git path.
   it.each([
+    ['local folder navigation', { navigationIntent: 'user-open' as const }, 'local' as const, 0],
+    ['SSH folder navigation', { navigationIntent: 'user-open' as const }, SSH_HOST_ID, 0],
     ['a local agent selection', { agent: 'codex' as const }, 'local' as const, 1],
     ['an SSH agent selection', { agent: 'codex' as const }, SSH_HOST_ID, 1],
     [

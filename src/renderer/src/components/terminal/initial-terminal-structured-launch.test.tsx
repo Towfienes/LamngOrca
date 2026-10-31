@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
     authority: 'none',
     launchStatus: vi.fn((_worktreeId: string, _provider: string): string => 'idle'),
     createTab: vi.fn(),
+    ensureRoot: vi.fn(),
     storeTabsByWorktree,
     storeGroupsByWorktree,
     storeClosedRecords,
@@ -32,7 +33,8 @@ vi.mock('@/store', () => {
     tabsByWorktree: mocks.storeTabsByWorktree,
     groupsByWorktree: mocks.storeGroupsByWorktree,
     closedTerminalTabTombstonesByTabId: mocks.storeClosedRecords,
-    pendingWorktreeCreations: mocks.storePendingCreations
+    pendingWorktreeCreations: mocks.storePendingCreations,
+    ensureWorktreeRootGroup: mocks.ensureRoot
   })
   return {
     useAppStore: Object.assign(
@@ -67,6 +69,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | undefined
 afterEach(async () => {
   await act(async () => root?.unmount())
+  expect(mocks.createTab).not.toHaveBeenCalled()
   vi.clearAllMocks()
   mocks.authority = 'none'
   mocks.storeTabsByWorktree = {}
@@ -143,7 +146,7 @@ describe('passive terminal seeding during native chat creation', () => {
 
     mocks.storePendingCreations = {}
     await act(async () => root?.render(<Watcher />))
-    expect(mocks.createTab).toHaveBeenCalledOnce()
+    expect(mocks.ensureRoot).toHaveBeenCalledOnce()
   })
   it.each([
     ['claude', 'pending', 0],
@@ -169,7 +172,7 @@ describe('passive terminal seeding during native chat creation', () => {
     )
     await act(async () => finishGate('empty'))
 
-    expect(mocks.createTab).toHaveBeenCalledTimes(expectedTabs)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(expectedTabs)
   })
 })
 
@@ -196,11 +199,11 @@ describe('passive terminal seeding retries until a decision applies', () => {
     root = createRoot(document.createElement('div'))
     await act(async () => renderStrict())
     await finishGate('empty')
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
 
     // The applied decision is final: a later run neither re-checks nor seeds again.
     await act(async () => renderStrict())
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
     expect(mocks.gate).toHaveBeenCalledTimes(2)
   })
 
@@ -211,7 +214,7 @@ describe('passive terminal seeding retries until a decision applies', () => {
     // Each render passes a fresh reconcile callback, so this rerun cancels the first check.
     await act(async () => root?.render(<Watcher />))
     await finishGate('empty')
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
     expect(mocks.gate).toHaveBeenCalledTimes(2)
   })
 
@@ -230,7 +233,7 @@ describe('passive terminal seeding retries until a decision applies', () => {
     await act(async () => resolvers.forEach((resolve) => resolve('empty')))
     await act(async () => root?.render(<Watcher />))
 
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
     expect(mocks.gate).toHaveBeenCalledTimes(3)
   })
 
@@ -251,7 +254,7 @@ describe('passive terminal seeding retries until a decision applies', () => {
     await act(async () => root?.render(<Watcher />))
     mocks.storeTabsByWorktree = { 'wt-1': [] }
     await finishGate('empty')
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
   })
 
   it('keeps an empty launch chooser group empty when its inventory check finishes', async () => {
@@ -290,7 +293,7 @@ describe('passive terminal seeding retries until a decision applies', () => {
 
     await act(async () => root?.render(<Watcher worktreeId="wt-2" />))
     await act(async () => root?.render(<Watcher />))
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
   })
 
   it('seeds after leaving and returning to a blocked workspace', async () => {
@@ -302,10 +305,8 @@ describe('passive terminal seeding retries until a decision applies', () => {
     await act(async () => root?.render(<Watcher worktreeId="wt-2" />))
     mocks.gate.mockResolvedValue('empty')
     await act(async () => root?.render(<Watcher />))
-    expect(mocks.createTab).toHaveBeenCalledTimes(1)
-    expect(mocks.createTab).toHaveBeenCalledWith('wt-1', undefined, undefined, {
-      pendingActivationSpawn: true
-    })
+    expect(mocks.ensureRoot).toHaveBeenCalledTimes(1)
+    expect(mocks.ensureRoot).toHaveBeenCalledWith('wt-1')
     expect(mocks.gate.mock.calls.map(([id]) => id)).toEqual(['wt-1', 'wt-2', 'wt-1'])
   })
 })

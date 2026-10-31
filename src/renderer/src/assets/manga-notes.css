@@ -1,0 +1,76 @@
+@font-face {
+  font-family: 'Patrick Hand';
+  src: url('./fonts/PatrickHand-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.deck-usage-portrait-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: calc(100% + 26px);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.deck-usage-portrait-button .deck-usage-portrait {
+  height: 100%;
+}
+
+.deck-usage-portrait-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+[data-manga-notes][data-slot='popover-content'] {
+  --popover: var(--manga-paper);
+  --popover-foreground: var(--manga-ink);
+  --background: var(--manga-paper);
+  --foreground: var(--manga-ink);
+  --primary: var(--manga-ink);
+  --primary-foreground: var(--manga-paper);
+  --accent: color-mix(in srgb, var(--manga-ink) 8%, var(--manga-paper));
+  --accent-foreground: var(--manga-ink);
+  --muted-foreground: color-mix(in srgb, var(--manga-ink) 65%, var(--manga-paper));
+  --border: color-mix(in srgb, var(--manga-ink) 35%, var(--manga-paper));
+  --ring: var(--manga-ink);
+  width: min(320px, calc(100vw - 24px));
+  overflow: visible;
+  border: 2px solid var(--manga-ink);
+  border-radius: 36px 32px 40px 28px / 28px 40px 32px 36px;
+  background: var(--manga-paper);
+  color: var(--manga-ink);
+  font-family: 'Patrick Hand', var(--font-sans);
+  box-shadow: var(--shadow-floating);
+  backdrop-filter: none;
+}
+
+[data-manga-notes] [data-manga-task] {
+  field-sizing: content;
+  min-height: calc(var(--spacing) * 8);
+  max-height: calc(var(--spacing) * 28);
+  height: auto;
+  resize: none;
+  border: 0;
+  padding-inline: var(--spacing);
+  background: transparent;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: var(--text-lg);
+}
+
+[data-manga-notes] [data-completed] {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+[data-manga-tail] {
+  fill: var(--manga-paper);
+  stroke: var(--manga-ink);
+  stroke-width: 1.5px;
+}

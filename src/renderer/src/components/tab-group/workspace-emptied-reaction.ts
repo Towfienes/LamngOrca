@@ -9,7 +9,7 @@ export function captureWorkspaceEmptiedReaction(
   worktreeId: string,
   options?: { floatingPanelGuestOwned?: boolean }
 ): () => void {
-  // Emptying the floating panel retains keyboard ownership; emptying a worktree leaves that worktree.
+  // Both empty surfaces retain ownership; the worktree shows Quick Launch.
   if (worktreeId === FLOATING_TERMINAL_WORKTREE_ID) {
     const panelOwned =
       options?.floatingPanelGuestOwned === true || isFloatingWorkspacePanelFocused()
@@ -27,8 +27,8 @@ function leaveWorktreeIfEmpty(worktreeId: string): void {
   if (state.activeWorktreeId !== worktreeId) {
     return
   }
-  // Why: split-group closes bypass legacy Terminal.tsx; deselect the emptied worktree here or the window goes blank instead of landing.
+  // Split-group closes must also leave an empty root for Quick Launch.
   if (state.reconcileWorktreeTabModel(worktreeId).renderableTabCount === 0) {
-    state.setActiveWorktree(null)
+    state.ensureWorktreeRootGroup(worktreeId)
   }
 }

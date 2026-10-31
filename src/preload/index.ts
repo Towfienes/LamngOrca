@@ -62,6 +62,7 @@ import { sessionApi } from './api/session-bridge'
 import { updaterApi } from './api/updater-bridge'
 import { docPreviewApi } from './api/doc-preview-bridge'
 import { notebookApi } from './api/notebook-bridge'
+import { vscodeEditorApi } from './api/vscode-editor-bridge'
 import { fsApi } from './api/fs-bridge'
 import { gitApi } from './api/git-bridge'
 import { uiApi } from './api/ui-bridge'
@@ -102,6 +103,7 @@ const telemetryGetConsentStateApi: PreloadApi['telemetryGetConsentState'] = () =
   ipcRenderer.invoke('telemetry:getConsentState')
 
 const api = {
+  vscodeEditor: vscodeEditorApi,
   app: appApi,
   orcaProfiles: orcaProfilesApi,
   platform: platformApi,

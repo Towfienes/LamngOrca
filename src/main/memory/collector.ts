@@ -16,6 +16,7 @@ import { collectHostMemory } from './host-memory'
 import { getProcessMemoryMetric } from './process-memory-metric'
 import { readDarwinProcessFootprints } from './darwin-process-footprint'
 import { getLocalDaemonPid } from './local-daemon-pid'
+import { readOrcaIdleState } from './orca-idle-state'
 import {
   buildProcessIndex,
   collectSubtree,
@@ -162,7 +163,11 @@ function bucketElectronMetrics(processIndex: ProcIndex): AppBucketsRaw {
 }
 
 async function runSnapshot(store: MemorySnapshotStore): Promise<MemorySnapshot> {
-  const [processIndex, host] = await Promise.all([enumerateProcesses(), collectHostMemory()])
+  const [processIndex, host, idleByPid] = await Promise.all([
+    enumerateProcesses(),
+    collectHostMemory(),
+    readOrcaIdleState()
+  ])
   const appBuckets = bucketElectronMetrics(processIndex)
   const ptys = listRegisteredPtys()
 
@@ -205,6 +210,10 @@ async function runSnapshot(store: MemorySnapshotStore): Promise<MemorySnapshot> 
       cpu: clampMemoryMetric(sessionCpu),
       memory: clampMemoryMetric(sessionMemory),
       ...optionalCommitField(processIndex.hasPrivateMemory, sessionPrivateMemory)
+    }
+    const idle = pty.pid == null ? undefined : idleByPid.get(pty.pid)
+    if (idle) {
+      session.idle = idle
     }
 
     let bucket: WorktreeMemoryBucket

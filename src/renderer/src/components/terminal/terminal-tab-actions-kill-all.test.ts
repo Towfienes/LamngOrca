@@ -51,6 +51,7 @@ function baseState(overrides: Record<string, unknown> = {}): Record<string, unkn
     setActiveTabType: vi.fn(),
     setActiveTab: vi.fn(),
     setActiveWorktree: vi.fn(),
+    ensureWorktreeRootGroup: vi.fn(),
     requestPinnedTabCloseConfirm: vi.fn(),
     createTab: vi.fn(),
     closeFile: vi.fn(),
@@ -127,13 +128,14 @@ describe('closeTerminalTab kill-all routing', () => {
     expect(state.createTab).not.toHaveBeenCalled()
   })
 
-  it('deactivates after the last active terminal when no other content exists', () => {
+  it('keeps Quick Launch available after the last active terminal closes', () => {
     const state = baseState()
     getStateMock.mockReturnValue(state)
 
     closeTerminalTab('terminal-1', { force: true })
 
-    expect(state.setActiveWorktree).toHaveBeenCalledWith(null)
+    expect(state.setActiveWorktree).not.toHaveBeenCalled()
+    expect(state.ensureWorktreeRootGroup).toHaveBeenCalledWith('wt')
     expect(state.setActiveFile).not.toHaveBeenCalled()
     expect(state.setActiveBrowserTab).not.toHaveBeenCalled()
     expect(state.createTab).not.toHaveBeenCalled()

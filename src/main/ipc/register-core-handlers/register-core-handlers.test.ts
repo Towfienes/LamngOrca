@@ -223,6 +223,7 @@ vi.mock('../memory', () => ({
 vi.mock('../notebook', () => ({
   registerNotebookHandlers: registerNotebookHandlersMock
 }))
+vi.mock('../vscode-editor', () => ({ registerVSCodeEditorHandlers: vi.fn() }))
 
 vi.mock('../notifications', () => ({
   registerNotificationHandlers: registerNotificationHandlersMock

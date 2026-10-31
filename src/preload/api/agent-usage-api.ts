@@ -48,7 +48,7 @@ export type OpenCodeUsageApi = UsageProviderApi<OpenCodeUsageSnapshot, OpenCodeU
 export type MuseUsageApi = UsageProviderApi<MuseUsageSnapshot, MuseUsageBreakdownKind>
 
 export type RateLimitsApi = {
-  get: () => Promise<RateLimitState>
+  get: (options?: { refreshQuota?: boolean }) => Promise<RateLimitState>
   refresh: () => Promise<RateLimitState>
   refreshCodexForTarget: (target: RateLimitRuntimeTarget) => Promise<RateLimitState>
   consumeCodexResetCredit: () => Promise<CodexRateLimitResetResult>

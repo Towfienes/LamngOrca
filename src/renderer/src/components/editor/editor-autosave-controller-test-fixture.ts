@@ -21,6 +21,26 @@ export type FakeEditorDisk = {
   }
 }
 
+export function createLegacyEditorStore(): StoreApi<AppState> {
+  // oxlint-disable-next-line typescript/no-explicit-any, typescript/consistent-type-assertions -- SAFETY: a partial legacy store; tests exercise only this editor slice.
+  return createStore<any>()((...args: any[]) => ({
+    ...emptyTabLayoutState(),
+    activeWorktreeId: 'wt-1',
+    settings: { editorAutoSave: true, editorAutoSaveDelayMs: 1000 },
+    repos: [],
+    worktreesByRepo: {
+      'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: '/repo', hostId: 'local' }]
+    },
+    detectedWorktreesByRepo: {},
+    runtimeEnvironments: [],
+    runtimeEnvironmentCatalogHydrated: true,
+    removedRuntimeEnvironmentIds: new Set(),
+    sshConnectionStates: new Map(),
+    sshStateByEnvironment: new Map(),
+    ...createEditorSlice(...(args as Parameters<typeof createEditorSlice>))
+  })) as unknown as StoreApi<AppState>
+}
+
 /** Back the filesystem stub with in-memory disk contents so assertions observe landed writes. */
 export function createFakeEditorDisk(initialFiles: Record<string, string> = {}): FakeEditorDisk {
   const files = new Map(Object.entries(initialFiles))

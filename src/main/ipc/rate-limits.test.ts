@@ -41,6 +41,7 @@ function makeService(): {
   const service = {
     getState: vi.fn(() => ({}) as RateLimitState),
     refresh,
+    refreshQuota: vi.fn(() => Promise.resolve({} as RateLimitState)),
     refreshGrok,
     refreshCodexForTarget: vi.fn(() => Promise.resolve({} as RateLimitState)),
     refreshClaudeForTarget: vi.fn(() => Promise.resolve({} as RateLimitState)),
@@ -67,6 +68,19 @@ describe('registerRateLimitHandlers', () => {
     expect(ipcState.handleHandlers.has('rateLimits:get')).toBe(true)
     expect(ipcState.handleHandlers.has('rateLimits:refresh')).toBe(true)
     expect(ipcState.handleHandlers.has('rateLimits:refreshGrok')).toBe(true)
+  })
+
+  it('only requests automatic quota refresh for an explicit true option', async () => {
+    const { service, refresh } = makeService()
+    registerRateLimitHandlers(service, makeCodexAccounts().service)
+    const get = ipcState.handleHandlers.get('rateLimits:get')!
+    for (const options of [undefined, null, true, 'refresh', {}, { refreshQuota: 'true' }]) {
+      await get({}, options)
+    }
+    expect(service.getState).toHaveBeenCalledTimes(6)
+    await get({}, { refreshQuota: true })
+    expect(service.refreshQuota).toHaveBeenCalledOnce()
+    expect(refresh).not.toHaveBeenCalled()
   })
 
   it('registers a refreshGrok channel that delegates to refreshGrok()', async () => {

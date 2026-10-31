@@ -50,7 +50,7 @@ export async function launchDeckAccountAgent(
   if (!deckAccountLaunchIsLocal(worktreeId)) {
     throw new Error('Launch accounts on the host that owns this workspace.')
   }
-  const split = pane ?? resolveDeckAgentSplitTarget(worktreeId, null)
+  const split = pane === undefined ? resolveDeckAgentSplitTarget(worktreeId, null) : pane
   if (split) {
     await launchDeckAgentInPane(worktreeId, split, agent, { accountId, commandOverride })
     return split.tabId

@@ -10,12 +10,14 @@ type AppMetricFixture = {
   memory: { workingSetSize: number }
 }
 
-const { appMetricsMock, runProcessMock, execMock, listRegisteredPtysMock } = vi.hoisted(() => ({
-  appMetricsMock: vi.fn<() => AppMetricFixture[]>(() => []),
-  runProcessMock: vi.fn(),
-  execMock: vi.fn(),
-  listRegisteredPtysMock: vi.fn()
-}))
+const { appMetricsMock, runProcessMock, execMock, listRegisteredPtysMock, readOrcaIdleStateMock } =
+  vi.hoisted(() => ({
+    appMetricsMock: vi.fn<() => AppMetricFixture[]>(() => []),
+    runProcessMock: vi.fn(),
+    execMock: vi.fn(),
+    listRegisteredPtysMock: vi.fn(),
+    readOrcaIdleStateMock: vi.fn()
+  }))
 
 vi.mock('child_process', () => ({
   exec: (cmd: string, opts: unknown, cb: (err: Error | null, out: { stdout: string }) => void) =>
@@ -29,6 +31,10 @@ vi.mock('@orca/process-host', () => ({
 
 vi.mock('./pty-registry', () => ({
   listRegisteredPtys: listRegisteredPtysMock
+}))
+
+vi.mock('./orca-idle-state', () => ({
+  readOrcaIdleState: readOrcaIdleStateMock
 }))
 
 function appEnvironment() {
@@ -206,6 +212,8 @@ describe('collectMemorySnapshot', () => {
     execMock.mockReset()
     listRegisteredPtysMock.mockReset()
     listRegisteredPtysMock.mockReturnValue([])
+    readOrcaIdleStateMock.mockReset()
+    readOrcaIdleStateMock.mockResolvedValue(new Map())
   })
 
   function mockPsResponse(stdout: string) {
@@ -411,6 +419,23 @@ describe('collectMemorySnapshot', () => {
     expect(snap.worktrees).toHaveLength(1)
     expect(snap.worktrees[0].worktreeId).toBe('__orphan__')
     expect(snap.worktrees[0].memory).toBe(2048 * 1024)
+  })
+
+  it('attaches the idle service state to the session whose PTY pid owns the scope', async () => {
+    mockPsResponse(['60 1 0 1024', '61 1 0 1024'].join('\n'))
+    listRegisteredPtysMock.mockReturnValue([
+      { ptyId: 'idle', worktreeId: null, sessionId: 's-idle', paneKey: 'tab:1', pid: 60 },
+      { ptyId: 'busy', worktreeId: null, sessionId: 's-busy', paneKey: 'tab:2', pid: 61 }
+    ])
+    const idle = { idleSince: 1_000, frozen: true, cgroupMemory: 32, cgroupSwap: 270 }
+    readOrcaIdleStateMock.mockResolvedValue(new Map([[60, idle]]))
+
+    const { collectMemorySnapshot } = await loadCollector()
+    const snap = await collectMemorySnapshot(emptyStore)
+
+    const sessions = snap.worktrees[0].sessions
+    expect(sessions.find((s) => s.sessionId === 's-idle')?.idle).toEqual(idle)
+    expect(sessions.find((s) => s.sessionId === 's-busy')).not.toHaveProperty('idle')
   })
 
   it('returns an empty snapshot when process enumeration fails', async () => {

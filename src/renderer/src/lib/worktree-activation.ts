@@ -135,7 +135,8 @@ export function activateAndRevealFolderWorkspace(
   }
   if (shouldGateAgentActivation) {
     gateAndReseedEmptyWorkspace(workspaceKey, {
-      callerProvidesSurface: opts?.providesInitialSurface === true,
+      callerProvidesSurface:
+        opts?.providesInitialSurface === true || activationSeedsUserDefaultSurface(opts),
       seedUserDefaultSurface,
       ...(opts?.executionHostId ? { executionHostId: opts.executionHostId } : {})
     })
@@ -160,7 +161,7 @@ export function activateAndRevealFolderWorkspace(
     })
   }
 
-  if (opts?.providesInitialSurface !== true) {
+  if (!providesInitialSurface) {
     ensureWebRuntimeWorktreeTerminalAfterWake(workspaceKey, {
       runtimeEnvironmentId,
       startup: opts?.startup,
@@ -247,7 +248,8 @@ export function activateAndRevealWorktree(
   }
   if (shouldGateAgentActivation) {
     gateAndReseedEmptyWorkspace(worktreeId, {
-      callerProvidesSurface: opts?.providesInitialSurface === true,
+      callerProvidesSurface:
+        opts?.providesInitialSurface === true || activationSeedsUserDefaultSurface(opts),
       seedUserDefaultSurface,
       ...(opts?.executionHostId ? { executionHostId: opts.executionHostId } : {})
     })
@@ -298,7 +300,7 @@ export function activateAndRevealWorktree(
   if (
     opts?.notifyHostRuntime !== false &&
     !opts?.backendStartupTerminalSpawned &&
-    opts?.providesInitialSurface !== true
+    !providesInitialSurface
   ) {
     ensureWebRuntimeWorktreeTerminalAfterWake(worktreeId, {
       startup: opts?.startup,

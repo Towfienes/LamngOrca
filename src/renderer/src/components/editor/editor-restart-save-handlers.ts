@@ -2,6 +2,7 @@ import type { OpenFile } from '@/store/slices/editor'
 import { shouldPersistWorkspaceSession } from '@/lib/workspace-session'
 import { canAutoSaveOpenFile } from './editor-autosave'
 import { flushPendingEditorBuffer } from './editor-pending-flush'
+import { vscodeSessionForFile } from './vscode-editor-sessions'
 import { getDuplicateDirtySavePaths, restartSaveTargets } from './editor-autosave-state-projections'
 import type { AppStoreApi, EditorSaveQueue } from './editor-save-queue'
 import type {
@@ -24,7 +25,10 @@ export function createEditorRestartSaveHandlers({
   handlePrepareHotExit: (event: Event) => Promise<void>
 } {
   const getLatestWritableContent = (file: OpenFile): string | null => {
-    return store.getState().editorDrafts[file.id] ?? null
+    return (
+      store.getState().editorDrafts[file.id] ??
+      (vscodeSessionForFile(store.getState(), file) ? '' : null)
+    )
   }
 
   const handleSaveDirtyFiles = async (event: Event): Promise<void> => {

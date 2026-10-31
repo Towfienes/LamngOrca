@@ -1,0 +1,59 @@
+.workspace-quick-launch {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--quick-launch-background);
+  color: var(--foreground);
+}
+
+.workspace-quick-launch-content {
+  display: flex;
+  min-height: 100%;
+  width: min(100%, 880px);
+  margin-inline: auto;
+  padding: 32px 24px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.workspace-quick-launch-orbit {
+  width: min(280px, 55vw);
+  height: 180px;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  opacity: 0.4;
+}
+
+.workspace-quick-launch-agents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-block: 16px;
+}
+
+.workspace-quick-launch-agent > button {
+  height: auto;
+  min-width: 96px;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 8px;
+}
+
+.workspace-quick-launch-logo,
+.workspace-quick-launch-logo svg {
+  width: 40px;
+  height: 40px;
+}
+
+@media (max-height: 650px) {
+  .workspace-quick-launch-orbit {
+    height: 90px;
+  }
+  .workspace-quick-launch-content {
+    gap: 12px;
+  }
+}

@@ -9,8 +9,11 @@ import {
 } from './service-types'
 
 export abstract class RateLimitServiceInactiveAccounts extends RateLimitServicePolling {
-  async fetchInactiveClaudeAccountsOnOpen(): Promise<void> {
-    if (Date.now() - this.lastInactiveClaudeFetchAt < INACTIVE_FETCH_DEBOUNCE_MS) {
+  async fetchInactiveClaudeAccountsOnOpen(
+    minimumIntervalMs = INACTIVE_FETCH_DEBOUNCE_MS
+  ): Promise<void> {
+    const fetchStartedAt = Date.now()
+    if (fetchStartedAt - this.lastInactiveClaudeFetchAt < minimumIntervalMs) {
       return
     }
     this.pruneInactiveClaudeState()
@@ -82,22 +85,27 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
       })
 
       if (!signal.aborted && fetchGeneration === this.inactiveClaudeAccountsGeneration) {
-        this.lastInactiveClaudeFetchAt = Date.now()
+        this.lastInactiveClaudeFetchAt = fetchStartedAt
       }
     } finally {
       this.finishFetchCycle(controller)
     }
   }
 
-  async fetchInactiveCodexAccountsOnOpen(): Promise<void> {
-    if (Date.now() - this.lastInactiveCodexFetchAt < INACTIVE_FETCH_DEBOUNCE_MS) {
+  async fetchInactiveCodexAccountsOnOpen(
+    minimumIntervalMs = INACTIVE_FETCH_DEBOUNCE_MS
+  ): Promise<void> {
+    const fetchStartedAt = Date.now()
+    if (fetchStartedAt - this.lastInactiveCodexFetchAt < minimumIntervalMs) {
       return
     }
     this.pruneInactiveCodexState()
     if (this.inactiveCodexFetchInFlight) {
       return
     }
-    const accounts = this.inactiveCodexAccountsResolver?.() ?? []
+    const accounts = (this.inactiveCodexAccountsResolver?.() ?? []).filter(
+      (account) => !this.isRetryAfterActive(this.inactiveCodexCache.get(account.id) ?? null)
+    )
     if (accounts.length === 0) {
       return
     }
@@ -170,7 +178,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
       })
 
       if (!signal.aborted && fetchGeneration === this.inactiveCodexAccountsGeneration) {
-        this.lastInactiveCodexFetchAt = Date.now()
+        this.lastInactiveCodexFetchAt = fetchStartedAt
       }
     } finally {
       this.inactiveCodexFetchInFlight = false

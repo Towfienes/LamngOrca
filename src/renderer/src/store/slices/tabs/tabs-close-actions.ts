@@ -239,7 +239,7 @@ export function createTabsCloseActions(
   }
 }
 
-// Last user-close lands on welcome; failed-create cleanup preserves selection.
+// Last user-close keeps its workspace selected for Quick Launch.
 type LandingState = Pick<
   AppState,
   | 'activeWorktreeId'
@@ -269,9 +269,6 @@ function landsOnEmptiedWorktree(
 
 function emptiedWorktreeLandingPatch(current: LandingState, worktreeId: string) {
   return {
-    activeWorktreeId: null,
-    activeWorkspaceKey: null,
-    activeWorkspaceExecutionHostId: null,
     activeTabId: null,
     activeBrowserTabId: null,
     activeFileId: null,

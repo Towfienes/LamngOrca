@@ -8,9 +8,11 @@ import type { PluginAppearanceSettings } from './plugin-appearance-settings-type
 import type { WorktreeDeletionPreferences } from './worktree-deletion-preferences'
 import type { AgentPermissionGlobalSettings } from './tui-agent-permission-choice'
 import type { OrchestrationHeartbeatSettings } from './orchestration-heartbeat'
+import type { WorkspaceQuickLaunchSettings } from './workspace-quick-launch'
 
 /** Settings groups owned by their feature modules and composed into GlobalSettings. */
 export type GlobalSettingsBase = ClaudeAgentViewSettings &
+  WorkspaceQuickLaunchSettings &
   NativeChatGlobalSettings &
   WorktreeDeletionPreferences &
   ClaudeAccountSwitchSettings &

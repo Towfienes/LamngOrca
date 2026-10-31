@@ -3,6 +3,7 @@ import { statUserOpenedPath } from '@/lib/user-opened-local-path'
 import { detectLanguage } from '@/lib/language-detect'
 import { joinPath, getRelativePathInsideRoot } from '@/lib/path'
 import { useAppStore } from '@/store'
+import { useWorkspaceLaunchSelection } from '@/store/workspace-launch-selection'
 import { isMissingRuntimePathError } from '@/runtime/runtime-file-metadata-client'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { toRuntimeWorktreeSelector } from '@/runtime/runtime-worktree-selector'
@@ -153,6 +154,7 @@ export async function openQuickOpenFile(
     language: detectLanguage(filePath),
     mode: 'edit'
   })
+  useWorkspaceLaunchSelection.getState().dismiss(worktreeId)
   if (!literalSelected && navigation.line !== undefined) {
     if (detectLanguage(filePath) === 'markdown') {
       useAppStore.getState().setMarkdownViewMode(fileId, 'source')

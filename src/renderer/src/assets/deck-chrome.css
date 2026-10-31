@@ -176,6 +176,54 @@
   background: var(--status-success);
 }
 
+.deck-idle-ram-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding-inline: 6px;
+  margin-inline-start: 2px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--foreground) 62%, transparent);
+  cursor: default;
+}
+
+.deck-idle-ram-badge:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.deck-idle-ram-tooltip {
+  max-width: 340px;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-idle-ram-tooltip-head {
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.deck-idle-ram-tooltip li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deck-idle-ram-tooltip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-idle-ram-tooltip-meta {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
 .deck-sidebar.deck-sidebar .deck-sidebar-options {
   margin-top: 0;
   height: 28px;
@@ -188,7 +236,7 @@
 
 .deck-sidebar-options > div:last-child {
   width: 100%;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 
 .deck-workspace-shell .deck-sidebar.deck-sidebar [data-worktree-card-surface] {
@@ -593,14 +641,6 @@
   outline-offset: 2px;
 }
 
-.deck-usage-footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
 .deck-explorer-root-icon {
   display: none;
 }
@@ -615,63 +655,47 @@
   font-weight: 600;
 }
 
-.deck-david-brand {
-  position: absolute;
-  /* Starts level with "Estimated API cost", below the header and period switch. */
-  top: 76px;
-  right: 8px;
-  bottom: 8px;
-  z-index: 20;
-  display: flex;
-  width: 32%;
-  margin: 0;
-  flex-direction: column;
-  align-items: flex-end;
-  pointer-events: none;
+/* Cost and model figures on the left, the full-body portrait in its own right column. */
+.deck-usage-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(130px, 46%, 190px);
+  align-items: stretch;
+  column-gap: 4px;
 }
 
-.deck-david-caption {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: var(--muted-foreground);
-}
-
-.deck-david-portrait {
-  display: block;
-  width: 100%;
+/* Sized by the cost column, never taller than it plus the overlap, so no gap opens above Quota. */
+.deck-usage-figure {
+  position: relative;
   min-height: 0;
-  flex: 1;
-  margin-top: 6px;
-  object-fit: contain;
-  object-position: bottom right;
-  pointer-events: none;
 }
 
-/* Plinth lines beside the figure's feet, fading toward the text column. */
-.deck-david-brand::before {
-  content: '';
+.deck-usage-portrait {
   position: absolute;
-  bottom: 4px;
-  left: -10%;
-  width: 46%;
-  height: 34%;
-  background: repeating-linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--sidebar-foreground) 22%, transparent) 0 1px,
-    transparent 1px 7px
-  );
-  mask-image: linear-gradient(to right, transparent, black 70%);
+  top: 8px;
+  right: 0;
+  z-index: 1;
+  width: 100%;
+  /* The feet stand on the Quota heading row, so the figure leads the section. */
+  height: calc(100% + 26px);
+  object-fit: contain;
+  object-position: right bottom;
+  /* Faint rim so the black cloak keeps its silhouette on the dark sidebar. */
+  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--sidebar-foreground) 45%, transparent))
+    drop-shadow(0 6px 14px color-mix(in srgb, var(--chart-1) 22%, transparent));
   pointer-events: none;
+  user-select: none;
 }
 
-.deck-usage-provider-list,
-.deck-usage-quota,
-.deck-usage-note {
-  padding-inline-end: calc(32% + 4px);
+/* Scrolls when the dock is short, without drawing a scrollbar. */
+.deck-usage-scroll {
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.deck-usage-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .deck-quota-active-dot {
@@ -682,30 +706,39 @@
   background: var(--color-status-success);
 }
 
+/* One line per window: label, percentage, bar, reset countdown. */
+.deck-quota-window {
+  display: grid;
+  grid-template-columns: 1.5rem 2.25rem minmax(0, 1fr) 5.5rem;
+  column-gap: 6px;
+  align-items: center;
+}
+
+/* Keeps the heading text clear of the figure's feet. */
+.deck-usage-quota-head {
+  min-height: 24px;
+}
+
 .deck-quota-fill {
   height: 100%;
   border-radius: inherit;
-  background: color-mix(in srgb, var(--sidebar-foreground) 70%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--chart-1) 70%, white), var(--chart-1));
 }
 
-.deck-usage-panel:not([data-usage-open]) .deck-david-brand {
-  display: none;
+/* Workspace dots share a fixed target size; only the selected slot has an outline. */
+[data-workspace-launch-draft] {
+  visibility: hidden;
+  pointer-events: none;
 }
 
-@media (max-height: 560px) {
-  .deck-david-brand {
-    display: none;
-  }
-
-  .deck-usage-provider-list,
-  .deck-usage-quota,
-  .deck-usage-note {
-    padding-inline-end: 0;
-  }
+[data-workspace-launch-draft] [data-tab-group-strip-id] {
+  position: relative;
+  z-index: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
-/* Workspace dots: one per tab; the active tab is a filled pill, others small dots; the ring tracks agent state. */
-/* Dots-only strip: path on the left, the workspace capsule centered, a balancing spacer on the right. */
+/* Path on the left, workspace slots centered, actions on the right. */
 .deck-tab-bar-dots {
   display: grid;
   flex: 1;
@@ -732,28 +765,21 @@
   flex-shrink: 0;
   align-items: center;
   gap: 1px;
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent);
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent);
   -webkit-app-region: no-drag;
 }
 
 .deck-tab-dot {
-  --dot-ring: transparent;
+  --dot-ring: var(--ring);
   position: relative;
   display: inline-flex;
   min-width: 24px;
-  height: 22px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   color: var(--muted-foreground);
-  box-shadow: inset 0 0 0 1.5px var(--dot-ring);
 }
 
-/* Occupied workspaces show their agent or content icon, caelestia-style. */
 .deck-tab-dot:not([data-empty]) > * {
   opacity: 0.7;
 }
@@ -764,12 +790,9 @@
 }
 
 .deck-tab-dot[data-active='true'] {
-  min-width: 38px;
   color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 16%, transparent);
-  box-shadow:
-    inset 0 0 0 1.5px var(--dot-ring),
-    0 0 12px color-mix(in srgb, var(--foreground) 16%, transparent);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  box-shadow: inset 0 0 0 1px var(--dot-ring);
 }
 
 .deck-tab-dot[data-attention='waiting'] {
@@ -780,8 +803,8 @@
   --dot-ring: var(--status-success);
 }
 
-.deck-tab-dot:not([data-empty]):not([data-active='true']):hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+.deck-tab-dot:not([data-active='true']):hover {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
 }
 
 /* Multi-pane workspaces: one icon per pane; middle click closes that pane only. */
@@ -804,27 +827,23 @@
 }
 
 .deck-tab-dot-pane[data-attention='waiting'] {
-  box-shadow: inset 0 0 0 1px var(--status-warning);
+  color: var(--status-warning);
 }
 
 .deck-tab-dot-pane[data-attention='running'] {
-  box-shadow: inset 0 0 0 1px var(--status-success);
-}
-
-.deck-tab-dot[data-empty='true'] {
-  min-width: 18px;
+  color: var(--status-success);
 }
 
 .deck-tab-dot[data-empty='true']::before {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   border-radius: 9999px;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  background: var(--muted-foreground);
   content: '';
 }
 
 .deck-tab-dot[data-empty='true']:hover::before {
-  box-shadow: 0 0 0 1px var(--foreground);
+  background: var(--foreground);
 }
 
 .deck-tab-dot:focus-visible {
@@ -832,12 +851,36 @@
   outline-offset: -2px;
 }
 
+@media (max-width: 640px) {
+  .deck-lamng-brand {
+    flex: 0 1 auto;
+    margin-inline-end: 0;
+  }
+
+  .deck-lamng-brand .deck-signature {
+    width: 32px;
+  }
+
+  .deck-tab-bar-dots {
+    padding-right: 32px;
+  }
+
+  .deck-tab-dots {
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .deck-tab-dots::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .deck-tab-dot {
-    transition:
-      min-width 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      background-color 120ms ease-out,
-      box-shadow 160ms ease-out;
+    transition: background-color 120ms ease-out;
   }
 }
 

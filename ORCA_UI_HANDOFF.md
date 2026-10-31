@@ -223,14 +223,12 @@ Header pane giữ logo + title phiên; metadata để hover. Zoom bằng Ctrl/Cm
 - Không đổi key hoặc clear localStorage để “sửa giao diện”; nếu cần đổi storage phải có migration giữ nội dung.
 - Chưa có cơ chế merge/conflict khi nhiều cửa sổ cùng sửa note; không quảng cáo đồng bộ thời gian thực.
 
-### Usage và David
+### Usage và Boruto
 
-- Asset: `src/renderer/src/assets/david-laid-portrait.png`, ảnh alpha đã xử lý từ ảnh người dùng cung cấp.
-- Dùng asset sẵn có; chỉnh bố cục bằng CSS trước khi nghĩ tới tạo lại ảnh.
-- Image group absolute, `right: 8px`, `bottom: 8px`, nằm trên content và `pointer-events: none`.
-- Cột dành cho ảnh nằm ở `.deck-usage-provider-list`, `.deck-usage-note`; số tiền vẫn align phải.
-- Track ngắn hơn để vừa cạnh ảnh; **tỷ lệ phần trăm chi phí không bị sửa hoặc clamp giả theo ảnh**.
-- Chiều cao viewport <=560px: ẩn ảnh và trả lại khoảng cột trống.
+- Asset: `src/renderer/src/assets/boruto-portrait.webp` (Boruto toàn thân, nền trong suốt, từ ảnh Codex tạo).
+- Bố cục: `.deck-usage-top` là lưới 2 cột — chi phí + thống kê model bên trái, `.deck-usage-portrait` ở cột phải (38%), nên ảnh không bao giờ chồng nội dung. Quota ngay dưới dùng toàn bộ chiều rộng, các account cách nhau bằng viền `border-sidebar-border`.
+- Không còn sọc "bệ" và chữ "01 / BORUTO". Vùng cuộn `[data-usage-scroll]` ẩn scrollbar (`scrollbar-width: none`) nhưng vẫn cuộn được.
+- **Tỷ lệ phần trăm chi phí không bị sửa hoặc clamp giả theo ảnh**; số liệu và công thức giữ nguyên.
 - Giữ period selector, refresh, stale/error behavior và Usage settings. Chỉ đổi hình không được sửa công thức tiền.
 - Explorer được bọc vùng flex có overflow clip để cây không vẽ đè Notes khi cửa sổ chật.
 
@@ -413,3 +411,9 @@ Duplicate agent-row labels (several agents opened from the same prompt) now carr
 from `assignDuplicateLabelOrdinals`, assigned per workspace card in `useWorktreeAgentRows`.
 Installed as `~/Applications/Orca-1.4.220-Lamng-SleepMoon` (renderer-only; 3983 other archive
 files byte-identical). Quit and reopen Orca to load it.
+
+### Quota refresh and portrait notes (2026-10-31)
+
+Quota checks every 30 seconds while its section is expanded and the app is visible/focused. It reuses the provider cycles for Claude/Codex and inactive-account probes, bounds concurrent work and honors Retry-After. It never forces local cost-log scans; the existing scan notifications continue updating cost figures. `rateLimits.get({refreshQuota:true})` is additive: old peers safely return the cached snapshot; web clients retain their server account stream.
+
+Click Boruto to open a manga speech-balloon checklist. It uses the existing `orca.global-notes.v1` notes, retains plain lines, and writes Markdown checkbox lines on edits/toggles. Add/edit/tick/remove save immediately; Escape, outside click and Close dismiss the popover. Notes are local to the Orca profile and shared across folder/git/SSH workspace switches. The feature neither sends notes to an agent nor changes agent/account settings. The bundled Patrick Hand font is scoped to the balloon and has Vietnamese glyphs.

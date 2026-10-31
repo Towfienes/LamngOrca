@@ -1,4 +1,6 @@
 import React from 'react'
+import { useAppStore } from '@/store'
+import { useWorkspaceLaunchSelection } from '@/store/workspace-launch-selection'
 import { SortableContext } from '@dnd-kit/sortable'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
@@ -217,7 +219,16 @@ export function renderTabBarSurface({
         <WorkspaceTabDots
           worktreeId={worktreeId}
           groupId={resolvedGroupId}
-          onNewWorkspace={onNewTerminalTab}
+          onNewWorkspace={(slotIndex) =>
+            useWorkspaceLaunchSelection
+              .getState()
+              .open(
+                worktreeId,
+                useAppStore.getState().unifiedTabsByWorktree[worktreeId]?.length ?? 0,
+                slotIndex,
+                useAppStore.getState().activeGroupIdByWorktree[worktreeId]
+              )
+          }
           onCloseTab={closeDotTab}
         />
         <div className="deck-tab-bar-dots-end">{newTabMenu}</div>

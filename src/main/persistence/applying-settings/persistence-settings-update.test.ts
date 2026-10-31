@@ -98,6 +98,22 @@ describe('Store', () => {
     expect(updated.branchPrefix).toBe('git-username')
   })
 
+  it('persists Quick Launch order separately from agent configuration', async () => {
+    const store = await createStore()
+    const before = store.getSettings()
+    const workspaceQuickLaunch = { version: 2, agents: ['codex', 'dsh'] as const, tools: [] }
+    store.updateSettings({
+      workspaceQuickLaunch: { agents: [...workspaceQuickLaunch.agents], tools: [] }
+    })
+    expect(store.getSettings().workspaceQuickLaunch).toEqual(workspaceQuickLaunch)
+    expect(store.getSettings().agentCmdOverrides).toEqual(before.agentCmdOverrides)
+    expect(store.getSettings().disabledTuiAgents).toEqual(before.disabledTuiAgents)
+    store.flush()
+    await closeTestStores()
+    const restored = await createStore()
+    expect(restored.getSettings().workspaceQuickLaunch).toEqual(workspaceQuickLaunch)
+  })
+
   it('normalizes the agent skill sharing capability to an exact boolean', async () => {
     const store = await createStore()
 

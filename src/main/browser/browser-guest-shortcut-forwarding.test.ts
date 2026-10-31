@@ -161,6 +161,22 @@ describe('setupGuestShortcutForwarding', () => {
     guestOffMock = vi.fn()
   })
 
+  it('lets an editor keep Find while forwarding tab close to its owning Orca view', () => {
+    const close = vi.fn()
+    setupGuestShortcutForwarding({
+      browserTabId,
+      guest: makeGuest(),
+      resolveRenderer: () => makeRenderer(),
+      shouldForwardShortcut: (input) => input.key === 'w',
+      onCloseTab: close
+    })
+    expect(triggerBeforeInput({ key: 'f', code: 'KeyF' })).not.toHaveBeenCalled()
+    expect(rendererSendMock).not.toHaveBeenCalled()
+    expect(triggerBeforeInput({ key: 'w', code: 'KeyW' })).toHaveBeenCalled()
+    expect(close).toHaveBeenCalledOnce()
+    expect(rendererSendMock).not.toHaveBeenCalled()
+  })
+
   it('commits Ctrl+Tab switching from focused guest pages on generic release events', () => {
     setupGuestShortcutForwarding({
       browserTabId,

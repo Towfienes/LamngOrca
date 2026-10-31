@@ -76,6 +76,41 @@ describe('RateLimitService', () => {
     resetRateLimitProviderMocks()
   })
 
+  it('allows 30-second quota refreshes without duplicate or overlapping inactive probes', async () => {
+    const now = 1_800_000_000_000
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+    const service = new RateLimitService()
+    service.setInactiveClaudeAccountsResolver(() => [{ id: 'a' }])
+    service.setInactiveCodexAccountsResolver(() => [inactiveCodexAccount('b', '/tmp/quota-b')])
+    const pending = deferred<ProviderRateLimits>()
+    vi.mocked(fetchManagedAccountUsage).mockReturnValueOnce(pending.promise)
+    vi.mocked(fetchCodexRateLimits).mockResolvedValue(okProvider('codex', 20))
+    try {
+      const first = service.fetchInactiveClaudeAccountsOnOpen(30_000)
+      await service.fetchInactiveClaudeAccountsOnOpen(30_000)
+      expect(fetchManagedAccountUsage).toHaveBeenCalledTimes(1)
+      clock.mockReturnValue(now + 5_000)
+      pending.resolve(okProvider('claude', 20))
+      await first
+      await service.fetchInactiveCodexAccountsOnOpen(30_000)
+      clock.mockReturnValue(now + 29_999)
+      await service.fetchInactiveClaudeAccountsOnOpen(30_000)
+      await service.fetchInactiveCodexAccountsOnOpen(30_000)
+      expect(fetchManagedAccountUsage).toHaveBeenCalledTimes(1)
+      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(1)
+      vi.mocked(fetchManagedAccountUsage).mockResolvedValue(okProvider('claude', 30))
+      clock.mockReturnValue(now + 30_000)
+      await service.fetchInactiveClaudeAccountsOnOpen(30_000)
+      expect(fetchManagedAccountUsage).toHaveBeenCalledTimes(2)
+      clock.mockReturnValue(now + 35_000)
+      await service.fetchInactiveCodexAccountsOnOpen(30_000)
+      expect(fetchCodexRateLimits).toHaveBeenCalledTimes(2)
+    } finally {
+      service.stop()
+      clock.mockRestore()
+    }
+  })
+
   it('aborts inactive Claude preview fetches on stop', async () => {
     const service = new RateLimitService()
     const account = { id: 'account-1' }

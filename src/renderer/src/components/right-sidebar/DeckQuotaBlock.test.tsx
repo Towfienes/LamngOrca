@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
@@ -62,6 +62,7 @@ function seed(previews: { accountId: string; used: number | null; isFetching?: b
 beforeEach(() => useAppStore.setState(useAppStore.getInitialState(), true))
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
@@ -85,4 +86,51 @@ it('shows updating while an inactive preview is pending and a neutral note when 
   render(<DeckQuotaBlock />)
   expect(screen.getByText('Updating…')).toBeTruthy()
   expect(screen.getByText('No usage data yet')).toBeTruthy()
+})
+
+it('refreshes quota every 30 seconds, pauses while hidden or collapsed and cleans up', async () => {
+  vi.useFakeTimers()
+  seed([])
+  let visibility: DocumentVisibilityState = 'visible'
+  vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
+  const get = vi.fn(async () => useAppStore.getState().rateLimits)
+  const previousApi = window.api
+  Object.defineProperty(window, 'api', { configurable: true, value: { rateLimits: { get } } })
+  try {
+    const { unmount } = render(<DeckQuotaBlock />)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000)
+    })
+    expect(get).toHaveBeenCalledWith({ refreshQuota: true })
+    const count = get.mock.calls.length
+    visibility = 'hidden'
+    fireEvent(document, new Event('visibilitychange'))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    expect(get).toHaveBeenCalledTimes(count)
+    visibility = 'visible'
+    await act(async () => {
+      fireEvent(document, new Event('visibilitychange'))
+    })
+    expect(get).toHaveBeenCalledTimes(count + 1)
+    fireEvent.click(screen.getByText('Quota'))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    expect(get).toHaveBeenCalledTimes(count + 1)
+    fireEvent.click(screen.getByText('Quota'))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000)
+    })
+    expect(get.mock.calls.length).toBeGreaterThan(count + 1)
+    const beforeUnmount = get.mock.calls.length
+    unmount()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    expect(get).toHaveBeenCalledTimes(beforeUnmount)
+  } finally {
+    Object.defineProperty(window, 'api', { configurable: true, value: previousApi })
+  }
 })

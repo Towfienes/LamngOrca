@@ -195,7 +195,7 @@ describe('closeTerminalTab unified close contract', () => {
     expect(group(GIT_WT)?.tabOrder).toEqual(['chat-1', 'u-term-2'])
   })
 
-  it('still deactivates the worktree when the last renderable tab closes', () => {
+  it('keeps the worktree selected for Quick Launch when the last renderable tab closes', () => {
     seedWorktreeWithTabs(GIT_WT, {
       terminalIds: ['term-1'],
       groupOrder: ['u-term-1'],
@@ -207,7 +207,7 @@ describe('closeTerminalTab unified close contract', () => {
 
     closeTerminalTab('term-1')
 
-    expect(store.getState().activeWorktreeId).toBeNull()
+    expect(store.getState().activeWorktreeId).toBe(GIT_WT)
   })
 
   it('lands on an open editor tab instead of deactivating when the last terminal closes', () => {

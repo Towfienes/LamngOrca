@@ -21,6 +21,7 @@ import {
 } from './editor-save-disk-precondition'
 import { createEditorRestartSaveHandlers } from './editor-restart-save-handlers'
 import { createEditorExternalChangeTabReset } from './editor-external-change-tab-reset'
+import { vscodeSessionForFile, discardVSCodeEditorFile } from './vscode-editor-sessions'
 import {
   ORCA_EDITOR_PREPARE_HOT_EXIT_EVENT,
   ORCA_EDITOR_SAVE_DIRTY_FILES_EVENT
@@ -52,10 +53,10 @@ export function attachEditorAutosaveController(store: AppStoreApi): () => void {
 
     flushPendingEditorBuffer(store.getState(), file.id)
     const draft = store.getState().editorDrafts[fileId]
-    if (draft !== undefined) {
+    if (draft !== undefined || vscodeSessionForFile(store.getState(), file)) {
       try {
         // Close only after a written result so refusals retain the tab and edits.
-        const result = await queueSave(file, draft)
+        const result = await queueSave(file, draft ?? '')
         if (result !== 'written') {
           onNotClosed?.(result === 'failed' ? 'not-saved' : result)
           return
@@ -88,7 +89,10 @@ export function attachEditorAutosaveController(store: AppStoreApi): () => void {
 
       flushPendingEditorBuffer(store.getState(), file.id)
 
-      const content = store.getState().editorDrafts[file.id] ?? detail.fallbackContent
+      const content =
+        store.getState().editorDrafts[file.id] ??
+        detail.fallbackContent ??
+        (vscodeSessionForFile(store.getState(), file) ? '' : undefined)
       if (content === undefined) {
         detail.resolve()
         return
@@ -137,6 +141,11 @@ export function attachEditorAutosaveController(store: AppStoreApi): () => void {
         matchingFiles = state.openFiles.filter((file) => keys.has(editorFileHoldKey(state, file)))
       }
       await Promise.all(matchingFiles.map((file) => settleFileSaves(file.id, !discard)))
+      if (discard) {
+        await Promise.all(
+          matchingFiles.map((file) => discardVSCodeEditorFile(store.getState(), file))
+        )
+      }
     } catch (error) {
       // Settle failures must reject discard and release its hold rather than strand it.
       release?.()

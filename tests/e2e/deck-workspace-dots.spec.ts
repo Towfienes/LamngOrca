@@ -11,8 +11,11 @@ test.use({
 })
 
 test('Deck toolbar dock and centered dots-only workspace strip switch and open workspaces', async ({
-  orcaPage: page
+  orcaPage: page,
+  electronApp
 }, testInfo) => {
+  // Real session launches, reload and three viewport passes verify the same durable slot layout.
+  test.setTimeout(180_000)
   const shotsDir = process.env.ORCA_DECK_SHOTS_DIR ?? testInfo.outputDir
   mkdirSync(shotsDir, { recursive: true })
   await page.setViewportSize({ width: 1280, height: 800 })
@@ -96,7 +99,7 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
   })
   expect(geometry.offCenter).toBeLessThanOrEqual(2)
   expect(geometry.pathBeforeCapsule).toBe(true)
-  expect(geometry.border).toBe('1px')
+  expect(geometry.border).toBe('0px')
   await expect(dots.first()).toBeVisible()
   await expect(dots.first()).toHaveAttribute('aria-current', 'true')
   const pillBox = (await dots.first().boundingBox())!
@@ -106,6 +109,124 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
     path: `${shotsDir}/dots-single-tab.png`,
     clip: { x: 0, y: 0, width: 1280, height: 120 }
   })
+
+  await page.evaluate(() => {
+    const state = window.__store!.getState()
+    if (state.sidebarOpen) {
+      state.toggleSidebar()
+    }
+  })
+  for (const width of [1440, 768, 390]) {
+    await electronApp.evaluate(
+      ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0]?.setContentSize(width, 800),
+      width
+    )
+    await page.setViewportSize({ width, height: 800 })
+    for (const position of [1, 2, 3, 2, 1]) {
+      const slot = strip.locator('button.deck-tab-dot').nth(position)
+      const before = await slot.boundingBox()
+      await slot.click()
+      await expect(slot).toHaveAttribute('aria-current', 'true')
+      await expect(strip.locator('[aria-current="true"]')).toHaveCount(1)
+      await expect(page.locator('[data-workspace-launch-slot]')).toHaveAttribute(
+        'data-workspace-launch-slot',
+        String(position + 1)
+      )
+      await expect(page.locator('[data-workspace-quick-launch]')).toBeVisible()
+      await expect(dots).toHaveCount(1)
+      await expect(page.locator('.xterm-screen:visible')).toHaveCount(0)
+      const after = await slot.boundingBox()
+      expect(after?.width).toBe(before?.width)
+      const styles = await strip.evaluate((node) => {
+        const style = getComputedStyle(node),
+          box = node.getBoundingClientRect()
+        return {
+          border: style.borderTopWidth,
+          shadow: style.boxShadow,
+          background: style.backgroundColor,
+          width: box.width,
+          height: box.height,
+          inactive: [...node.querySelectorAll('button:not([data-active="true"])')].map(
+            (button) => getComputedStyle(button).boxShadow
+          ),
+          dotShadow: getComputedStyle(node.querySelector('[data-empty]')!, '::before').boxShadow
+        }
+      })
+      expect(styles).toMatchObject({
+        border: '0px',
+        shadow: 'none',
+        background: 'rgba(0, 0, 0, 0)',
+        height: 24,
+        dotShadow: 'none'
+      })
+      expect(styles.width).toBeGreaterThanOrEqual(99)
+      expect(styles.width).toBeLessThanOrEqual(124)
+      expect(styles.inactive.every((shadow) => shadow === 'none')).toBe(true)
+    }
+    await page.screenshot({
+      path: `${shotsDir}/dots-clean-${width}.png`,
+      clip: { x: 0, y: 0, width, height: 120 }
+    })
+    await dots.first().click()
+    await expect(page.locator('[data-workspace-quick-launch]')).toHaveCount(0)
+  }
+  await electronApp.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]?.setContentSize(1280, 800)
+  )
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.evaluate(() => {
+    const state = window.__store!.getState()
+    if (!state.sidebarOpen) {
+      state.toggleSidebar()
+    }
+  })
+
+  const slots = strip.locator('button.deck-tab-dot')
+  await slots.nth(2).click()
+  await page
+    .locator('[data-workspace-quick-launch]')
+    .getByRole('button', { name: 'Terminal', exact: true })
+    .click()
+  await expect(dots).toHaveCount(2)
+  await expect(slots.nth(1)).toHaveAttribute('data-empty', 'true')
+  await expect(slots.nth(2)).not.toHaveAttribute('data-empty', 'true')
+  await expect(slots.nth(2)).toHaveAttribute('aria-current', 'true')
+  const slotThreeId = await slots.nth(2).getAttribute('data-workspace-tab-id')
+  if (!slotThreeId) {
+    throw new Error('Workspace 3 has no session identity')
+  }
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          async ({ worktreeId, tabId }) =>
+            (await window.api.session.get()).unifiedTabs?.[worktreeId]?.some(
+              (tab) => tab.id === tabId
+            ) ?? false,
+          { worktreeId, tabId: slotThreeId }
+        ),
+      { timeout: 20_000 }
+    )
+    .toBe(true)
+  await page.reload()
+  await waitForSessionReady(page)
+  await expect(slots.nth(1)).toHaveAttribute('data-empty', 'true')
+  await expect(slots.nth(2)).toHaveAttribute('data-workspace-tab-id', slotThreeId)
+  await slots.nth(0).click({ button: 'middle' })
+  await expect(dots).toHaveCount(1)
+  await expect(slots.nth(0)).toHaveAttribute('data-empty', 'true')
+  await expect(slots.nth(2)).toHaveAttribute('data-workspace-tab-id', slotThreeId)
+  await slots.nth(0).click()
+  await page
+    .locator('[data-workspace-quick-launch]')
+    .getByRole('button', { name: 'Terminal', exact: true })
+    .click()
+  await expect(dots).toHaveCount(2)
+  await expect(slots.nth(0)).toHaveAttribute('aria-current', 'true')
+  await expect(slots.nth(2)).toHaveAttribute('data-workspace-tab-id', slotThreeId)
+  await slots.nth(2).click({ button: 'middle' })
+  await expect(dots).toHaveCount(1)
+  await expect(slots.nth(0)).toHaveAttribute('aria-current', 'true')
 
   const { groupId, sourceTerminalId, newTabId, newTerminalId } = await page.evaluate((id) => {
     const state = window.__store!.getState()
@@ -202,20 +323,53 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
   await expect.poll(activeTabId).not.toBe(newTabId)
   await expect(dots.nth(0)).toHaveAttribute('aria-current', 'true')
 
-  // An empty slot opens a new workspace and the strip grows by one dot.
+  // An empty slot selects Quick Launch without creating a terminal or closing the old workspace.
   await emptySlots.first().click()
+  const quickLaunch = page.locator('[data-workspace-quick-launch]')
+  await expect(quickLaunch).toBeVisible()
+  await expect(quickLaunch.getByRole('heading', { name: 'Start a session' })).toBeVisible()
+  await expect(dots).toHaveCount(2)
+  await expect(emptySlots.first()).toHaveAttribute('aria-current', 'true')
+  await expect(page.locator('.xterm-screen:visible')).toHaveCount(0)
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+w' : 'Control+w')
+  await expect(quickLaunch).toHaveCount(0)
+  await expect(dots).toHaveCount(2)
+  await emptySlots.first().click()
+  await expect(quickLaunch).toBeVisible()
+  await dots.first().click()
+  await expect(quickLaunch).toHaveCount(0)
+  await expect(page.locator('.xterm-screen:visible').first()).toBeVisible()
+  await expect(dots).toHaveCount(2)
+  await emptySlots.first().click()
+  await quickLaunch.getByRole('button', { name: 'Terminal', exact: true }).click()
+  await expect(quickLaunch).toHaveCount(0)
   await expect(dots).toHaveCount(3)
   await expect(dots.nth(2)).toHaveAttribute('aria-current', 'true')
-  await expect(emptySlots).toHaveCount(3)
+  await expect(emptySlots).toHaveCount(1)
   await page.mouse.move(640, 600)
   await page.screenshot({
     path: `${shotsDir}/dots-centered-three.png`,
     clip: { x: 0, y: 0, width: 1280, height: 120 }
   })
 
+  await emptySlots.first().click()
+  await expect(quickLaunch).toBeVisible()
+  await expect(dots).toHaveCount(3)
+  await expect(strip.locator('button')).toHaveCount(5)
+  await quickLaunch.getByRole('button', { name: 'Terminal', exact: true }).click()
+  await expect(dots).toHaveCount(4)
+  await expect(emptySlots).toHaveCount(1)
+  await expect(strip.locator('button')).toHaveCount(5)
+  await dots.nth(3).click({ button: 'middle' })
+  await expect(dots).toHaveCount(3)
+  await expect(strip.locator('button')).toHaveCount(4)
+
   // Dots replace the text tabs, so closing lives on them: the hover card's Close, or a middle click.
   await dots.nth(2).hover()
-  await page.getByRole('button', { name: /^Close / }).click()
+  await page
+    .locator('.deck-tab-preview')
+    .getByRole('button', { name: /^Close / })
+    .click()
   await expect(dots).toHaveCount(2)
   await page.mouse.move(640, 600)
   await dots.nth(1).click({ button: 'middle' })

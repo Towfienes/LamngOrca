@@ -31,6 +31,8 @@ export function setupGuestShortcutForwarding(args: {
   getKeybindings?: () => KeybindingOverrides | undefined
   resolveWorktreeId?: (browserTabId: string) => string | null
   resolveWorkspaceId?: (browserTabId: string) => string | null
+  shouldForwardShortcut?: (input: Electron.Input) => boolean
+  onCloseTab?: () => void
 }): () => void {
   const {
     browserTabId,
@@ -63,7 +65,8 @@ export function setupGuestShortcutForwarding(args: {
     getKeybindings,
     resolveWorktreeId,
     resolveWorkspaceId,
-    forwardBrowserPageZoom
+    forwardBrowserPageZoom,
+    onCloseTab: args.onCloseTab
   }
 
   const handler = (event: Electron.Event, input: Electron.Input): void => {
@@ -88,6 +91,9 @@ export function setupGuestShortcutForwarding(args: {
       ctrlTabSwitching = false
       const renderer = resolveRenderer(browserTabId)
       renderer?.send('ui:ctrlTabKeyUp')
+      return
+    }
+    if (args.shouldForwardShortcut && !args.shouldForwardShortcut(input)) {
       return
     }
 

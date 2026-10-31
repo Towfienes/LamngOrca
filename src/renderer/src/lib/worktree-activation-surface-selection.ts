@@ -37,11 +37,15 @@ export type WorktreeActivationOptions = WorktreeActivationSurfaceSelection & {
   clearSidebarFilters?: boolean
 }
 
-/** Create-time only: an agent selection suppresses the shell its own surface will replace. */
+/** Explicit surfaces and ordinary navigation suppress the automatic shell. */
 export function activationProvidesInitialSurface(
   selection?: WorktreeActivationSurfaceSelection
 ): boolean {
-  return selection?.providesInitialSurface === true || selection?.agent != null
+  return (
+    selection?.providesInitialSurface === true ||
+    selection?.agent != null ||
+    (selection?.navigationIntent === 'user-open' && selection.agent === undefined)
+  )
 }
 
 /** A deliberate user open with no surface choice: an empty workspace gets the user's default surface. */

@@ -1,6 +1,7 @@
 import { legacyChatPermissionWrite } from './legacy-chat-permission-write'
 import { normalizeNativeChatAppearanceSettings } from '../../../shared/native-chat/native-chat-appearance-settings'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
+import { normalizeWorkspaceQuickLaunchUpdate } from '../../../shared/workspace-quick-launch'
 import { retireAtRestCommandSettings } from '../../native-chat/agent-session-wire/at-rest-command-context'
 import { normalizeDisabledTuiAgents } from '../../../shared/tui-agent-selection'
 import { normalizeNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
@@ -61,6 +62,7 @@ export function updateSettings(
   options: { notifyListeners?: boolean; originWebContentsId?: number } = {}
 ): GlobalSettings {
   const sanitizedUpdates = expandWorkspaceDirHome(stripRetiredGlobalSettings(updates))
+  Object.assign(sanitizedUpdates, normalizeWorkspaceQuickLaunchUpdate(updates))
   const linkBehavior = updates.terminalLinkClickBehavior
   if (linkBehavior === 'actions' || linkBehavior === 'open' || linkBehavior === 'none') {
     // Loaded defaults are ambiguous; synchronize the legacy switch only on an explicit write.
@@ -80,9 +82,7 @@ export function updateSettings(
     sanitizedUpdates.agentSkillSharingEnabled = updates.agentSkillSharingEnabled === true
   }
   if ('nestedWorkerMaxDepth' in updates) {
-    sanitizedUpdates.nestedWorkerMaxDepth = resolveNestedWorkerMaxDepth({
-      nestedWorkerMaxDepth: updates.nestedWorkerMaxDepth
-    })
+    sanitizedUpdates.nestedWorkerMaxDepth = resolveNestedWorkerMaxDepth(updates)
   }
   if ('orchestrationHeartbeatIntervalMinutes' in updates) {
     sanitizedUpdates.orchestrationHeartbeatIntervalMinutes = resolveOrchestrationHeartbeatInterval({

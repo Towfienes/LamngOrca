@@ -32,10 +32,23 @@ export type AppMemory = UsageValues & {
   history: number[]
 }
 
+/** Idle view of the PTY's cgroup scope from the optional Linux orca-tab-memlimit service.
+ * cgroup bytes include page cache and differ from the per-process `memory` metric. */
+export type SessionIdleState = {
+  /** Epoch ms when the scope's CPU use dropped below the service's idle threshold. */
+  idleSince: number
+  /** True once the service reclaimed the idle scope's memory into swap. */
+  frozen: boolean
+  cgroupMemory: number
+  cgroupSwap: number
+}
+
 export type SessionMemory = UsageValues & {
   sessionId: string
   paneKey: string | null
   pid: number
+  /** Absent when the service is not running or this session is active. */
+  idle?: SessionIdleState
 }
 
 /** The top-level cpu/memory are the sum of sessions. */

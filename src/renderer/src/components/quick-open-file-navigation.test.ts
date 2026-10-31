@@ -49,16 +49,29 @@ vi.mock('@/store/slices/editor/focus/editor-focus-reveal', () => ({
   scheduleEditorLineReveal: mocks.reveal
 }))
 import { openQuickOpenFile } from './quick-open-file-navigation'
+import { useWorkspaceLaunchSelection } from '@/store/workspace-launch-selection'
 
 // Opening a path is a user act, so its stat may start a stopped WSL distro.
 const USER_ACT = { wakeWslDistro: true }
 
 beforeEach(() => {
+  useWorkspaceLaunchSelection.setState({ workspaceId: null, tabCount: 0 })
   vi.clearAllMocks()
   mocks.route.current = { target: { kind: 'local' }, connectionId: undefined }
   mocks.stat.mockResolvedValue({ isDirectory: false })
   mocks.assertCurrent.mockReset()
   vi.stubGlobal('window', { api: { fs: { authorizeExternalPath: mocks.authorize } } })
+})
+
+it('leaves the Quick Launch draft only after a file opens successfully', async () => {
+  useWorkspaceLaunchSelection.getState().open('workspace', 2)
+  mocks.stat.mockRejectedValueOnce(new Error('ENOENT'))
+  await expect(
+    openQuickOpenFile('missing.py', 'workspace', '/root', { pathQuery: 'missing.py' })
+  ).rejects.toThrow('ENOENT')
+  expect(useWorkspaceLaunchSelection.getState().workspaceId).toBe('workspace')
+  await openQuickOpenFile('source.py', 'workspace', '/root', { pathQuery: 'source.py' })
+  expect(useWorkspaceLaunchSelection.getState().workspaceId).toBeNull()
 })
 
 it('validates pasted local paths with user-named access and uses the owner-qualified reveal', async () => {

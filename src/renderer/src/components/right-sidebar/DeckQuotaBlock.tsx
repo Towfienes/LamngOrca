@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { getCodexAccountDisplayLabel } from '@/lib/codex-account-display-label'
 import { formatWindowLabel } from '@/lib/window-label-formatter'
@@ -23,6 +24,7 @@ type QuotaAccountRow = {
 
 /** Quota windows of every managed Claude and Codex account, active account first. */
 export function DeckQuotaBlock(): React.JSX.Element | null {
+  const [open, setOpen] = useState(true)
   const settings = useAppStore((s) => s.settings)
   const claude = useAppStore((s) => s.rateLimits?.claude)
   const codex = useAppStore((s) => s.rateLimits?.codex)
@@ -40,6 +42,39 @@ export function DeckQuotaBlock(): React.JSX.Element | null {
     void state.fetchInactiveClaudeAccountUsage()
     void state.fetchInactiveCodexAccountUsage()
   }, [hasOtherAccounts])
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    let disposed = false
+    let pending = false
+    const refresh = async (): Promise<void> => {
+      if (document.visibilityState === 'hidden' || pending) {
+        return
+      }
+      pending = true
+      try {
+        const limits = await window.api.rateLimits.get({ refreshQuota: true })
+        if (!disposed) {
+          useAppStore.getState().setRateLimitsFromPush(limits)
+        }
+      } catch (error) {
+        console.warn('Could not refresh account quota:', error)
+      } finally {
+        pending = false
+      }
+    }
+    const onVisibilityChange = (): void => {
+      void refresh()
+    }
+    const timer = window.setInterval(() => void refresh(), 30_000)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [open])
   const claudeId =
     settings?.activeClaudeManagedAccountIdsByRuntime?.host ?? settings?.activeClaudeManagedAccountId
   const codexId =
@@ -63,15 +98,29 @@ export function DeckQuotaBlock(): React.JSX.Element | null {
     return null
   }
   return (
-    <section className="deck-usage-quota mt-3 space-y-2" aria-label="Account quota">
-      <span className="text-[11px] text-muted-foreground">Quota</span>
-      {claudeRows.map((row) => (
-        <QuotaRows key={row.key} provider="claude" row={row} />
-      ))}
-      {codexRows.map((row) => (
-        <QuotaRows key={row.key} provider="codex" row={row} />
-      ))}
-    </section>
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <section
+        className="deck-usage-quota border-t border-sidebar-border pt-1.5"
+        aria-label="Account quota"
+      >
+        <div className="deck-usage-quota-head">
+          <CollapsibleTrigger className="flex cursor-pointer items-center gap-1.5 text-[13px] font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+            {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+            Quota
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <div className="mt-1 divide-y divide-sidebar-border">
+            {claudeRows.map((row) => (
+              <QuotaRows key={row.key} provider="claude" row={row} />
+            ))}
+            {codexRows.map((row) => (
+              <QuotaRows key={row.key} provider="codex" row={row} />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
   )
 }
 
@@ -122,7 +171,7 @@ function QuotaRows({
     <div
       data-quota-provider={provider}
       data-quota-active={row.active ? 'true' : undefined}
-      className="space-y-1"
+      className="space-y-0.5 py-1.5"
     >
       <div className="flex items-center gap-1.5 text-[12px]">
         <AgentIcon agent={provider} size={13} />
@@ -156,12 +205,9 @@ function QuotaRows({
             : formatWindowLabel(window.windowMinutes)
           const reset = window.resetsAt ? formatResetCountdown(window.resetsAt - now) : null
           return (
-            <div key={sectionLabel} className="space-y-0.5">
-              <div className="flex items-baseline gap-1.5 text-[11px] text-muted-foreground">
-                <span className="w-7 shrink-0">{duration}</span>
-                <span className="tabular-nums text-foreground">{Math.round(left)}%</span>
-                {reset ? <span className="ml-auto truncate">{reset}</span> : null}
-              </div>
+            <div key={sectionLabel} className="deck-quota-window text-[11px] text-muted-foreground">
+              <span>{duration}</span>
+              <span className="tabular-nums text-foreground">{Math.round(left)}%</span>
               <div
                 className="deck-cost-track"
                 role="meter"
@@ -172,6 +218,7 @@ function QuotaRows({
               >
                 <div className="deck-quota-fill" style={{ width: `${left}%` }} />
               </div>
+              <span className="truncate text-right">{reset ?? ''}</span>
             </div>
           )
         })

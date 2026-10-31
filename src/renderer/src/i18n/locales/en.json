@@ -1,4 +1,41 @@
 {
+  "vscodeEditor": {
+    "name": "VS Code",
+    "starting": "Starting VS Code…",
+    "unsaved": "Unsaved changes",
+    "retry": "Retry",
+    "useOrca": "Use Orca editor",
+    "themeError": "The editor theme color could not be resolved.",
+    "slowStart": "VS Code is taking longer than expected. Check the editor for a workspace trust dialog, or retry.",
+    "startFailed": "VS Code could not start."
+  },
+  "quickLaunch": {
+    "saveFailed": "Could not save Quick Launch. Try again.",
+    "unavailable": "Unavailable on this host. Check agent settings or connection.",
+    "label": "Quick Launch",
+    "title": "Start a session",
+    "subtitle": "Choose an agent or open a tool.",
+    "checking": "Checking existing sessions…",
+    "blocked": "Could not confirm this workspace is empty.",
+    "retry": "Retry",
+    "localEmulator": "Emulator runs on this computer.",
+    "vscodeOpen": "Choose a workspace file to open in the embedded editor.",
+    "vscodeUnavailable": "The embedded VS Code editor requires a local workspace and an installed VS Code runtime.",
+    "add": "Add agent",
+    "search": "Search agents",
+    "configure": "Configure agents…",
+    "customize": "Customize",
+    "removeHint": "Removing a shortcut keeps its agent and configuration.",
+    "agents": "Agents",
+    "tools": "Tools",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "remove": "Remove",
+    "scope": "Opens in this workspace.",
+    "terminal": "Terminal",
+    "browser": "Orca Browser",
+    "emulator": "Emulator"
+  },
   "agentLaunch": {
     "opencode": {
       "updateRequired": "OpenCode cannot safely start with a chosen model on this version. Update OpenCode to a supported release, or omit the model choice.",

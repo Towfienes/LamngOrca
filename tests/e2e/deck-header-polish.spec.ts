@@ -138,28 +138,24 @@ test('Deck header keeps the signature readable and its compact controls actionab
   await expect(page.getByRole('dialog')).toHaveCount(0)
   const sidebar = page.getByRole('button', { name: 'Toggle right sidebar', exact: true })
   await sidebar.click()
-  const portrait = page.getByRole('img', { name: 'David Laid', exact: true })
+  const portrait = page.getByRole('img', { name: 'Boruto Uzumaki', exact: true })
   await expect(portrait).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Usage settings', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Usage settings', exact: true })).toHaveCount(0)
+  await portrait.scrollIntoViewIfNeeded()
   const portraitRect = await portrait.boundingBox()
   const usageRect = await page.locator('.deck-usage-panel').boundingBox()
   expect(portraitRect!.y + portraitRect!.height).toBeLessThanOrEqual(
     usageRect!.y + usageRect!.height
   )
-  const brand = page.locator('.deck-david-brand')
   const outside = page.getByRole('img', { name: 'outside', exact: true })
   await expect(outside).toHaveCount(0)
-  const brandRect = (await brand.boundingBox())!
-  expect(usageRect!.x + usageRect!.width - brandRect.x - brandRect.width).toBeCloseTo(8, 0)
-  expect(usageRect!.y + usageRect!.height - brandRect.y - brandRect.height).toBeCloseTo(8, 0)
+  await expect(page.getByText(/01 \/ Boruto/i)).toHaveCount(0)
   expect(
-    await brand.evaluate((node) => {
-      const style = getComputedStyle(node)
-      const content = node.parentElement!.querySelector('[data-usage-scroll]')!
-      return (
-        style.pointerEvents === 'none' &&
-        Number(style.zIndex) > Number(getComputedStyle(content).zIndex)
-      )
+    await portrait.evaluate((node) => {
+      const panel = node.closest('[aria-label="Usage panel"]')!
+      const scroll = panel.querySelector('[data-usage-scroll]')!
+      const { scrollbarWidth } = getComputedStyle(scroll)
+      return getComputedStyle(node).pointerEvents === 'none' && scrollbarWidth === 'none'
     })
   ).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('header-with-portrait-dark.png') })
@@ -393,8 +389,9 @@ test('workspace frame follows selection and workspace actions follow the selecte
   await expect(
     page.getByRole('button', { name: 'Open workspace in VS Code', exact: true })
   ).toBeVisible()
-  await expect(page.locator('.deck-david-brand')).toBeVisible()
-  const portrait = (await page.locator('.deck-david-brand').boundingBox())!
+  const portraitImage = page.getByRole('img', { name: 'Boruto Uzumaki', exact: true })
+  await expect(portraitImage).toBeVisible()
+  const portrait = (await portraitImage.boundingBox())!
   for (const provider of ['claude', 'codex']) {
     const row = page.locator(`[data-usage-provider='${provider}']`)
     const track = (await row.getByRole('meter').boundingBox())!

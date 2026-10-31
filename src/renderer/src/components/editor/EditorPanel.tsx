@@ -29,6 +29,7 @@ import {
 } from './editor-artifact-upload'
 import { useEditorPanelSave } from './useEditorPanelSave'
 import { isMarkdownReviewNotesEnabled } from '@/lib/markdown-review-notes-setting'
+import { VSCodeEditorRoute } from './VSCodeEditorRoute'
 
 function EditorPanelInner({
   activeFileId: activeFileIdProp,
@@ -392,4 +393,6 @@ function EditorPanelInner({
   )
 }
 
-export default React.memo(EditorPanelInner)
+export default React.memo(function EditorPanel(props: Parameters<typeof EditorPanelInner>[0]) {
+  return <VSCodeEditorRoute {...props} fallback={<EditorPanelInner {...props} />} />
+})
