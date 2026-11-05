@@ -8,9 +8,9 @@ import { useChatProgramFacts } from '@/lib/host-chat-program-acquisition'
 import { useAppStore } from '@/store'
 import { readNativeDetectedAgents } from '@/store/slices/local-detected-agent-store-state'
 import { Card, CardContent } from '../ui/card'
-import { AgentOpensAsControl } from './AgentChatChoiceControls'
-import { buildAgentOpensAs } from './native-chat-provider-choice'
-import { SettingsSubsectionHeader } from './SettingsFormControls'
+import { AgentOpensAsControl } from '../agent/launch-settings/AgentChatChoiceControls'
+import { buildAgentOpensAs } from '../../lib/agent-session/launch/native-chat-provider-choice'
+import { SettingsSubsectionHeader } from './form-controls/SettingsFormControls'
 import { getChatLaunchEntriesByKey } from './chat-launch-search'
 
 const WORKSPACE = { kind: 'floating' } as const

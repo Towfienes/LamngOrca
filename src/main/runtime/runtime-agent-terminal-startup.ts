@@ -1,3 +1,5 @@
+import { withRevealedAgentJoin } from './runtime-agent-join-target'
+import type { RuntimeMobileSessionTabsSnapshot } from '../../shared/runtime-session-contracts'
 import type { RuntimeAccountController } from './runtime-account-controller'
 import { applyRemoteViewerLaunchEnv } from './remote-viewer-launch-env'
 import type { SessionOptionValue } from '../../shared/native-chat/input/native-chat-session-options'
@@ -290,16 +292,21 @@ export async function prepareHostAgentTerminalLaunch(
   workspace: TerminalWorkspaceLaunchScope,
   opts: TerminalCreateOptions,
   resolvedLaunch: TerminalCreateOptions,
-  accounts: Pick<RuntimeAccountController, 'prepareHostAgentLaunch' | 'hostLaunchEnvFor'>
+  accounts: Pick<RuntimeAccountController, 'prepareHostAgentLaunch' | 'hostLaunchEnvFor'>,
+  snapshot?: RuntimeMobileSessionTabsSnapshot
 ): Promise<TerminalCreateOptions> {
   const launch = applyRemoteViewerLaunchEnv(resolvedLaunch, opts.terminalImageViewerSupported)
   // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing.
   if (workspace.connectionId) {
-    return launch
+    return withRevealedAgentJoin(opts, launch, snapshot)
   }
   if (launch.launchAgent) {
     await accounts.prepareHostAgentLaunch(launch.launchAgent)
   }
   const hostLaunchEnv = accounts.hostLaunchEnvFor(launch.launchAgent)
-  return withHostAccountLaunchEnv(opts, launch, hostLaunchEnv)
+  return withRevealedAgentJoin(
+    opts,
+    withHostAccountLaunchEnv(opts, launch, hostLaunchEnv),
+    snapshot
+  )
 }

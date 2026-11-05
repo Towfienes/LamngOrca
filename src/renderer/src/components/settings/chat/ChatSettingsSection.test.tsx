@@ -22,7 +22,7 @@ import {
   getSettingsScrollTarget
 } from '../navigation/settings-navigation-foundations'
 import ja from '@/i18n/locales/ja.json'
-import { getSettingsSectionSearchEntries, matchesSettingsSearch } from './settings-search'
+import { getSettingsSectionSearchEntries, matchesSettingsSearch } from '../search/settings-search'
 import { useAppStore } from '@/store'
 import { getChatLaunchSearchEntries } from './chat-launch-search'
 

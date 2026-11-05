@@ -34,14 +34,19 @@ export type MirroredTabs = {
     Record<string, readonly Pick<Tab, 'contentType' | 'entityId' | 'customLabel' | 'label'>[]>
   >
   tabsByWorktree?: Readonly<
-    Record<string, readonly (Pick<TerminalTab, 'id'> & Partial<ConversationNameTab> & { generatedTitle?: string | null })[]>
+    Record<
+      string,
+      readonly (Pick<TerminalTab, 'id'> &
+        Partial<ConversationNameTab> & { generatedTitle?: string | null })[]
+    >
   >
   terminalLayoutsByTabId?: Readonly<
     Record<string, Pick<TerminalLayoutSnapshot, 'root' | 'titlesByLeafId'>>
   >
 }
 
-type MirroredTerminalTab = Pick<TerminalTab, 'id'> & Partial<ConversationNameTab> & { generatedTitle?: string | null }
+type MirroredTerminalTab = Pick<TerminalTab, 'id'> &
+  Partial<ConversationNameTab> & { generatedTitle?: string | null }
 type MirroredChatTab = Pick<Tab, 'contentType' | 'entityId' | 'customLabel' | 'label'>
 
 export type SenderNamingLayout = {

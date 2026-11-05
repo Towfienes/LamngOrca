@@ -1,5 +1,3 @@
-import { withRevealedAgentJoin } from '../runtime-agent-join-target'
-import { applyRemoteViewerLaunchEnv } from '../remote-viewer-launch-env'
 import type { SessionOptionValue } from '../../../shared/native-chat/input/native-chat-session-options'
 import type { ResolvedWorktree } from '../runtime-worktree-path-identity'
 import { OrcaRuntimeWithRemoveManagedWorktree } from './workspace-removal'
@@ -312,16 +310,14 @@ export abstract class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRu
     opts: TerminalCreateOptions,
     sessionOptions?: Readonly<Record<string, SessionOptionValue>>
   ): Promise<TerminalCreateOptions> {
+    const toSessionOptions = this.toAgentSessionOptions.bind(this)
     const resolvedLaunch = await resolveAgentTerminalCreateOptions(
       workspace,
       opts,
-      {
-        store: this.store,
-        hostIdentity: this.runtimeId,
-        toSessionOptions: (preferences) => this.toAgentSessionOptions(preferences)
-      },
+      { store: this.store, hostIdentity: this.runtimeId, toSessionOptions },
       sessionOptions
     )
-    return withRevealedAgentJoin(opts, await prepareHostAgentTerminalLaunch(workspace, opts, applyRemoteViewerLaunchEnv(resolvedLaunch, opts.terminalImageViewerSupported), this.accounts), this.mobileSessionTabsByWorktree.get(workspace.id))
+    const snapshot = this.mobileSessionTabsByWorktree.get(workspace.id)
+    return prepareHostAgentTerminalLaunch(workspace, opts, resolvedLaunch, this.accounts, snapshot)
   }
 }

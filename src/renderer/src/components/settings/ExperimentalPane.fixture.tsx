@@ -1,6 +1,6 @@
 import { defineFixture } from '../../component-fixtures/component-fixture'
 import { getDefaultSettings } from '../../../../shared/constants'
-import { ExperimentalPane } from './ExperimentalPane'
+import { ExperimentalPane } from './advanced/ExperimentalPane'
 
 const settings = {
   ...getDefaultSettings('/home/test'),

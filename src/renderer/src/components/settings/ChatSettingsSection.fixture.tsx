@@ -1,7 +1,7 @@
 import { defineFixture } from '../../component-fixtures/component-fixture'
 import { useAppStore } from '@/store'
-import { ChatSettingsSection } from './ChatSettingsSection'
-import { ActiveSettingsSectionProvider } from './SettingsSection'
+import { ChatSettingsSection } from './chat/ChatSettingsSection'
+import { ActiveSettingsSectionProvider } from './section-layout/SettingsSection'
 
 function ChatSettingsPreview(): React.JSX.Element | null {
   const settings = useAppStore((state) => state.settings)

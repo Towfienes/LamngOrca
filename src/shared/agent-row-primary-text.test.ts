@@ -3,7 +3,7 @@ import { normalizeAgentStatusPayload } from './agent-status-types'
 import {
   getAgentRowFallbackName,
   getAgentRowPrimaryText,
-  getAgentSessionTooltip,
+  getAgentSessionTooltip
 } from './agent-row-primary-text'
 
 describe('getAgentRowPrimaryText', () => {
