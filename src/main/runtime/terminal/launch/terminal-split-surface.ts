@@ -129,6 +129,7 @@ export abstract class OrcaRuntimeWithSplitPtyBackedTerminal extends OrcaRuntimeW
     const createdPty = this.getOrCreatePtyWorktreeRecord(result.id)
     if (createdPty) {
       recordPtySurface(
+        this.terminalIdentity,
         createdPty,
         parentTabId,
         paneKey,

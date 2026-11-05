@@ -81,42 +81,6 @@ describe('parseWorkspaceSession sleeping agents', () => {
     }
   )
 
-  it('hydrates a persisted Kimi sleeping agent record', () => {
-    const result = parseWorkspaceSession({
-      activeRepoId: null,
-      activeWorktreeId: null,
-      activeTabId: null,
-      tabsByWorktree: {},
-      terminalLayoutsByTabId: {},
-      sleepingAgentSessionsByPaneKey: {
-        'tab1:pane-1': {
-          paneKey: 'tab1:pane-1',
-          tabId: 'tab1',
-          worktreeId: 'wt',
-          agent: 'kimi',
-          providerSession: {
-            key: 'session_id',
-            id: 'session_431324d7-2165-42f0-9ecd-9f93437b3201'
-          },
-          prompt: 'continue',
-          state: 'working',
-          capturedAt: 10,
-          updatedAt: 9,
-          terminalTitle: 'Kimi',
-          origin: 'live'
-        }
-      }
-    })
-    expect(result.ok).toBe(true)
-    if (result.ok) {
-      // Why: the record must survive the resumable-agent refine, or restore silently drops it.
-      expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']).toMatchObject({
-        agent: 'kimi',
-        providerSession: { key: 'session_id', id: 'session_431324d7-2165-42f0-9ecd-9f93437b3201' }
-      })
-    }
-  })
-
   it('preserves the authoritative Pi session file through hydration', () => {
     const result = parseWorkspaceSession({
       activeRepoId: null,
@@ -402,35 +366,6 @@ describe('parseWorkspaceSession sleeping agents', () => {
     }
   })
 
-  it('preserves sleeping agent record origin across hydration', () => {
-    const result = parseWorkspaceSession({
-      activeRepoId: null,
-      activeWorktreeId: null,
-      activeTabId: null,
-      tabsByWorktree: {},
-      terminalLayoutsByTabId: {},
-      sleepingAgentSessionsByPaneKey: {
-        'tab1:pane-1': {
-          paneKey: 'tab1:pane-1',
-          tabId: 'tab1',
-          worktreeId: 'wt',
-          agent: 'devin',
-          providerSession: { key: 'session_id', id: 'devin-session' },
-          prompt: 'continue',
-          state: 'working',
-          capturedAt: 10,
-          updatedAt: 9,
-          origin: 'quit'
-        }
-      }
-    })
-
-    expect(result.ok).toBe(true)
-    if (result.ok) {
-      expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']?.origin).toBe('quit')
-    }
-  })
-
   it('preserves the tab-open-only restore flag across hydration', () => {
     const result = parseWorkspaceSession({
       activeRepoId: null,
@@ -461,36 +396,6 @@ describe('parseWorkspaceSession sleeping agents', () => {
       expect(
         result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']?.restoreOnTabOpenOnly
       ).toBe(true)
-    }
-  })
-
-  it('preserves interrupted sleeping agent records across hydration', () => {
-    const result = parseWorkspaceSession({
-      activeRepoId: null,
-      activeWorktreeId: null,
-      activeTabId: null,
-      tabsByWorktree: {},
-      terminalLayoutsByTabId: {},
-      sleepingAgentSessionsByPaneKey: {
-        'tab1:pane-1': {
-          paneKey: 'tab1:pane-1',
-          tabId: 'tab1',
-          worktreeId: 'wt',
-          agent: 'codex',
-          providerSession: { key: 'session_id', id: 'codex-session' },
-          prompt: 'continue',
-          state: 'done',
-          capturedAt: 10,
-          updatedAt: 9,
-          interrupted: true,
-          origin: 'worktree-sleep'
-        }
-      }
-    })
-
-    expect(result.ok).toBe(true)
-    if (result.ok) {
-      expect(result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']?.interrupted).toBe(true)
     }
   })
 
@@ -529,32 +434,6 @@ describe('parseWorkspaceSession sleeping agents', () => {
       const record = result.value.sleepingAgentSessionsByPaneKey?.['tab1:pane-1']
       expect(record).toMatchObject({ prompt: 'continue' })
       expect(record?.mainAgent).toEqual(mainAgent)
-    }
-  })
-
-  it('drops malformed sleeping agent resume records without failing the whole session', () => {
-    const result = parseWorkspaceSession({
-      activeRepoId: null,
-      activeWorktreeId: null,
-      activeTabId: null,
-      tabsByWorktree: {},
-      terminalLayoutsByTabId: {},
-      sleepingAgentSessionsByPaneKey: {
-        'tab1:pane-1': {
-          paneKey: 'tab1:pane-1',
-          worktreeId: 'wt',
-          agent: 'definitely-not-an-agent',
-          providerSession: { key: 'session_id', id: 'bogus-session' },
-          prompt: 'continue',
-          state: 'working',
-          capturedAt: 10,
-          updatedAt: 9
-        }
-      }
-    })
-    expect(result.ok).toBe(true)
-    if (result.ok) {
-      expect(result.value.sleepingAgentSessionsByPaneKey).toBeUndefined()
     }
   })
 

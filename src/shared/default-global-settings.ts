@@ -141,6 +141,7 @@ export function buildDefaultSettings(args: {
     agentDefaultSurface: 'terminal',
     nativeChatResumeWorkOnRestart: false,
     nativeChatQueueFollowUps: true,
+    nativeChatAutoContinueAfterUsageLimit: false,
     nativeChatInlineVisuals: true,
     nativeChatLinkPreviews: true,
     nativeChatInheritShellEnvironment: true,
@@ -273,6 +274,7 @@ export function buildDefaultSettings(args: {
     experimentalEphemeralVms: false,
     experimentalConnectors: false,
     experimentalWslHosts: false,
+    experimentalOrchestrationPanel: false,
     compactWorktreeCards: false,
     // Why: the popover opens over the neighbouring rows on a plain pointer pass, so it stays opt-in.
     showWorktreeCardHoverDetails: false,

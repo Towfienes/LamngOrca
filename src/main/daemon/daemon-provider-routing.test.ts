@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getLegacyDaemonAdapters } from './daemon-provider-routing'
-import { LocalPtyProvider } from '../providers/local-pty-provider'
+import { LocalPtyProvider } from '../providers/local-pty/local-pty-provider'
 
 describe('getLegacyDaemonAdapters', () => {
   it('lists none for the in-process fallback provider', () => {

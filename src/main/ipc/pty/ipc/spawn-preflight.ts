@@ -4,7 +4,7 @@ import {
 } from '../host-env/claude-launch-account'
 import { withClaudeProfileTerminalEnv } from '../../../claude-accounts/claude-profile-installed-router'
 import { mintPtySessionId } from '../../../daemon/pty-session-id'
-import { LocalPtyProvider } from '../../../providers/local-pty-provider'
+import { LocalPtyProvider } from '../../../providers/local-pty/local-pty-provider'
 import {
   isClaudeLaunchCommand,
   recoverFreshSpawnProviderRouting,
