@@ -1,4 +1,4 @@
-import type { Store } from '../../persistence'
+import type { Store } from '../../persistence/loading-store/store'
 import type { KeybindingService } from '../../keybindings/keybinding-service'
 import { registerNotebookHandlers } from '../notebook'
 import { registerVSCodeEditorHandlers } from '../vscode-editor'

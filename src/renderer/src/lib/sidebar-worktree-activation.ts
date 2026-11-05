@@ -23,13 +23,15 @@ async function restoreEmptyWorkspaceSessions(worktreeId: string): Promise<void> 
 
 export async function activateWorktreeFromSidebar(
   worktreeId: string,
-  executionHostId?: ExecutionHostId
+  executionHostId?: ExecutionHostId,
+  options?: { revealInSidebar?: boolean }
 ): Promise<void> {
   const workspaceScope = parseWorkspaceKey(worktreeId)
   if (workspaceScope?.type === 'folder') {
     const result = activateAndRevealFolderWorkspace(workspaceScope.folderWorkspaceId, {
       navigationIntent: 'user-open',
       providesInitialSurface: true,
+      ...options,
       ...(executionHostId ? { executionHostId } : {})
     })
     if (result !== false) {

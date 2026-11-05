@@ -1,3 +1,4 @@
+import type { CoreHandlerLifecycleOptions } from './core-handler-lifecycle-options'
 import { app } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
@@ -64,6 +65,7 @@ import { registerPluginHandlers } from '../plugins'
 import { registerUIHandlers, setTrustedUIRendererWebContentsId } from '../ui'
 import { registerEmulatorFrameStreamHandlers } from '../emulator-frame-stream'
 import { registerEmulatorVideoStreamHandlers } from '../emulator-video-stream'
+import { registerEmulatorScrcpyTouchHandler } from '../emulator-scrcpy-touch'
 import { registerSpeechHandlers } from '../speech'
 import { registerTerminalRenderDesyncEvidenceHandler } from '../terminal-render-desync-evidence'
 import { registerOrcaProfileHandlers } from '../orca-profiles'
@@ -95,10 +97,6 @@ import type { AutomationService } from '../../automations/service'
 import type { AgentAwakeService } from '../../agent-awake-service'
 import type { CrashReportStore } from '../../crash-reporting/crash-report-store'
 import type { KeybindingService } from '../../keybindings/keybinding-service'
-import type {
-  AiVaultPrepareSessionResumeArgs,
-  AiVaultPrepareSessionResumeResult
-} from '../../../shared/ai-vault-resume-preparation'
 import {
   getSavedRuntimeAiVaultHostInfos,
   deleteRuntimeAiVaultSession,
@@ -108,7 +106,7 @@ import {
 } from '../../ai-vault/runtime-session-scanner'
 import { callRuntimeSessionSearch } from '../../ai-vault/runtime-session-search-call'
 import { configureRuntimeAiVaultSessionDelete } from '../ai-vault-delete'
-import { ensureStructuredAgentSessionHostUnlessRefused } from '../../runtime/structured-agent-session-host-refusal'
+import { ensureStructuredAgentSessionHostUnlessRefused } from '../../runtime/agent-session/structured-agent-session-host-refusal'
 import { getAgentSessionAttachmentStore } from '../../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
 import type { PluginService } from '../../plugins/plugin-service'
 import type { PluginMarketplaceHandlerServices } from '../plugin-marketplaces'
@@ -129,18 +127,6 @@ async function closeNotificationDismissalsBeforeRelaunch(
   if (result.outcome === 'timed-out') {
     console.warn('[notifications] Relaunching before dismissal recovery state finished saving')
   }
-}
-
-type CoreHandlerLifecycleOptions = {
-  onBeforeRelaunch?: () => void | Promise<void>
-  onOrcaProfileAuthMutation?: () => void
-  onBeforeOrcaProfileSignOut?: () => void
-  getAdditionalAiVaultClaudeProjectsPaths?: () => readonly string[]
-  onAfterOrcaProfileSignOut?: () => void
-  getAdditionalAiVaultCodexHomePaths?: () => readonly string[]
-  prepareAiVaultSessionResume?: (
-    args: AiVaultPrepareSessionResumeArgs
-  ) => Promise<AiVaultPrepareSessionResumeResult>
 }
 
 export function registerCoreHandlers(
@@ -237,7 +223,7 @@ export function registerCoreHandlers(
     })
   }
   if (pluginService) {
-    registerPluginHandlers(store, pluginService, runtime, marketplaceServices)
+    registerPluginHandlers(store, pluginService, marketplaceServices)
   }
   registerTelemetryHandlers(store)
   registerOrcaProfileHandlers(store, {
@@ -253,6 +239,7 @@ export function registerCoreHandlers(
   registerUIHandlers(store, { isDashboardPopoutRenderer })
   registerEmulatorFrameStreamHandlers()
   registerEmulatorVideoStreamHandlers()
+  registerEmulatorScrcpyTouchHandler()
   registerWorkspaceSpaceHandlers(store)
   registerWorkspacePortHandlers(store)
   registerLinkPreviewHandlers()

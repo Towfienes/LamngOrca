@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { AgentSessionBackgroundTask } from '../../../../shared/agent-session-wire'
+import type { AgentSessionBackgroundTask } from '../../../../shared/agent-session/agent-session-background-task-wire'
 import type { AgentStatusEntry, AgentSubagentSnapshot } from '../../../../shared/agent-status-types'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'

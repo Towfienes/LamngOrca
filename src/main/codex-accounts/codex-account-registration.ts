@@ -11,7 +11,7 @@ import type {
   CodexManagedAccount,
   CodexRateLimitAccountsState
 } from '../../shared/managed-account-types'
-import type { Store } from '../persistence'
+import type { Store } from '../persistence/loading-store/store'
 import type { RateLimitService } from '../rate-limits/service'
 import type { CodexRuntimeHomeService } from './runtime-home-service'
 import type { ResolvedCodexIdentity } from './codex-account-identity'
@@ -39,7 +39,7 @@ type CodexAccountRegistrationDependencies = {
   readIdentityFromHome: (
     managedHomePath: string,
     expectedAccountId: string
-  ) => ResolvedCodexIdentity
+  ) => Promise<ResolvedCodexIdentity>
   selection: CodexAccountSelection
   configMirror: CodexConfigMirror
   managedHomePaths: CodexManagedHomePath
@@ -69,11 +69,11 @@ export class CodexAccountRegistration {
     const managedHome = await this.dependencies.managedHomes.create(accountId, target)
     const { managedHomePath } = managedHome
     try {
-      this.prepareManagedHomeForLogin(managedHomePath, accountId)
+      await this.prepareManagedHomeForLogin(managedHomePath, accountId)
       await login(managedHomePath)
       return await this.persistCapturedAccount(accountId, managedHome)
     } catch (error) {
-      this.dependencies.managedHomes.removeUnlessUnproven(error, managedHomePath, accountId)
+      await this.dependencies.managedHomes.removeUnlessUnproven(error, managedHomePath, accountId)
       throw error
     }
   }
@@ -86,11 +86,15 @@ export class CodexAccountRegistration {
     const managedHome = await this.dependencies.managedHomes.create(accountId, target)
     const { managedHomePath } = managedHome
     try {
-      this.prepareManagedHomeForLogin(managedHomePath, accountId)
-      this.dependencies.managedHomes.importAuthFromHome(sourceHome, managedHomePath, accountId)
+      await this.prepareManagedHomeForLogin(managedHomePath, accountId)
+      await this.dependencies.managedHomes.importAuthFromHome(
+        sourceHome,
+        managedHomePath,
+        accountId
+      )
       return await this.persistCapturedAccount(accountId, managedHome)
     } catch (error) {
-      this.dependencies.managedHomes.removeUnlessUnproven(error, managedHomePath, accountId)
+      await this.dependencies.managedHomes.removeUnlessUnproven(error, managedHomePath, accountId)
       throw error
     }
   }
@@ -111,12 +115,16 @@ export class CodexAccountRegistration {
     const activateAfterLogin =
       options?.activateIfSelectionWasEmpty === true && selectedAccountId === null
 
-    this.dependencies.configMirror.safeSyncIntoManagedHome(managedHomePath, undefined, account.id)
+    await this.dependencies.configMirror.safeSyncIntoManagedHome(
+      managedHomePath,
+      undefined,
+      account.id
+    )
     const authJsonPath = join(managedHomePath, 'auth.json')
     // Why: codex login writes straight into this home, so keep the old credential to restore.
     const authBeforeLogin = readLoginAuthSnapshot(authJsonPath)
     await this.loginThroughStagingHome(managedHomePath, account.id)
-    const identity = this.dependencies.readIdentityFromHome(managedHomePath, account.id)
+    const identity = await this.dependencies.readIdentityFromHome(managedHomePath, account.id)
     if (!identity.email) {
       throw new Error('Codex login completed, but Orca could not resolve the account email.')
     }
@@ -155,7 +163,7 @@ export class CodexAccountRegistration {
       activeCodexManagedAccountId: activeSelection.host,
       activeCodexManagedAccountIdsByRuntime: activeSelection
     })
-    this.dependencies.configMirror.safeSyncToManagedHomes()
+    await this.dependencies.configMirror.safeSyncToManagedHomes()
     this.dependencies.runtimeHome.clearLastWrittenAuthJson(accountId)
     this.dependencies.runtimeHome.syncForCurrentSelection(accountTarget)
     // Reauthentication can change identity, so refresh quota without reusing the old account cache.
@@ -178,7 +186,11 @@ export class CodexAccountRegistration {
     }
     try {
       await this.dependencies.login(stagingHomePath)
-      this.dependencies.managedHomes.importAuthFromHome(stagingHomePath, managedHomePath, accountId)
+      await this.dependencies.managedHomes.importAuthFromHome(
+        stagingHomePath,
+        managedHomePath,
+        accountId
+      )
     } finally {
       try {
         removeStagingHome(stagingHomePath)
@@ -188,10 +200,13 @@ export class CodexAccountRegistration {
     }
   }
 
-  private prepareManagedHomeForLogin(managedHomePath: string, accountId: string): void {
+  private async prepareManagedHomeForLogin(
+    managedHomePath: string,
+    accountId: string
+  ): Promise<void> {
     const canonicalConfig = this.dependencies.configMirror.readForManagedHome(managedHomePath)
     this.dependencies.configMirror.assertOAuthAccountAddAllowed(canonicalConfig)
-    this.dependencies.configMirror.safeSyncIntoManagedHome(
+    await this.dependencies.configMirror.safeSyncIntoManagedHome(
       managedHomePath,
       canonicalConfig,
       accountId
@@ -202,7 +217,10 @@ export class CodexAccountRegistration {
     accountId: string,
     managedHome: ManagedCodexHomeLocation
   ): Promise<CodexRateLimitAccountsState> {
-    const identity = this.dependencies.readIdentityFromHome(managedHome.managedHomePath, accountId)
+    const identity = await this.dependencies.readIdentityFromHome(
+      managedHome.managedHomePath,
+      accountId
+    )
     if (!identity.email) {
       throw new Error('Codex login completed, but Orca could not resolve the account email.')
     }
@@ -235,7 +253,7 @@ export class CodexAccountRegistration {
       )
     })
     try {
-      this.dependencies.configMirror.safeSyncToManagedHomes()
+      await this.dependencies.configMirror.safeSyncToManagedHomes()
       this.dependencies.runtimeHome.clearLastWrittenAuthJson(account.id)
       this.dependencies.runtimeHome.syncForCurrentSelection(targetSelection)
     } catch (error) {

@@ -24,7 +24,10 @@ export function RightSidebarPanelContent({
   rightSidebarOpen
 }: RightSidebarPanelContentProps): React.JSX.Element {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      data-plugin-panel-surface={isPluginPanelTabKey(effectiveTab) ? effectiveTab : undefined}
+    >
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Suspense fallback={null}>
           {effectiveTab === 'explorer' && <FileExplorer />}

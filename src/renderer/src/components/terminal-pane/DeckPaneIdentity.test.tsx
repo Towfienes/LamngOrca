@@ -5,7 +5,7 @@ import { DeckPaneIdentity } from './DeckPaneIdentity'
 import type {
   AgentProviderSessionMetadata,
   SleepingAgentSessionRecord
-} from '../../../../shared/agent-session-resume'
+} from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 
 const leafId = '00000000-0000-4000-8000-000000000001'
 const paneKey = `tab:${leafId}`

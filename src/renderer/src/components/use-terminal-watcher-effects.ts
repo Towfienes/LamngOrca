@@ -12,7 +12,7 @@ import {
 import { useAppStore } from '@/store'
 import { gateWorktreeAgentActivation } from '@/lib/worktree-agent-activation-gate'
 import { createWorkspaceTerminalHostAuthoritySelector } from '@/lib/workspace-terminal-host-authority'
-import { hasStructuredAgentLaunchInWorktree } from '@/lib/structured-agent-session-launch'
+import { hasStructuredAgentLaunchInWorktree } from '@/lib/agent-session/launch/structured-agent-session-launch-status'
 import { isEmptyWorkspaceDefaultSurfacePending } from '@/lib/empty-workspace-default-surface-claims'
 import type { TerminalColdActivationController } from './terminal-cold-activation'
 import { selectParkedEquivalentMountTabIds } from './terminal/startup-terminal-tab-hold'

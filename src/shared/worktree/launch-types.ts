@@ -3,7 +3,7 @@ import type { AgentKind, LaunchSource, RequestKind } from '../telemetry-events'
 import type {
   AgentProviderSessionMetadata,
   SleepingAgentLaunchConfig
-} from '../agent-session-resume'
+} from '../agent-session/lifecycle/agent-session-resume'
 import type { SetupRunnerShell } from '../setup-runner-command'
 import type { OrcaDefaultTabTemplate } from '../orca-yaml-hook-types'
 import type { TuiAgent } from '../tui-agent'

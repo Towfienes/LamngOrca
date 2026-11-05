@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import type { CSSProperties, ReactNode } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+
 import { tmpdir } from 'node:os'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -121,16 +121,14 @@ function setSidebarState(settings: GlobalSettings, statusBarVisible = true): voi
   }
 }
 
-function renderSidebar(): string {
-  return renderToStaticMarkup(
-    <Sidebar worktreeScrollOffsetRef={{ current: 0 }} worktreeScrollAnchorRef={{ current: null }} />
-  )
-}
-
 function sidebarElement(): ReactNode {
   return (
     <Sidebar worktreeScrollOffsetRef={{ current: 0 }} worktreeScrollAnchorRef={{ current: null }} />
   )
+}
+
+function renderSidebar(): string {
+  return render(sidebarElement()).container.innerHTML
 }
 
 beforeEach(() => {
@@ -146,7 +144,7 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Sidebar', () => {
-  it('explains the incomplete workspace list until startup discovery finishes', () => {
+  it('shows a compact loading status until startup discovery finishes', () => {
     vi.useFakeTimers()
     try {
       setSidebarState(getDefaultSettings(tmpdir()))
@@ -154,8 +152,7 @@ describe('Sidebar', () => {
       const view = render(sidebarElement())
       expect(view.queryByRole('status')).toBeNull()
       act(() => vi.advanceTimersByTime(200))
-      expect(view.getByRole('status').textContent).toContain('Discovering workspaces')
-      expect(view.getByRole('status').textContent).toContain('More workspaces may appear')
+      expect(view.getByRole('status').textContent).toBe('Loading workspaces…')
       mocks.state = { ...mocks.state, startupWorktreeRefreshCompleted: true }
       view.rerender(sidebarElement())
       expect(view.queryByRole('status')).toBeNull()

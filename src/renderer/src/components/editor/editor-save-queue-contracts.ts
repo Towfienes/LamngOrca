@@ -3,7 +3,7 @@ import type { AppState } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
 import type { EditorSaveResult, EditorSaveTrigger } from './editor-save-disk-precondition'
 
-export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'subscribe'>
+export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'setState' | 'subscribe'>
 
 export type EditorSaveQueue = {
   queueSave: (

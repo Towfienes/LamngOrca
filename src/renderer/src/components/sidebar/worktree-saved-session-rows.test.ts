@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { appendSavedSessionRows } from './worktree-saved-session-rows'
 import { makeTab } from '@/store/slices/store-test-helpers'
-import type { SleepingAgentSessionRecord } from '../../../../shared/agent-session-resume'
+import type { SleepingAgentSessionRecord } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 const leaf = '11111111-1111-4111-8111-111111111111'
 const paneKey = `tab:${leaf}`
 const record: SleepingAgentSessionRecord = {

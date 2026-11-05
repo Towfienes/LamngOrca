@@ -70,6 +70,7 @@ function stateDotTooltipLabel(
 }
 
 type Props = {
+  showModel?: boolean
   agent: DashboardAgentRowData
   onDismiss: (paneKey: string) => void
   /** Navigate to this agent's tab; paneKey lets the caller mark-visit the exact clicked row. */
@@ -89,6 +90,8 @@ type Props = {
   // Why: inline-card orchestration rows can fold their child agents.
   childAgentCount?: number
   childAgentsExpanded?: boolean
+  // Shown beside the collapsed count so hidden child work stays visible.
+  collapsedChildAgentsState?: AgentDotState
   onToggleChildAgents?: () => void
   // Why: chevron indentation replaces fixed-offset lineage connector art.
   hideLineageConnectors?: boolean
@@ -100,6 +103,7 @@ type Props = {
 
 const DashboardAgentRow = React.memo(function DashboardAgentRow({
   agent,
+  showModel = true,
   onDismiss,
   onActivate,
   now,
@@ -111,6 +115,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   isFocusedPane = false,
   childAgentCount,
   childAgentsExpanded = false,
+  collapsedChildAgentsState,
   onToggleChildAgents,
   hideLineageConnectors = false,
   sendTargetStatus,
@@ -347,7 +352,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         >
           {displayLabel}
         </span>
-        {model && !rail && (
+        {showModel && model && !rail && (
           <span
             className={cn(
               'max-w-24',
@@ -355,7 +360,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
               sendTargetStatus === 'eligible' || sendTargetStatus === 'sending'
                 ? 'min-w-0'
                 : 'shrink-0',
-              'truncate font-mono text-[10px] text-muted-foreground/70'
+              'truncate font-mono text-3xs text-muted-foreground/70'
             )}
             title={model}
           >
@@ -364,11 +369,11 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         )}
         {/* Why: "+N" badge shows the hidden child count when collapsed; redundant once children are expanded below. */}
         {hasChildDisclosure && !childAgentsExpanded && (
-          <span
-            className="shrink-0 text-[10px] font-normal leading-none text-muted-foreground/70 tabular-nums"
-            aria-hidden
-          >
-            +{childAgentCount}
+          <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-normal leading-none text-muted-foreground/70 tabular-nums">
+            {collapsedChildAgentsState && (
+              <AgentStateDot state={collapsedChildAgentsState} size="sm" tooltipSide="right" />
+            )}
+            <span aria-hidden>+{childAgentCount}</span>
           </span>
         )}
         <DashboardAgentRowTrailingControls

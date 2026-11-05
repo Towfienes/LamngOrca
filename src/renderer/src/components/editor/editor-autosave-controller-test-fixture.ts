@@ -122,6 +122,8 @@ export function createEditorStore(): StoreApi<AppState> {
       ...emptyTabLayoutState(),
       activeWorktreeId: 'wt-1',
       repos: [],
+      folderWorkspaces: [],
+      projectGroups: [],
       worktreesByRepo: {
         'repo-1': [{ id: 'wt-1', repoId: 'repo-1', hostId: 'local' }]
       },
@@ -181,4 +183,37 @@ export function withLoadedBaselines<T extends Pick<StoreApi<AppState>, 'getState
     }
   }
   return store
+}
+
+export function makeSessionReadyState(): Partial<AppState> {
+  return {
+    workspaceSessionReady: true,
+    hydrationSucceeded: true,
+    activeRepoId: 'repo-1',
+    activeTabId: 'tab-1',
+    tabsByWorktree: {
+      'wt-1': [{ id: 'tab-1', title: 'shell', ptyId: null, worktreeId: 'wt-1' } as never]
+    },
+    ptyIdsByTabId: { 'tab-1': [] },
+    terminalLayoutsByTabId: {
+      'tab-1': { root: null, activeLeafId: null, expandedLeafId: null }
+    },
+    activeTabIdByWorktree: { 'wt-1': 'tab-1' },
+    activeFileIdByWorktree: {},
+    activeTabTypeByWorktree: {},
+    browserTabsByWorktree: {},
+    browserPagesByWorkspace: {},
+    activeBrowserTabIdByWorktree: {},
+    browserUrlHistory: [],
+    unifiedTabsByWorktree: {},
+    groupsByWorktree: {},
+    layoutByWorktree: {},
+    activeGroupIdByWorktree: {},
+    sshConnectionStates: new Map(),
+    repos: [],
+    worktreesByRepo: {},
+    lastKnownRelayPtyIdByTabId: {},
+    lastVisitedAtByWorktreeId: {},
+    defaultTerminalTabsAppliedByWorktreeId: {}
+  } as Partial<AppState>
 }

@@ -1,17 +1,17 @@
+import { canonicalOrchestrationForRow } from '@/runtime/visible-agent-orchestration'
 import { resolveAgentSessionStartedAt } from '../../../../../shared/agent-session-start-time'
 import { sameAgentStatusTerminalOwner } from '../../../../../shared/agent-status-terminal-owner'
 import type { AppState } from '../../types'
 import { resolveAgentStatusLiveEntryMainAgent } from './agent-status-live-entry-main-agent'
 import { resolveAgentStatusLiveEntryStateHistory } from '../../../../../shared/agent-status-live-entry-state-history'
-import { pickHostTurnEnd } from '../../../../../shared/agent-status-types'
+import { pickHostTurnEnd, type AgentStatusEntry } from '../../../../../shared/agent-status-types'
 import type { MigrationUnsupportedPtyEntry } from '../../../../../shared/agent-status-ipc-payload'
-import type { AgentStatusEntry } from '../../../../../shared/agent-status-types'
 import {
   agentProviderSessionsEqual,
   type AgentProviderSessionMetadata,
   type SleepingAgentLaunchConfig,
   type SleepingAgentSessionRecord
-} from '../../../../../shared/agent-session-resume'
+} from '../../../../../shared/agent-session/lifecycle/agent-session-resume'
 import {
   resolveAgentStatusIdentity,
   shouldSuppressInheritedTerminalStatus
@@ -142,7 +142,11 @@ export function buildAgentStatusLiveEntry(
   ) {
     return { entry: null, reason: 'suppressed-inherited-terminal' }
   }
-  const orchestration = resolveLiveEntryOrchestration(state, paneKey, payload, existing)
+  const orchestration = resolveLiveEntryOrchestration(
+    existing?.orchestration,
+    canonicalOrchestrationForRow(state, paneKey),
+    payload
+  )
   const canReuseExistingProviderSession = canReuseStatusProviderSession(existing, {
     agentType: identity.agentType,
     state: payload.state

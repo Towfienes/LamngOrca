@@ -397,7 +397,7 @@ describe('WorktreeCardAgents', () => {
     expect(markup).toContain('data-pane-key="tab-1:2"')
   })
 
-  it('shows orchestration child agent rows under their parent by default', async () => {
+  it('keeps orchestration child agent rows collapsed under their parent by default', async () => {
     mockAgentActivityDisplayMode = 'full'
     mockAgents = [
       mockAgent({
@@ -428,9 +428,9 @@ describe('WorktreeCardAgents', () => {
 
     expect(markup).toContain('role="tree"')
     expect(markup).toContain('data-pane-key="tab-parent:1"')
-    expect(markup).toContain('data-pane-key="tab-child:1"')
-    expect(markup).toContain('aria-label="Hide 1 child agent"')
-    expect(markup).toContain('aria-expanded="true"')
+    expect(markup).not.toContain('data-pane-key="tab-child:1"')
+    expect(markup).toContain('aria-label="Show 1 child agent"')
+    expect(markup).toContain('aria-expanded="false"')
   })
 
   it('shows orchestration children under a retained parent matched by terminal handle', async () => {
@@ -453,8 +453,7 @@ describe('WorktreeCardAgents', () => {
 
     expect(markup).toContain('role="tree"')
     expect(markup).toContain('data-pane-key="tab-parent:1"')
-    expect(markup).toContain('data-pane-key="tab-child:1"')
-    expect(markup).toContain('aria-label="Hide 1 child agent"')
+    expect(markup).toContain('aria-label="Show 1 child agent"')
   })
 
   it('shows orchestration children under a visible coordinator when parent handle is absent', async () => {
@@ -477,8 +476,7 @@ describe('WorktreeCardAgents', () => {
 
     expect(markup).toContain('role="tree"')
     expect(markup).toContain('data-pane-key="tab-parent:1"')
-    expect(markup).toContain('data-pane-key="tab-child:1"')
-    expect(markup).toContain('aria-label="Hide 1 child agent"')
+    expect(markup).toContain('aria-label="Show 1 child agent"')
   })
 
   it('keeps partially cyclic orchestration rows visible as flat roots', async () => {

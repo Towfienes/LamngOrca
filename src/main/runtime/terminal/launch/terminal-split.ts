@@ -1,7 +1,7 @@
 import type {
   AgentProviderSessionMetadata,
   SleepingAgentLaunchConfig
-} from '../../../../shared/agent-session-resume'
+} from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { TerminalSplitOptions } from './terminal-split-surface'
 import type { SplitPaneInMainOptions, SplitPaneSource } from './terminal-split-in-main'

@@ -1,6 +1,6 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
-import type { Store } from '../persistence'
+import type { Store } from '../persistence/loading-store/store'
 import { vscodeEditorOpenSchema } from '../../shared/vscode-editor'
 import { isTrustedBrowserRenderer } from './browser-renderer-trust'
 import {

@@ -1,6 +1,7 @@
 import type { AiVaultSession } from '../../shared/ai-vault-types'
 import type { Claude9ModelList } from '../../shared/claude9-models'
 import type {
+  ClaudeAccountSelectionChange,
   ClaudeRateLimitAccountsState,
   CodexRateLimitAccountsState
 } from '../../shared/managed-account-types'
@@ -64,6 +65,7 @@ export type ClaudeAccountsApi = {
     runtime?: 'host' | 'wsl'
     wslDistro?: string | null
   }) => Promise<ClaudeRateLimitAccountsState>
+  onSelectedElsewhere?: (callback: (change: ClaudeAccountSelectionChange) => void) => () => void
 }
 
 export type Claude9Api = {

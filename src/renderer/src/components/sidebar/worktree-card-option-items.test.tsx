@@ -14,6 +14,8 @@ const setWorktreeCardMode = vi.fn()
 const setWorktreeCardProperties = vi.fn()
 const setAgentActivityDisplayMode = vi.fn()
 const updateSettings = vi.fn()
+const setShowAgentModels = vi.fn()
+let showAgentModels: boolean | undefined
 
 let settings: {
   compactWorktreeCards: boolean
@@ -38,6 +40,9 @@ vi.mock('@/store', () => ({
   useAppStore: (selector: (state: unknown) => unknown) =>
     selector({
       agentActivityDisplayMode: 'compact',
+      persistedUIReady: true,
+      showAgentModels,
+      setShowAgentModels,
       projectGroups,
       setAgentActivityDisplayMode,
       setWorktreeCardMode,
@@ -147,6 +152,8 @@ beforeEach(() => {
     'ports',
     'inline-agents'
   ]
+  showAgentModels = undefined
+  setShowAgentModels.mockReset()
   setAgentActivityDisplayMode.mockReset()
   setWorktreeCardMode.mockReset()
   setWorktreeCardProperties.mockReset()
@@ -164,6 +171,30 @@ afterEach(() => {
 })
 
 describe('worktree card menu items', () => {
+  it.each([false, true])(
+    'toggles model badges in the existing property menu (new style: %s)',
+    (newStyle) => {
+      settings.experimentalNewWorktreeCardStyle = newStyle
+      renderMenu()
+      const button = [...document.querySelectorAll('button')].find(
+        (candidate) => candidate.textContent === 'Agent model'
+      )
+      expect(button?.dataset.checked).toBe('true')
+      act(() => button?.click())
+      expect(setShowAgentModels).toHaveBeenCalledWith(false)
+      showAgentModels = false
+      act(() => root?.unmount())
+      root = null
+      renderMenu()
+      const hiddenButton = [...document.querySelectorAll('button')].find(
+        (candidate) =>
+          candidate.textContent === 'Agent model' && candidate.dataset.checked === 'false'
+      )
+      act(() => hiddenButton?.click())
+      expect(setShowAgentModels).toHaveBeenLastCalledWith(true)
+    }
+  )
+
   it('applies the compact card mode preset from the visible card layout menu', () => {
     renderMenu()
 

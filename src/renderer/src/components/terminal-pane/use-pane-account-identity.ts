@@ -6,7 +6,7 @@ import {
   findClaudeTranscriptAccount
 } from '../../../../shared/agent-launch-account'
 import { parsePaneKey } from '../../../../shared/stable-pane-id'
-import { agentProviderSessionsEqual } from '../../../../shared/agent-session-resume'
+import { agentProviderSessionsEqual } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import { isRemoteExecutionHostPtyId } from '../../../../shared/remote-execution-host-pty-id'
 
 export function usePaneAccountIdentity(paneKey: string) {
