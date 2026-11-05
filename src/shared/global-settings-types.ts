@@ -6,7 +6,6 @@ import type { ExecutionHostId } from './execution-host'
 import type { OrcaWorkspaceLayout } from './orca-workspace-layout'
 import type { GitHubProjectSettings } from './github/project-types'
 import type { VoiceSettings } from './speech-types'
-import type { AiVaultSearchSettings } from './ai-vault-search-settings'
 import type { GitLabProjectSettings } from './gitlab-types'
 import type { TaskProvider } from './task-providers'
 import type { KeybindingOverrides, TerminalShortcutPolicy } from './keybindings'
@@ -81,6 +80,9 @@ export type GlobalSettings = GlobalSettingsBase & {
   appIcon: AppIconId
   appFontFamily: string
   editorAutoSave: boolean
+  editorFormatOnSave?: boolean
+  /** Days a release must be public before Orca offers it; absent/0 offers releases immediately. */
+  updateDelayDays?: number
   editorAutoSaveDelayMs: number
   editorMinimapEnabled: boolean
   /** Defaults on for profiles saved before file-editor wrapping became configurable. */
@@ -498,7 +500,6 @@ export type GlobalSettings = GlobalSettingsBase & {
   /** Voice/dictation settings; persistence merge hydrates getDefaultSettings() values for older profiles. */
   voice?: VoiceSettings
   /** Transcript full-text search consent + retention. Absent means off; nothing indexes until the user opts in. */
-  aiVaultSearch?: AiVaultSearchSettings
 }
 
 export type { OrcaWorkspaceLayout } from './orca-workspace-layout'

@@ -17,7 +17,7 @@ import {
   mintPtySessionId,
   ptySessionIdForAgentCreateOperation
 } from '../../../daemon/pty-session-id'
-import { resolvePathEnvKey } from '../../../pty/windows-environment-path'
+import { resolvePathEnvKey } from '../../../pty/environment/windows-path-segment-merge'
 import { isRuntimeWslBackgroundStart, type RuntimePtySpawnState } from './spawn-state'
 import { localPtySpawnCwd } from '../host-env/spawn-cwd'
 import { resolvePtySpawnStartupTarget } from '../spawn-startup-target'

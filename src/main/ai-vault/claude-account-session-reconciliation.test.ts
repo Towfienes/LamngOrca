@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { reconcileAccountSession } from './account-session-reconciliation'
-import { MAX_SESSION_TRANSCRIPT_RECORD_BYTES } from './session-transcript-record-budget'
+import { MAX_SESSION_TRANSCRIPT_RECORD_BYTES } from './transcripts/session-transcript-record-budget'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof fs>()

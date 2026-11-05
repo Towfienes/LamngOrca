@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { reconcileAccountSession } from './account-session-reconciliation'
-import { MAX_SESSION_TRANSCRIPT_RECORD_BYTES } from './session-transcript-record-budget'
+import { MAX_SESSION_TRANSCRIPT_RECORD_BYTES } from './transcripts/session-transcript-record-budget'
 
 const meta = (id = 'session') => `${JSON.stringify({ type: 'session_meta', payload: { id } })}\n`
 const message = (text: string, hour = 10, role = 'user') =>

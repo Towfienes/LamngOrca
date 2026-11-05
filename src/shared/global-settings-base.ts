@@ -1,3 +1,4 @@
+import type { AiVaultSearchSettings } from './ai-vault-search-settings'
 import type { BrowserExtensionGlobalSettings } from './browser-extension-settings'
 import type { ClaudeAgentViewSettings } from './claude-agent-view'
 import type { BrowserLinkOpeningSettings } from './browser-link-opening-settings'
@@ -16,7 +17,9 @@ import type { TerminalColorOverrideGlobalSettings } from './terminal-color-overr
 import type { WindowMaterialSettings } from './window-material'
 
 /** Settings groups owned by their feature modules and composed into GlobalSettings. */
-export type GlobalSettingsBase = ClaudeAgentViewSettings &
+export type GlobalSettingsBase = {
+  aiVaultSearch?: AiVaultSearchSettings
+} & ClaudeAgentViewSettings &
   WorkspaceQuickLaunchSettings &
   NativeChatGlobalSettings &
   WorktreeDeletionPreferences &

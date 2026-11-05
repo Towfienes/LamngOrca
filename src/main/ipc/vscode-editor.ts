@@ -2,11 +2,11 @@ import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
 import type { Store } from '../persistence/loading-store/store'
 import { vscodeEditorOpenSchema } from '../../shared/vscode-editor'
-import { isTrustedBrowserRenderer } from './browser-renderer-trust'
+import { isTrustedBrowserRenderer } from './browser/browser-renderer-trust'
 import {
   resolveDesktopAuthorizedPath,
   resolveUserNamedRegularFile
-} from './local-file-access-resolution'
+} from './filesystem/access/local-file-access-resolution'
 import { vscodeRuntimeInstalled } from '../vscode-editor/vscode-runtime'
 import {
   openVSCodeEditor,

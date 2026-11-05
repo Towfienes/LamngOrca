@@ -6,7 +6,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { Claude9Model, Claude9ModelList } from '../../shared/claude9-models'
 import type { AiVaultSession } from '../../shared/ai-vault-types'
-import { parseClaudeSessionFile } from '../ai-vault/session-scanner-primary-parsers'
+import { parseClaudeSessionFile } from '../ai-vault/scanners/claude/session-scanner-primary-parsers'
 
 const CACHE_MS = 5 * 60_000
 let cached: Claude9ModelList | null = null

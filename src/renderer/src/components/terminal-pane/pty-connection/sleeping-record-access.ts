@@ -38,14 +38,20 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
   }
   session.clearSleepingRecordProviderDuplicates = (
     state: ReturnType<typeof useAppStore.getState>,
-    consumed: { paneKey: string; record: SleepingAgentSessionRecord }
+    consumed: { paneKey: string; record: SleepingAgentSessionRecord },
+    keepPaneKey?: string
   ): void => {
+    if (consumed.paneKey !== keepPaneKey) {
+      state.clearSleepingAgentSession(consumed.paneKey)
+    }
     for (const [paneKey, record] of Object.entries(state.sleepingAgentSessionsByPaneKey)) {
       // A new hook can replace the consumed capture before the spawn reply arrives.
       if (paneKey === session.cacheKey && record.origin === 'live' && record !== consumed.record) {
         continue
       }
       if (
+        paneKey !== consumed.paneKey &&
+        paneKey !== keepPaneKey &&
         record.worktreeId === consumed.record.worktreeId &&
         record.agent === consumed.record.agent &&
         agentProviderSessionsEqual(

@@ -6,9 +6,9 @@ import {
   structuredAgentSessionOptionSnapshot
 } from './structured-agent-session-option-snapshot'
 import {
+  structuredAgentSessionOptionPicks,
   applyStructuredAgentSessionOptions,
-  createStructuredAgentSessionOptionState,
-  structuredAgentSessionOptionPicks
+  createStructuredAgentSessionOptionState
 } from './structured-agent-session-options'
 import { structuredAgentSessionOptionView } from './structured-agent-session-option-view'
 import { structuredAgentSessionSeedCatalog } from './structured-agent-session-seed-catalog'
@@ -50,9 +50,9 @@ describe('the permission mode picker', () => {
     for (const reportedPermissionMode of [undefined, null, 'full-access', 'read-only']) {
       const descriptor = permission({ ...capable, reportedPermissionMode })
       expect(descriptor).toMatchObject({
-        settable: typeof reportedPermissionMode === 'string',
+        settable: true,
         kind: {
-          currentValue: reportedPermissionMode ?? undefined,
+          currentValue: 'own',
           choices: expect.not.arrayContaining([expect.objectContaining({ value: 'own' })])
         }
       })
@@ -68,7 +68,7 @@ describe('the permission mode picker', () => {
     ).toMatchObject({ settable: true, kind: { currentValue: 'full-access' } })
   })
 
-  it('admits supported Own reset through the same descriptor/readiness predicate', () => {
+  it('admits supported Own delegation through the same descriptor/readiness predicate', () => {
     const state = { ...live('codex', { permissionMode: 'ask' }), permissionOwnSupported: true }
     expect(canSetStructuredAgentSessionOption(state, 'permissionMode', 'own')).toBe(true)
     for (const permissionOwnSupported of [false, null]) {
