@@ -76,6 +76,8 @@ export type DashboardSnapshotState = Pick<
         | 'sshTargetLabels'
         | 'unifiedTabsByWorktree'
         | 'aiVaultSessionTitlesByKey'
+        | 'activeWorktreeId'
+        | 'activeWorkspaceExecutionHostId'
       >
   >
 

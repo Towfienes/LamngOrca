@@ -6,6 +6,7 @@ import { CodexPaneSessionFooter } from './CodexPaneSessionFooter'
 import { ClaudeOldTerminalBanner } from './ClaudeOldTerminalBanner'
 import { ClaudeDiffPanelNoticeBanner } from './ClaudeDiffPanelNoticeBanner'
 import { NewerDaemonHoldBanner } from './NewerDaemonHoldBanner'
+import { WslDistroStoppedHoldCard } from './WslDistroStoppedHoldCard'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { TerminalSshReconnectOverlay } from './TerminalSshReconnectOverlay'
 import { TerminalProcessExitOverlay } from './TerminalProcessExitOverlay'
@@ -44,11 +45,18 @@ export function TerminalPaneCodexRestartPortals({
           paneTransportsRef.current.get(pane.id)?.getPtyId() ??
           savedLayout.ptyIdsByLeafId?.[pane.leafId]
         const holdBanner = (
-          <NewerDaemonHoldBanner
-            key={`newer-daemon-hold-${pane.id}-${ptyId}`}
-            tabId={tabId}
-            leafId={pane.leafId}
-          />
+          <>
+            <NewerDaemonHoldBanner
+              key={`newer-daemon-hold-${pane.id}-${ptyId}`}
+              tabId={tabId}
+              leafId={pane.leafId}
+            />
+            <WslDistroStoppedHoldCard
+              key={`wsl-distro-stopped-hold-${pane.id}`}
+              tabId={tabId}
+              leafId={pane.leafId}
+            />
+          </>
         )
         if (!ptyId) {
           // Switch point: a server's held pane has no terminal handle to bind until it reopens.

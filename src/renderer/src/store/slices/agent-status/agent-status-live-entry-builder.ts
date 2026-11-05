@@ -1,3 +1,4 @@
+import { resolveAgentSessionStartedAt } from '../../../../../shared/agent-session-start-time'
 import { sameAgentStatusTerminalOwner } from '../../../../../shared/agent-status-terminal-owner'
 import type { AppState } from '../../types'
 import { resolveAgentStatusLiveEntryMainAgent } from './agent-status-live-entry-main-agent'
@@ -24,7 +25,7 @@ import type {
 } from './agent-status-contract'
 import { registryEntryMatchesStatus } from './agent-status-launch-config'
 import { findAgentPaneWorktreeId, getTabIdFromPaneKey } from './agent-status-pane-key-tab-binding'
-import { mergeCurrentOrchestrationContext } from './agent-status-orchestration-context'
+import { resolveLiveEntryOrchestration } from './agent-status-orchestration-context'
 import { deriveAgentStatusLiveFacts } from './agent-status-live-facts'
 import { liveEntryChildFields } from './agent-status-live-entry-children'
 import {
@@ -141,20 +142,7 @@ export function buildAgentStatusLiveEntry(
   ) {
     return { entry: null, reason: 'suppressed-inherited-terminal' }
   }
-  const runtimeOrchestration = state.runtimeAgentOrchestrationByPaneKey[paneKey]
-  const runtimeMergedOrchestration = runtimeOrchestration
-    ? mergeCurrentOrchestrationContext(existing?.orchestration, runtimeOrchestration)
-    : undefined
-  const payloadMergedOrchestration = payload.orchestration
-    ? mergeCurrentOrchestrationContext(
-        runtimeMergedOrchestration ?? existing?.orchestration,
-        payload.orchestration
-      )
-    : undefined
-  const orchestration =
-    payloadMergedOrchestration ??
-    runtimeMergedOrchestration ??
-    (payload.state === 'done' ? existing?.orchestration : undefined)
+  const orchestration = resolveLiveEntryOrchestration(state, paneKey, payload, existing)
   const canReuseExistingProviderSession = canReuseStatusProviderSession(existing, {
     agentType: identity.agentType,
     state: payload.state
@@ -283,6 +271,13 @@ export function buildAgentStatusLiveEntry(
         ? existing.sessionBoundary
         : undefined)
   }
+  const retained = existing ? undefined : state.retainedAgentsByPaneKey[paneKey]
+  entry.firstStateStartedAt = resolveAgentSessionStartedAt({
+    entry,
+    previous: existing ?? retained?.entry,
+    previousStartedAt: retained?.startedAt,
+    identity: { ...identity, ...routing, providerSession: metadata?.providerSession }
+  })
   const facts = deriveAgentStatusLiveFacts({
     state,
     paneKey,

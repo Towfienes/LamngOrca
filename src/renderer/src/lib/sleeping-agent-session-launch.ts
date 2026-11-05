@@ -1,3 +1,4 @@
+import { getConnectionIdFromState } from '@/lib/connection-owner-resolution'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { claudeResumeAccountEnv } from './claude-resume-account-env'
@@ -6,6 +7,8 @@ import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import {
+  resolveRuntimeHostReportedPlatform,
+  resolveRuntimeHostTerminalWindowsShell,
   resolveSshHostReportedPlatform,
   resolveAgentResumeLaunchTarget,
   type AgentResumeLaunchTarget
@@ -32,17 +35,22 @@ function getResumeLaunchTarget(worktreeId: string): AgentResumeLaunchTarget {
   const repo = worktree ? state.repos.find((entry) => entry.id === worktree.repoId) : null
   // The resume tab is created without a shell override, so the global Windows shell wins.
   const executionHostId = getExecutionHostIdForWorktree(state, worktreeId)
+  // Why: a folder or nested-SSH workspace on a server runs on its SSH target, not the server.
+  const connectionId = repo?.connectionId ?? getConnectionIdFromState(state, worktreeId)
   return resolveAgentResumeLaunchTarget({
     projectRuntime: getLocalProjectExecutionRuntimeContext(state, worktreeId),
-    connectionId: repo?.connectionId,
+    connectionId,
     executionHostId,
     worktreePath: worktree?.path,
     terminalWindowsShell: state.settings?.terminalWindowsShell,
     remotePlatform: resolveSshHostReportedPlatform(
       state,
       executionHostId,
-      runtimeEnvironmentIdUnlessTwin(state, worktreeId)
-    )
+      runtimeEnvironmentIdUnlessTwin(state, worktreeId),
+      connectionId
+    ),
+    runtimeHostPlatform: resolveRuntimeHostReportedPlatform(state, executionHostId),
+    runtimeHostTerminalWindowsShell: resolveRuntimeHostTerminalWindowsShell(state, executionHostId)
   })
 }
 
@@ -70,6 +78,7 @@ export function launchSleepingAgentSession(
         resumeTarget.platform === CLIENT_PLATFORM
     }),
     platform: resumeTarget.platform,
+    agentHostPlatform: resumeTarget.agentHostPlatform,
     shell: resumeTarget.shell,
     launchCwd: state.getKnownWorktreeById(record.worktreeId)?.path
   })

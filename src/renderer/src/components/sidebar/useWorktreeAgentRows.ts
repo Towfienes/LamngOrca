@@ -2,6 +2,7 @@ import {
   appendSavedSessionRows,
   selectSavedSessionsForWorktree
 } from './worktree-saved-session-rows'
+import { getStructuredAgentSessionTabsByPaneKey } from '@/components/native-chat/structured-agent-session-tabs'
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
 import { applyAgentRowLineage } from '@/components/dashboard/agent-row-lineage'
@@ -125,6 +126,9 @@ export function useWorktreeAgentRows(worktreeId: string, active = true): Dashboa
       appendSavedSessionRows(
         buildWorktreeAgentRows({
           tabs: tabs ?? EMPTY_TABS,
+          representedTabs: getStructuredAgentSessionTabsByPaneKey(
+            useAppStore.getState().unifiedTabsByWorktree
+          ),
           entries,
           retained,
           runtimePaneTitlesByTabId,

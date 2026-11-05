@@ -55,6 +55,8 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
       telemetrySource?: TerminalPaneSplitSource
       /** The leaf id a timed-out split reported: wait for that pane instead of splitting again. */
       retrySplit?: string
+      /** The user's own act (a CLI or window split); without it a stopped WSL distro holds the start. */
+      wslUserAct?: true
     } = {},
     // Internal creation evidence; RPC and preload callers never supply it.
     createdWorktree?: Worktree
@@ -86,7 +88,8 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
           command: opts.command,
           env: opts.env,
           envToDelete: opts.envToDelete,
-          activate: opts.activate
+          activate: opts.activate,
+          ...(opts.wslUserAct ? { wslUserAct: true } : {})
         }
       )
     }

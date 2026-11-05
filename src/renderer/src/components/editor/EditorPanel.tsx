@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { getConnectionId } from '@/lib/connection-context'
+import { formatClipboardFilePath } from '@/lib/clipboard-file-path'
+import { getOpenFileRevealOwner } from '@/lib/reveal-in-file-manager'
 import { detectLanguage } from '@/lib/language-detect'
 import { canShowWorkspaceFileBrowserAction, openFilePreviewToSide } from '@/lib/file-preview'
 import { getEditorHeaderCopyState } from './editor-header'
@@ -30,6 +32,8 @@ import {
 import { useEditorPanelSave } from './useEditorPanelSave'
 import { isMarkdownReviewNotesEnabled } from '@/lib/markdown-review-notes-setting'
 import { VSCodeEditorRoute } from './VSCodeEditorRoute'
+import { useFileCustomEditors } from '@/store/plugin-custom-editors'
+import { applyCustomEditorToggle } from './custom-editor-toggle'
 
 function EditorPanelInner({
   activeFileId: activeFileIdProp,
@@ -84,6 +88,7 @@ function EditorPanelInner({
   )
   const editorDrafts = useAppStore(editorDraftSelector)
   const settings = useAppStore((s) => s.settings)
+  const customEditors = useFileCustomEditors(activeFileId, activeFile?.filePath)
   const markdownReviewNotesEnabled = isMarkdownReviewNotesEnabled(settings)
   const panelRef = useRef<HTMLDivElement>(null)
   const [copiedPathToast, setCopiedPathToast] = useState<{ fileId: string; token: number } | null>(
@@ -197,7 +202,8 @@ function EditorPanelInner({
       return
     }
     try {
-      await window.api.ui.writeClipboardText(copyState.copyText)
+      const owner = getOpenFileRevealOwner(useAppStore.getState(), activeFile)
+      await window.api.ui.writeClipboardText(formatClipboardFilePath(copyState.copyText, owner))
       if (!pathCopyMountedRef.current) {
         return
       }
@@ -229,7 +235,8 @@ function EditorPanelInner({
     markdownViewMode,
     markdownRichModeSizeOverridden,
     isChangesMode,
-    canOpenWorkspaceFileBrowser
+    canOpenWorkspaceFileBrowser,
+    ...customEditors
   })
 
   const handleOpenPreviewToSide = (): void => {
@@ -250,7 +257,7 @@ function EditorPanelInner({
     if (!model.openFileState.canOpen) {
       return
     }
-    openFile({
+    const openedFileId = openFile({
       filePath: activeFile.filePath,
       relativePath: activeFile.relativePath,
       worktreeId: activeFile.worktreeId,
@@ -259,8 +266,8 @@ function EditorPanelInner({
       mode: 'edit'
     })
     if (preferredMarkdownViewMode) {
-      setEditorViewMode(activeFile.filePath, 'edit')
-      setMarkdownViewMode(activeFile.filePath, preferredMarkdownViewMode)
+      setEditorViewMode(openedFileId, 'edit')
+      setMarkdownViewMode(openedFileId, preferredMarkdownViewMode)
     }
   }
   const handleEditorToggleChange = (next: EditorToggleValue): void => {
@@ -274,8 +281,9 @@ function EditorPanelInner({
       return
     }
     setEditorViewMode(fileId, 'edit')
-    if (next !== 'edit') {
-      setMarkdownViewMode(fileId, next)
+    const markdownMode = applyCustomEditorToggle(fileId, next, model.customEditors.length > 0)
+    if (markdownMode) {
+      setMarkdownViewMode(fileId, markdownMode)
     }
   }
   const handleOpenMarkdownPreview = (): void => {

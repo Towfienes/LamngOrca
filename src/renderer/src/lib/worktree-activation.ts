@@ -1,3 +1,4 @@
+import { noteUserWorkspaceOpen } from './workspace-switch-user-act'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import type { PendingSidebarWorktreeReveal } from '@/store/slices/ui'
@@ -118,7 +119,7 @@ export function activateAndRevealFolderWorkspace(
   const workspaceKey = folderWorkspaceKey(folderWorkspaceId)
   const providesInitialSurface = activationProvidesInitialSurface(opts)
   const seedUserDefaultSurface = activationSeedsUserDefaultSurface(opts)
-  markVisited(state, workspaceKey, previousActive, opts?.executionHostId)
+  markVisited(state, workspaceKey, previousActive, opts?.executionHostId, opts?.navigationIntent)
   if (!state.isNavigatingHistory) {
     state.recordWorktreeVisit(workspaceKey)
   }
@@ -210,6 +211,7 @@ export function activateAndRevealWorktree(
   if (state.activeView !== 'terminal') {
     state.setActiveView('terminal')
   }
+  noteUserWorkspaceOpen(worktreeId, opts?.navigationIntent)
 
   state.setActiveWorktree(
     worktreeId,
@@ -314,14 +316,7 @@ export function activateAndRevealWorktree(
 /** Dispatch sidebar IDs through folder/worktree entry points; folder routing enforces missing/unmounted/disconnected path guards (#10716). */
 export function activateAndRevealWorkspace(
   workspaceId: string,
-  opts?: WorktreeActivationSurfaceSelection & {
-    executionHostId?: ExecutionHostId
-    sidebarRevealBehavior?: PendingSidebarWorktreeReveal['behavior']
-    revealInSidebar?: boolean
-    showWorkspaceList?: boolean
-    /** Worktree-only: folder workspaces are never filter-hidden. */
-    clearSidebarFilters?: boolean
-  }
+  opts?: WorktreeActivationOptions
 ): ActivateAndRevealResult | false {
   const workspaceScope = parseWorkspaceKey(workspaceId)
   if (workspaceScope?.type !== 'folder') {

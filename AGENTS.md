@@ -9,6 +9,10 @@ The user requests quiet Orca CLI workers to save quota. Workers run continuously
 - **Test**: `pnpm test [path/to/file.test.ts]`; affected only: `pnpm test:changed [path] --maxWorkers=2` ([details](.github/CONTRIBUTING.md#targeting-local-tests))
 - **Lint**: `oxlint`; format: `pnpm format`
 
+# Ensure main is always releasable
+
+Never break main. Use stacks or collapse PRs before merge
+
 # Design System
 
 Deck agent launch changes must preserve the user choices in [DECK_AGENT_UX.md](DECK_AGENT_UX.md).

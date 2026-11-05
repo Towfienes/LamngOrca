@@ -316,9 +316,13 @@ export abstract class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRu
     })
     const launch = applyRemoteViewerLaunchEnv(resolvedLaunch, opts.terminalImageViewerSupported)
     // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing.
-    const hosted = workspace.connectionId
-      ? launch
-      : withHostAccountLaunchEnv(opts, launch, this.accounts.hostLaunchEnvFor(launch.launchAgent))
+    if (!workspace.connectionId && launch.launchAgent) {
+      await this.accounts.prepareHostAgentLaunch(launch.launchAgent)
+    }
+    const accountEnv = workspace.connectionId
+      ? {}
+      : this.accounts.hostLaunchEnvFor(launch.launchAgent)
+    const hosted = withHostAccountLaunchEnv(opts, launch, accountEnv)
     return withRevealedAgentJoin(opts, hosted, this.mobileSessionTabsByWorktree.get(workspace.id))
   }
 }

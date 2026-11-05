@@ -167,7 +167,7 @@ function FileExplorerFiles(): React.JSX.Element {
     }
   }, [activeWorktreeId, toggleShowDotfilesForWorktree])
   const isMac = useMemo(() => navigator.userAgent.includes('Mac'), [])
-  const selection = useFileExplorerSelection(rowProjection, isMac)
+  const selection = useFileExplorerSelection(rowProjection, isMac, openInOwner)
   const selectedNode = selection.selectedPath
     ? rowProjection.getRowByPath(selection.selectedPath)
     : null
@@ -207,7 +207,8 @@ function FileExplorerFiles(): React.JSX.Element {
     selectedNode,
     rowProjection,
     rowExpandedPaths,
-    visibleRowCount
+    visibleRowCount,
+    pathOwner: openInOwner
   })
   const { inlineInputState, rowScrolling } = paneState
   const {

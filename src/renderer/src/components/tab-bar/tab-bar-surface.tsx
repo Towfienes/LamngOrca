@@ -170,6 +170,7 @@ export function renderTabBarSurface({
         {showStaticCreateMenuItems ? (
           <TabBarStaticCreateMenu
             props={props}
+            groupId={resolvedGroupId}
             terminalOnly={terminalOnly}
             mobileEmulatorEnabled={mobileEmulatorEnabled}
             managedBrowserCreationEnabled={managedBrowserCreationEnabled}

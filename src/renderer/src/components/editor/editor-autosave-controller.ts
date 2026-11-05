@@ -22,6 +22,7 @@ import {
 import { createEditorRestartSaveHandlers } from './editor-restart-save-handlers'
 import { createEditorExternalChangeTabReset } from './editor-external-change-tab-reset'
 import { vscodeSessionForFile, discardVSCodeEditorFile } from './vscode-editor-sessions'
+import { hasEditorBytesDraft } from './editor-bytes-documents'
 import {
   ORCA_EDITOR_PREPARE_HOT_EXIT_EVENT,
   ORCA_EDITOR_SAVE_DIRTY_FILES_EVENT
@@ -53,7 +54,11 @@ export function attachEditorAutosaveController(store: AppStoreApi): () => void {
 
     flushPendingEditorBuffer(store.getState(), file.id)
     const draft = store.getState().editorDrafts[fileId]
-    if (draft !== undefined || vscodeSessionForFile(store.getState(), file)) {
+    if (
+      draft !== undefined ||
+      vscodeSessionForFile(store.getState(), file) ||
+      hasEditorBytesDraft(fileId)
+    ) {
       try {
         // Close only after a written result so refusals retain the tab and edits.
         const result = await queueSave(file, draft ?? '')
@@ -93,13 +98,13 @@ export function attachEditorAutosaveController(store: AppStoreApi): () => void {
         store.getState().editorDrafts[file.id] ??
         detail.fallbackContent ??
         (vscodeSessionForFile(store.getState(), file) ? '' : undefined)
-      if (content === undefined) {
+      if (content === undefined && !hasEditorBytesDraft(file.id)) {
         detail.resolve()
         return
       }
 
       const trigger = detail.overwrite ? 'overwrite' : detail.convertToUtf8 ? 'convert' : 'user'
-      const result = await queueSave(file, content, trigger)
+      const result = await queueSave(file, content ?? '', trigger)
       if (result !== 'written') {
         detail.reject(
           result === 'blocked-stale'

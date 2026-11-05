@@ -35,6 +35,16 @@ type FileExplorerToolbarProps = {
   onToggleDotfiles: () => void
 }
 
+function formatOpenInAppLabel(appName: string): string {
+  return translate(
+    'auto.components.right.sidebar.FileExplorerToolbar.openInApp',
+    'Open in {{app}}',
+    {
+      app: appName
+    }
+  )
+}
+
 export function FileExplorerToolbar({
   repoName,
   worktreePath,
@@ -183,7 +193,7 @@ export function FileExplorerToolbar({
             runtimeEnvironmentId={runtimeEnvironmentId}
             ownerUnresolved={ownerUnresolved}
             workspace={workspaceId ? { workspaceId } : null}
-            labelPrefix="Open in "
+            formatLabel={formatOpenInAppLabel}
           />
         </DropdownMenuContent>
       </DropdownMenu>

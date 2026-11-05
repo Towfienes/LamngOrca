@@ -1,3 +1,7 @@
+import { canonicalOrchestrationForRow } from '@/runtime/visible-agent-orchestration'
+import type { AppState } from '../../types'
+import type { AgentStatusEntry } from '../../../../../shared/agent-status-types'
+import type { AgentStatusPayload } from './agent-status-contract'
 import type { AgentStatusOrchestrationContext } from '../../../../../shared/agent-status-types'
 import { orchestrationFleetAttentionEqual } from '../../../../../shared/orchestration-fleet-attention'
 
@@ -48,4 +52,27 @@ export function mergeCurrentOrchestrationContext(
   }
   const merged = { ...existing, ...current }
   return orchestrationContextsEqual(existing, merged) ? existing : merged
+}
+
+export function resolveLiveEntryOrchestration(
+  state: AppState,
+  paneKey: string,
+  payload: Pick<AgentStatusPayload, 'state' | 'orchestration'>,
+  existing: AgentStatusEntry | undefined
+): AgentStatusOrchestrationContext | undefined {
+  const runtimeOrchestration = canonicalOrchestrationForRow(state, paneKey)
+  const runtimeMergedOrchestration = runtimeOrchestration
+    ? mergeCurrentOrchestrationContext(existing?.orchestration, runtimeOrchestration)
+    : undefined
+  const payloadMergedOrchestration = payload.orchestration
+    ? mergeCurrentOrchestrationContext(
+        runtimeMergedOrchestration ?? existing?.orchestration,
+        payload.orchestration
+      )
+    : undefined
+  return (
+    payloadMergedOrchestration ??
+    runtimeMergedOrchestration ??
+    (payload.state === 'done' ? existing?.orchestration : undefined)
+  )
 }

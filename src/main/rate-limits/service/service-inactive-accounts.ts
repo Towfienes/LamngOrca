@@ -136,7 +136,7 @@ export abstract class RateLimitServiceInactiveAccounts extends RateLimitServiceP
           this.pushToRenderer()
           return
         }
-        const home = account.resolveHome()
+        const home = await account.resolveHome()
         if (home.kind === 'skip') {
           this.inactiveCodexFetching.delete(account.id)
           this.pushToRenderer()

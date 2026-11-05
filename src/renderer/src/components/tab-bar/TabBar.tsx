@@ -5,6 +5,7 @@ import type { TabBarProps } from './tab-bar-props'
 import type { TabBarItem } from './tab-bar-item-model'
 import { useTabBarRuntimeModel } from './use-tab-bar-runtime-model'
 import { useTabBarCreateMenuController } from './use-tab-bar-create-menu-controller'
+import { usePluginNewFileMenuOptions } from './use-plugin-new-file-menu-options'
 import { useTabBarItemProjection } from './use-tab-bar-item-projection'
 import { renderTabBarSurface } from './tab-bar-surface'
 import { useTabBarItemActions } from './use-tab-bar-item-actions'
@@ -30,7 +31,7 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
   const dotsOnly = useAppStore((state) =>
     selectIsTabDotsStrip(state, worktreeId, runtime.resolvedGroupId)
   )
-  const createMenu = useTabBarCreateMenuController({
+  const baseCreateMenu = useTabBarCreateMenuController({
     worktreeId,
     resolvedGroupId: runtime.resolvedGroupId,
     showAgentLaunchItems: props.showAgentLaunchItems,
@@ -52,6 +53,16 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     onNewFileTab,
     onOpenFileTab
   })
+  const pluginCreateMenu = usePluginNewFileMenuOptions(
+    baseCreateMenu.createMenuOptions,
+    baseCreateMenu.handleSelectCreateMenuOption,
+    runtime.resolvedGroupId
+  )
+  const createMenu = {
+    ...baseCreateMenu,
+    createMenuOptions: pluginCreateMenu.menuOptions,
+    handleSelectCreateMenuOption: pluginCreateMenu.onSelectMenuOption
+  }
   const itemProjection = useTabBarItemProjection({
     props,
     resolvedGroupId: runtime.resolvedGroupId,

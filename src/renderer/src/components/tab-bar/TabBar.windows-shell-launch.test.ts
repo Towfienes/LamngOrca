@@ -27,6 +27,7 @@ vi.mock('react', async () => await stubHeadlessReact())
 // Deck's workspace label and dots read store selectors these headless cases do not seed.
 vi.mock('../tab-group/WorkspaceStripLabel', () => ({ WorkspaceStripLabel: () => null }))
 vi.mock('../tab-group/WorkspaceTabDots', () => ({ WorkspaceTabDots: () => null }))
+vi.mock('@/store/plugin-new-files', () => ({ usePluginNewFiles: () => [] }))
 vi.mock('zustand/react/shallow', () => stubShallowSelector())
 vi.mock('lucide-react', async () => (await import('./lucide-icon-stub-fixture')).stubEveryIcon())
 vi.mock('@dnd-kit/sortable', () => stubSortableContext())
