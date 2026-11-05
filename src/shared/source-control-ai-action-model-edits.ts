@@ -2,11 +2,14 @@ import {
   saveSourceControlAiActionModelChoice,
   sourceControlAiModelChoiceHostKeys
 } from './source-control-ai-action-model-choice'
-import type { SourceControlAiWriteTarget } from './source-control-ai-recipe-save'
+import type { SourceControlAiWriteTarget } from './source-control/ai/settings/source-control-ai-recipe-save'
 import type { GlobalSettings } from './global-settings-types'
 import type { Repo } from './repo-types'
-import type { AiTextOperation, SourceControlAiModelChoice } from './source-control-ai-types'
-import type { TuiAgent } from './tui-agent'
+import type {
+  AiTextOperation,
+  SourceControlAiModelChoice
+} from './source-control/ai/settings/source-control-ai-settings-types'
+import type { TuiAgent } from './agent-launch/catalog/tui-agent'
 
 export type SourceControlAiModelEdit =
   | { field: 'model'; value: string | undefined }

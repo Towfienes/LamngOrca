@@ -1,6 +1,6 @@
 import { getWindowSections, formatResetCountdown } from '../status-bar/tooltip'
 import { getUsageRosterRowState } from '../status-bar/usage-roster-row-state'
-import { formatWindowLabel } from '@/lib/window-label-formatter'
+import { formatWindowLabel } from '../../../../shared/rate-limit-window-label'
 import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
 import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'

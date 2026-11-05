@@ -12,67 +12,42 @@ import {
 import {
   getRepoCommitMessageModelDiscoveryHostKey,
   LOCAL_COMMIT_MESSAGE_HOST_KEY
-} from '../../../../shared/commit-message-host-key'
+} from '../../../../shared/source-control/ai/generation/commit-message-host-key'
 import {
   getCommitMessageAgentCapability,
   isCustomAgentId,
   resolveCommitMessageAgentChoice
-} from '../../../../shared/commit-message-agent-spec'
+} from '../../../../shared/source-control/ai/generation/commit-message-agent-spec'
 import {
   getDiscoveredModels,
   readSourceControlAiModelChoiceForHost,
   resolveThinkingLevel
-} from '../../../../shared/source-control-ai-model-selection'
+} from '../../../../shared/source-control/ai/settings/source-control-ai-model-selection'
 import {
   normalizeSourceControlAiSettings,
   projectSourceControlAiToLegacyCommitMessageAi,
   resolveSourceControlAiActionModelDefault
-} from '../../../../shared/source-control-ai'
+} from '../../../../shared/source-control/ai/source-control-ai-operation-resolution'
 import { saveSourceControlTextPickerDraft } from './source-control-text-action-picker-save'
 import { registeredRepoTextModelHostKeys } from './source-control-text-action-model-replay'
-import type { SourceControlAiModelEdits } from '../../../../shared/source-control-ai-action-model-edits'
 import { useTextActionModelDiscovery } from './use-text-action-model-discovery'
 import { textActionPickerEntryView } from './source-control-text-action-picker-entries'
-import { AI_TEXT_ACTION_IDS, type AiActionId } from '../../../../shared/source-control-ai-actions'
-import type {
-  RepoSourceControlAiOverrides,
-  SourceControlAiModelChoice,
-  SourceControlAiSettings,
-  SourceControlAiSettingsPatch
-} from '../../../../shared/source-control-ai-types'
+import { AI_TEXT_ACTION_IDS } from '../../../../shared/source-control/ai/recipes/source-control-ai-actions'
+import type { SourceControlAiSettingsPatch } from '../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import {
   agentPickerDraft,
   agentPickerEffectiveChoices,
   type AgentPickerEntry,
   type AgentPickerDraft
-} from '../../../../shared/agent-launch-picker'
+} from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import { SourceControlActionAgentPicker } from './source-control/SourceControlActionAgentPicker'
 import { getAgentCatalogForAction } from './source-control/source-control-action-recipe-options'
 import { DropdownMenuItem } from '../ui/dropdown-menu'
-import type { ActionRecipeDraftValue } from './source-control/source-control-ai-action-recipe-draft'
-import type { TuiAgent } from '../../../../shared/tui-agent'
 
-type TextModelChange = (
-  choice: SourceControlAiModelChoice | undefined,
-  agentArgs: string,
-  edits: SourceControlAiModelEdits | undefined
-) => void
-
-type TextActionPickerProps = {
-  actionId: AiActionId
-  agent: TuiAgent | 'custom' | null
-  source?: SourceControlAiSettings
-  repoId?: string
-  repoAi?: RepoSourceControlAiOverrides
-  draft: ActionRecipeDraftValue
-  draftScope?: object
-  disabled?: boolean
-  defaultAgentLabel?: string
-  onAgentChange: (value: string) => void
-  onChange?: TextModelChange
-  /** Saves model lists the CLI reports; without it the menu shows only saved lists. */
-  writeSourceControlAiSettings?: (patch: SourceControlAiSettingsPatch) => Promise<void>
-}
+import type {
+  TextModelChange,
+  TextActionPickerProps
+} from './source-control-text-action-picker-props'
 
 export function SourceControlTextActionAgentPicker(props: TextActionPickerProps) {
   const current = useRef(props)

@@ -1,18 +1,18 @@
 import { useAppStore } from '@/store'
-import { buildAgentStartupPlan } from '@/lib/tui-agent-startup'
+import { buildAgentStartupPlan } from '../../../../shared/agent-launch/startup/tui-agent-startup'
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { captureRuntimeEnvironmentRequestRevision } from '@/runtime/runtime-environment-revision'
-import { toHostSessionTabId } from '../../../../shared/terminal-surface-id'
+import { toHostSessionTabId } from '../../../../shared/workspace-layout/terminal-surface-id'
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
 import { paneIsCoveredByNativeChat } from '@/components/terminal-pane/native-chat-covered-pane'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
 import { FOCUS_TERMINAL_PANE_EVENT, type FocusTerminalPaneDetail } from '@/constants/terminal'
 import type { WorktreeStartupLaunch } from '../../../../shared/worktree/launch-types'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type {
   RuntimeTerminalResolvePane,
   RuntimeTerminalSplit
@@ -20,7 +20,7 @@ import type {
 import {
   resolveTuiAgentLaunchArgs,
   resolveTuiAgentLaunchEnv
-} from '../../../../shared/tui-agent-launch-defaults'
+} from '../../../../shared/agent-launch/choices/tui-agent-launch-defaults'
 
 export type DeckAgentSplitTarget = {
   tabId: string

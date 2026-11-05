@@ -1,12 +1,12 @@
 import type { StructuredAgentSessionAdapter } from '../native-chat/agent-session-wire/structured-agent-session-adapter'
 import type { StructuredAgentSessionProviderOpenInput } from '../native-chat/agent-session-wire/structured-agent-session-provider-open-contract'
 import { codexStartFailure } from './app-server/codex-startup-outcome'
-import { recoverCodexRewind } from './codex-structured-rewind'
+import { recoverCodexRewind } from './structured/threads/codex-structured-rewind'
 import {
   requireLiveCodexSession,
   type CodexAcquisitionRegistry,
   type CodexSession
-} from './codex-structured-session-state'
+} from './structured/session-lifecycle/codex-structured-session-state'
 
 /** A start's open answers with Codex's verdict; a child that already ended answers with how it
  *  ended, and an answer its own exit followed is still worded as that exit. */

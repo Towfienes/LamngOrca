@@ -1,11 +1,11 @@
-import type { CommitMessageAgentSpec } from './commit-message-agent-spec'
+import type { CommitMessageAgentSpec } from './source-control/ai/generation/commit-message-agent-spec'
 import { findOptionOccurrence } from './command-option-occurrence'
 import { agentRequiredValueOptions } from './agent-session/options/agent-session-option-agent-args'
-import { KIMI_VALUE_OPTIONS } from './commit-message-generation-options'
+import { KIMI_VALUE_OPTIONS } from './source-control/ai/generation/commit-message-generation-options'
 import {
   tokenizeCustomCommandTemplate,
   type CommandTemplateBackslash
-} from './commit-message-prompt'
+} from './source-control/ai/generation/commit-message-prompt'
 
 /** Remove only proven flag spans so unrelated arguments retain their spelling and quoting. */
 export function removeSourceControlAiArgumentFlag(

@@ -3,7 +3,7 @@ import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-accoun
 import { getAppEnvironment } from '../../../../shared/app-environment'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { assertOwnedHostCodexManagedHomePath } from '../../../codex-accounts/host-codex-managed-home-ownership'
-import { getSystemCodexHomePath } from '../../../codex/codex-home-paths'
+import { getSystemCodexHomePath } from '../../../codex/configuration/homes/codex-home-paths'
 import type { CodexAccountSelectionTarget } from '../../../codex-accounts/runtime-selection'
 
 export function resolvePinnedCodexLaunchHome(

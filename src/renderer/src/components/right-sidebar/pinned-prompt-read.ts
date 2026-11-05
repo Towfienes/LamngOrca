@@ -1,6 +1,6 @@
 import { readRuntimeFileContent } from '@/runtime/runtime-file-read-client'
-import { captureFileExplorerOperationGuard } from './file-explorer-operation-owner'
-import type { FileExplorerOperationOwner } from './file-explorer-types'
+import { captureFileExplorerOperationGuard } from './file-explorer/navigation/file-explorer-operation-owner'
+import type { FileExplorerOperationOwner } from './file-explorer/tree/file-explorer-types'
 import { isPromptFile, type PinnedPrompt } from './pinned-prompts'
 
 export async function readPinnedPrompt(

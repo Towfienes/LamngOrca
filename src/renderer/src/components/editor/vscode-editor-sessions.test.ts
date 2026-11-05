@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
-import { createLegacyEditorStore } from './editor-autosave-controller-test-fixture'
+import { createLegacyEditorStore } from './autosave/editor-autosave-controller-test-fixture'
 import {
   subscribeVSCodeEditorState,
   vscodeEditorContexts,

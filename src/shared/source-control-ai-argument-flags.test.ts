@@ -1,5 +1,8 @@
 import { expect, it } from 'vitest'
-import { COMMIT_MESSAGE_AGENT_SPECS, listCommitMessageAgentIds } from './commit-message-agent-spec'
+import {
+  COMMIT_MESSAGE_AGENT_SPECS,
+  listCommitMessageAgentIds
+} from './source-control/ai/generation/commit-message-agent-spec'
 import { removeSourceControlAiArgumentFlag } from './source-control-ai-argument-flags'
 
 it('removes each text CLI model/effort spelling without changing unrelated Arguments', () => {

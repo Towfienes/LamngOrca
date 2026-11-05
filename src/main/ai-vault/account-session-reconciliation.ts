@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import type { Stats } from 'node:fs'
 import { link, lstat, mkdir, mkdtemp, realpath, rename, rm } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
-import { copySessionFileWithoutOverwrite } from '../codex/codex-session-backfill-copy'
+import { copySessionFileWithoutOverwrite } from '../codex/history/backfill/codex-session-backfill-copy'
 import { consumeCompleteJsonlLines } from './session-scanner-jsonl-reader'
 import { readCodexConversation } from './codex-account-session-reconciliation'
 

@@ -1,17 +1,20 @@
-import { getCommitMessageAgentSpec } from './commit-message-agent-spec'
-import { LOCAL_COMMIT_MESSAGE_HOST_KEY } from './commit-message-host-key'
+import { getCommitMessageAgentSpec } from './source-control/ai/generation/commit-message-agent-spec'
+import { LOCAL_COMMIT_MESSAGE_HOST_KEY } from './source-control/ai/generation/commit-message-host-key'
 import { removeSourceControlAiArgumentFlag } from './source-control-ai-argument-flags'
-import { normalizeSourceControlAiSettings } from './source-control-ai-settings'
+import { normalizeSourceControlAiSettings } from './source-control/ai/settings/source-control-ai-settings'
 import type {
   SourceControlAiWriteTarget,
   SourceControlActionRecipeSaveResult
-} from './source-control-ai-recipe-save'
-import { toSourceControlAiRepoUpdate } from './source-control-ai-recipe-save'
+} from './source-control/ai/settings/source-control-ai-recipe-save'
+import { toSourceControlAiRepoUpdate } from './source-control/ai/settings/source-control-ai-recipe-save'
 import type { GlobalSettings } from './global-settings-types'
 import type { Repo } from './repo-types'
-import type { AiTextOperation, SourceControlAiModelChoice } from './source-control-ai-types'
-import type { TuiAgent } from './tui-agent'
-import type { CommandTemplateBackslash } from './commit-message-prompt'
+import type {
+  AiTextOperation,
+  SourceControlAiModelChoice
+} from './source-control/ai/settings/source-control-ai-settings-types'
+import type { TuiAgent } from './agent-launch/catalog/tui-agent'
+import type { CommandTemplateBackslash } from './source-control/ai/generation/commit-message-prompt'
 
 type ActionModelChoiceInput = {
   target: SourceControlAiWriteTarget

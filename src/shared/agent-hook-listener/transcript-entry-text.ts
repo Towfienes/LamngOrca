@@ -1,7 +1,7 @@
+import { AGENT_MODEL_MAX_LENGTH } from '../agent-status/contracts/agent-status-field-normalization'
 import { parseAgentHookJson } from './request-body'
 import { record } from '../codex-rollout-jsonl-cursor'
-import { normalizeOptionalField } from '../agent-status-field-normalization'
-import { AGENT_MODEL_MAX_LENGTH } from '../agent-status-types'
+import { normalizeOptionalField } from '../agent-status/contracts/agent-status-field-normalization'
 
 export function extractClaudeAssistantModelFromLine(line: string): string | undefined {
   try {

@@ -21,7 +21,8 @@ import {
   findFolderWorkspaceOwner,
   getRuntimeEnvironmentIdForFolderWorkspace
 } from './folder-workspace-runtime-owner'
-import { getFolderWorkspaceHostId } from '../../../shared/folder-workspace-execution-host'
+import '../../../shared/folder-workspaces/folder-workspace-execution-host'
+import { getFolderWorkspaceHostId } from '../../../shared/folder-workspaces/folder-workspace-host-id'
 import type { WorktreeStartupPayload } from '@/lib/worktree-startup-payload'
 import {
   ensureFolderWorkspaceInitialTerminal,
@@ -141,12 +142,9 @@ export function activateAndRevealFolderWorkspace(
   }
   const primaryTabId = shouldGateAgentActivation
     ? null
-    : ensureFolderWorkspaceInitialTerminal(
-        folderWorkspace,
-        opts?.startup,
-        providesInitialSurface,
+    : ensureFolderWorkspaceInitialTerminal(folderWorkspace, opts?.startup, providesInitialSurface, {
         seedUserDefaultSurface
-      )
+      })
 
   if (opts?.showWorkspaceList) {
     state.setSidebarBody('workspaces')
@@ -250,6 +248,7 @@ export function activateAndRevealWorktree(
       callerProvidesSurface:
         opts?.providesInitialSurface === true || activationSeedsUserDefaultSurface(opts),
       seedUserDefaultSurface,
+      ...(opts?.initialCwd ? { initialCwd: opts.initialCwd } : {}),
       ...(opts?.executionHostId ? { executionHostId: opts.executionHostId } : {})
     })
   }
@@ -270,6 +269,7 @@ export function activateAndRevealWorktree(
             ...(opts?.createNewTerminalForStartup ? { createNewTerminalForStartup: true } : {}),
             ...(providesInitialSurface ? { callerProvidesSurface: true } : {}),
             ...(seedUserDefaultSurface ? { seedUserDefaultSurface: true } : {}),
+            ...(opts?.initialCwd ? { initialCwd: opts.initialCwd } : {}),
             reseedEmptiedWorkspace: !providesInitialSurface
           }
         )

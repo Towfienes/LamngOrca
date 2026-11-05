@@ -1,8 +1,8 @@
 import { useAppStore } from '@/store'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
-import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status-types'
-import { isExplicitAgentStatusFresh } from '@/lib/agent-status'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status/contracts/agent-status-freshness'
+import { isExplicitAgentStatusFresh } from '../../lib/pane-agent-evidence'
 
 type TerminalPaneAttentionListener = () => void
 

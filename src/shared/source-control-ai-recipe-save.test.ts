@@ -1,19 +1,19 @@
+import { resolveSourceControlAiForOperation } from './source-control/ai/source-control-ai-operation-resolution'
+import { projectSourceControlAiToLegacyCommitMessageAi } from './source-control/ai/settings/source-control-ai-legacy-projection'
+import { mergeLegacyCommitMessageAiIntoSourceControlAi } from './source-control/ai/settings/source-control-ai-legacy-reconciliation'
 import { saveSourceControlAiActionModelChoice } from './source-control-ai-action-model-choice'
 import { describe, expect, it } from 'vitest'
 import { getDefaultSettings } from './constants'
 import {
   saveSourceControlActionRecipe,
   toSourceControlAiRepoUpdate
-} from './source-control-ai-recipe-save'
+} from './source-control/ai/settings/source-control-ai-recipe-save'
 import {
   getDefaultSourceControlAiSettings,
-  mergeLegacyCommitMessageAiIntoSourceControlAi,
-  normalizeSourceControlAiSettings,
-  projectSourceControlAiToLegacyCommitMessageAi,
-  resolveSourceControlAiForOperation
-} from './source-control-ai'
+  normalizeSourceControlAiSettings
+} from './source-control/ai/settings/source-control-ai-settings'
 import type { GlobalSettings } from './global-settings-types'
-import type { SourceControlAiSettings } from './source-control-ai-types'
+import type { SourceControlAiSettings } from './source-control/ai/settings/source-control-ai-settings-types'
 import type { Repo } from './repo-types'
 
 function settings(): GlobalSettings {

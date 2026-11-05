@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeHookPayload } from '../../agent-hook-listener'
+import { normalizeHookPayload } from '../normalization/normalize-hook-payload'
 import { createHookListenerState, seedLegacyAgentStatusForTests } from '../listener-state'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

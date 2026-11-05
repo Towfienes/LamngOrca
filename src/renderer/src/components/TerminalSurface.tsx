@@ -1,4 +1,4 @@
-import EditorAutosaveController from './editor/EditorAutosaveController'
+import EditorAutosaveController from './editor/autosave/EditorAutosaveController'
 import { useEffect, useLayoutEffect } from 'react'
 import {
   useWorkspaceLaunchSelection,

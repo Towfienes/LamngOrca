@@ -6,11 +6,13 @@ import { translate } from '@/i18n/i18n'
 import type { SessionOptionDescriptor } from '../../../../shared/native-chat/input/native-chat-session-options'
 import type {
   agentPickerEntryOptions,
-  agentPickerModels,
+  agentPickerModels
+} from '../../../../shared/agent-launch/picker/agent-launch-picker-catalog'
+import type {
   AgentPickerEntry,
   AgentPickerDraft
-} from '../../../../shared/agent-launch-picker'
-import type { agentPickerPanelArguments } from '../../../../shared/agent-launch-picker-arguments'
+} from '../../../../shared/agent-launch/picker/agent-launch-picker'
+import type { agentPickerPanelArguments } from '../../../../shared/agent-launch/picker/agent-launch-picker-arguments'
 
 type AgentLaunchSetupOptionRowsInput = {
   options: ReturnType<typeof agentPickerEntryOptions>

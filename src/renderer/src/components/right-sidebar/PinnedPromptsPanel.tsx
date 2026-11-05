@@ -23,8 +23,8 @@ import {
 import { readPinnedPrompt } from './pinned-prompt-read'
 import { createUntitledMarkdownFile } from '@/lib/create-untitled-markdown'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
-import { requireMatchingFileExplorerOperationRoute } from './file-explorer-operation-owner'
-import type { FileExplorerOperationOwner } from './file-explorer-types'
+import { requireMatchingFileExplorerOperationRoute } from './file-explorer/navigation/file-explorer-operation-owner'
+import type { FileExplorerOperationOwner } from './file-explorer/tree/file-explorer-types'
 
 function loadPins(): { pins: PinnedPrompt[]; error: string | null } {
   try {

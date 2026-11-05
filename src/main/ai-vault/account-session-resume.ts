@@ -6,15 +6,15 @@ import type { GlobalSettings } from '../../shared/global-settings-types'
 import type {
   AiVaultPrepareSessionResumeArgs,
   AiVaultPrepareSessionResumeResult
-} from '../../shared/ai-vault-resume-preparation'
+} from '../../shared/ai-vault/resume/ai-vault-resume-preparation'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import { resolvePinnedCodexLaunchHome } from '../ipc/pty/host-env/codex-launch-account'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../shared/agent-launch-account'
-import { getSystemCodexHomePath } from '../codex/codex-home-paths'
+import { getSystemCodexHomePath } from '../codex/configuration/homes/codex-home-paths'
 import { configuredAdditionalCodexHomePaths } from './cached-session-list'
 import { managedClaudeSessionRoots } from './managed-claude-session-roots'
 import { claudeSharedProjectsRoot } from './claude-shared-projects-root'
-import { copySessionFileWithoutOverwrite } from '../codex/codex-session-backfill-copy'
+import { copySessionFileWithoutOverwrite } from '../codex/history/backfill/codex-session-backfill-copy'
 import { reconcileAccountSession } from './account-session-reconciliation'
 
 export async function prepareAccountSessionResume(

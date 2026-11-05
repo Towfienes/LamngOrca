@@ -2,13 +2,14 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { AgentSessionBackgroundTask } from '../../../../shared/agent-session/agent-session-background-task-wire'
-import type { AgentStatusEntry, AgentSubagentSnapshot } from '../../../../shared/agent-status-types'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
+import type { AgentSubagentSnapshot } from '../../../../shared/agent-status/contracts/agent-status-subagent-snapshot'
+import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'
 import { NativeChatBackgroundTasksStatus } from '@/components/native-chat/NativeChatBackgroundTasksStatus'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { CompactAgentRow } from './worktree-card-compact-agent-row'
-import { buildSubagentChildRows } from './worktree-subagent-child-rows'
+import { CompactAgentRow } from './workspace-card/activity/worktree-card-compact-agent-row'
+import { buildSubagentChildRows } from './workspace-card/activity/worktree-subagent-child-rows'
 
 vi.mock('@/components/dashboard/use-agent-row-conversation-name', () => ({
   useAgentRowConversationName: () => null

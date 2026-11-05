@@ -1,4 +1,4 @@
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '../../../shared/agent-status/contracts/agent-status-types'
 import type { MemorySnapshot } from '../../../shared/process-stats-types'
 
 export type DeckIdleRamRow = {

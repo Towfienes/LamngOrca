@@ -1,7 +1,10 @@
 import type { StoreApi } from 'zustand'
 import type { AppState } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
-import type { EditorSaveResult, EditorSaveTrigger } from './editor-save-disk-precondition'
+import type {
+  EditorSaveResult,
+  EditorSaveTrigger
+} from './save/queue/editor-save-disk-precondition'
 
 export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'setState' | 'subscribe'>
 

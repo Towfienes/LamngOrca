@@ -4,8 +4,8 @@ import { CommitMessageAiPane } from '../source-control/CommitMessageAiPane'
 import {
   getDefaultSourceControlAiSettings,
   normalizeSourceControlAiSettings
-} from '../../../../../shared/source-control-ai'
-import type { SourceControlAiSettings } from '../../../../../shared/source-control-ai-types'
+} from '../../../../../shared/source-control/ai/source-control-ai-operation-resolution'
+import type { SourceControlAiSettings } from '../../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import { useAppStore } from '../../../store'
 import { useSettingsInteractionController } from '../page/use-settings-interaction-controller'
 import { TooltipProvider } from '../../ui/tooltip'

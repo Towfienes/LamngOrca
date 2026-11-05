@@ -1,4 +1,4 @@
-import { filesystemPathToFileUri } from '../../../shared/file-uri-path'
+import { filesystemPathToFileUri } from '../../../shared/file-links/file-uri-path'
 import { normalizeRuntimePathForComparison } from '../../../shared/cross-platform-path'
 import {
   NATIVE_FILE_DROP_MAX_PATH_BYTES,

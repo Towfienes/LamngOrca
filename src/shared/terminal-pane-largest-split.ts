@@ -1,4 +1,4 @@
-import type { TerminalPaneLayoutNode } from './terminal-tab-types'
+import type { TerminalPaneLayoutNode } from './workspace-layout/terminal-tab-types'
 
 export type PaneSplitDirection = 'vertical' | 'horizontal'
 

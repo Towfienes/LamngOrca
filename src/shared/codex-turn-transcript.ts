@@ -1,4 +1,7 @@
-import { normalizeOptionalField, AGENT_MODEL_MAX_LENGTH } from './agent-status-field-normalization'
+import {
+  normalizeOptionalField,
+  AGENT_MODEL_MAX_LENGTH
+} from './agent-status/contracts/agent-status-field-normalization'
 import { record, type JsonRecord } from './codex-rollout-jsonl-cursor'
 
 export type CodexTranscriptTurn = {

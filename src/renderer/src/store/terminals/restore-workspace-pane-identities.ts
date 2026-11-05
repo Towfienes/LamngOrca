@@ -1,6 +1,6 @@
-import { recognizeAgentProcess } from '../../../../shared/agent-process-recognition'
+import { recognizeAgentProcess } from '../../../../shared/agent-status/process/agent-process-recognition'
 import { isRemoteExecutionHostPtyId } from '../../../../shared/remote-execution-host-pty-id'
-import { isTerminalLeafId, makePaneKey } from '../../../../shared/stable-pane-id'
+import { isTerminalLeafId, makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { TerminalStoreGet } from './terminal-state'
 import { createPaneForegroundProcessReader } from '@/components/terminal-pane/pane-foreground-process-reader'
 

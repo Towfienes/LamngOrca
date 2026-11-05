@@ -1,7 +1,7 @@
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
-import type { TerminalAgent } from '../../../shared/terminal-agent'
-import { parsePaneKey } from '../../../shared/stable-pane-id'
-import { agentTypeToIconAgent } from './agent-status'
+import type { AgentStatusEntry } from '../../../shared/agent-status/contracts/agent-status-types'
+import type { TerminalAgent } from '../../../shared/agent-status/identity/terminal-agent'
+import { parsePaneKey } from '../../../shared/workspace-layout/stable-pane-id'
+import { agentTypeToIconAgent } from '../../../shared/agent-status/presentation/agent-type-icon-agent'
 import type { AppState } from '../store/types'
 
 export type DeckAgentAttention = 'waiting' | 'running' | null

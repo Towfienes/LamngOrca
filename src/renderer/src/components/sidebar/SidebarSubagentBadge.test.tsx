@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DashboardAgentRow } from '../dashboard/useDashboardData'
 import { TooltipProvider } from '../ui/tooltip'
 import { SidebarSubagentBadge } from './SidebarSubagentBadge'
-import { buildSubagentChildRows } from './worktree-subagent-child-rows'
+import { buildSubagentChildRows } from './workspace-card/activity/worktree-subagent-child-rows'
 
 const now = 100_000
 function parentRow(): DashboardAgentRow {

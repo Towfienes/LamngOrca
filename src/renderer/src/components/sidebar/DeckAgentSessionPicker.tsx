@@ -9,16 +9,16 @@ import { AgentIcon, getAgentLabel } from '@/lib/agent-catalog'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { useAppStore } from '@/store'
 import { getAiVaultResumeWorkspaceExecutionHostId } from '@/lib/ai-vault-resume-target'
-import { resolveAiVaultTargetWorkspacePath } from '../right-sidebar/ai-vault-session-launch-target'
-import { SessionTime } from '../right-sidebar/ai-vault-session-time'
-import { filterAiVaultSessions } from '../../../../shared/ai-vault-session-filters'
+import { resolveAiVaultTargetWorkspacePath } from '../right-sidebar/ai-vault/session-actions/ai-vault-session-launch-target'
+import { SessionTime } from '../right-sidebar/ai-vault/session-list/ai-vault-session-time'
+import { filterAiVaultSessions } from '../../../../shared/ai-vault/session-display/ai-vault-session-filters'
 import {
   isAiVaultScanCancelledError,
   isAiVaultSessionResumableContent,
   type AiVaultSession
-} from '../../../../shared/ai-vault-types'
+} from '../../../../shared/ai-vault/contracts/ai-vault-types'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 
 export function DeckAgentSessionPicker({
   agent,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isClaude9TranscriptPath } from './claude9-models'
-import { buildAgentResumeStartupPlan } from './tui-agent-startup'
+import { buildAgentResumeStartupPlan } from './agent-launch/startup/tui-agent-resume-startup'
 
 const SESSION_ID = '27e3c992-b23e-46dd-9da3-eb06fbeebed7'
 

@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useRuntimeFileListForWorktree } from '@/components/quick-open-file-list'
 import { basename } from '@/lib/path'
 import { isPromptFile } from './pinned-prompts'
-import type { FileExplorerOperationOwner } from './file-explorer-types'
+import type { FileExplorerOperationOwner } from './file-explorer/tree/file-explorer-types'
 
 export function PinnedPromptPicker({
   worktreeId,

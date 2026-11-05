@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { TerminalPaneLayoutNode } from '../../../shared/terminal-tab-types'
+import type { TerminalPaneLayoutNode } from '../../../shared/workspace-layout/terminal-tab-types'
 import { findLargestPaneSplit } from '../../../shared/terminal-pane-largest-split'
 import { selectAgentJoinSplitTarget } from './agent-join-split-target'
 

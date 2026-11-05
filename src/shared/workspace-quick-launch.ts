@@ -1,5 +1,5 @@
-import type { TuiAgent } from './tui-agent'
-import { isTuiAgent } from './tui-agent-config'
+import type { TuiAgent } from './agent-launch/catalog/tui-agent'
+import { isTuiAgent } from './agent-launch/catalog/tui-agent-config'
 
 export type QuickLaunchTool = 'terminal' | 'vscode' | 'browser' | 'emulator'
 export type WorkspaceQuickLaunch = {

@@ -1,6 +1,6 @@
 import { useAppStore } from '@/store'
 import { getIndexedReposById } from '@/store/worktree-repo-index'
-import { getRepoCommitMessageModelDiscoveryHostKey } from '../../../../shared/commit-message-host-key'
+import { getRepoCommitMessageModelDiscoveryHostKey } from '../../../../shared/source-control/ai/generation/commit-message-host-key'
 import {
   replaySourceControlAiModelEdits,
   type SourceControlAiModelEdits
@@ -8,13 +8,13 @@ import {
 import {
   SOURCE_CONTROL_TEXT_ACTION_IDS,
   type SourceControlActionId
-} from '../../../../shared/source-control-ai-actions'
+} from '../../../../shared/source-control/ai/recipes/source-control-ai-actions'
 import type {
   AiTextOperation,
   RepoSourceControlAiOverrides,
   SourceControlAiModelChoice,
   SourceControlAiSettings
-} from '../../../../shared/source-control-ai-types'
+} from '../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 
 /** The hosts a global text pick covers: every registered repository's, read when called. */
 export function registeredRepoTextModelHostKeys(): string[] {

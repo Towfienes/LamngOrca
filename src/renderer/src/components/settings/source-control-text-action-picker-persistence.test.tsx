@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { normalizeSourceControlAiSettings } from '../../../../shared/source-control-ai'
+import { normalizeSourceControlAiSettings } from '../../../../shared/source-control/ai/source-control-ai-operation-resolution'
 import { useAppStore } from '../../store'
 import { persist, settingsModel } from './__fixtures__/settings-persistence-test-fixture'
 import { ChatPersistenceHarness } from './__fixtures__/chat-persistence-harness-test-fixture'

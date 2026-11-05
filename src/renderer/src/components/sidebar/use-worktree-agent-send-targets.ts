@@ -8,7 +8,7 @@ import { deriveRunningAgentSendTargets } from '@/lib/running-agent-targets'
 import {
   selectSendTargetControlInputs,
   selectSendTargetInputs
-} from './worktree-card-send-target-inputs'
+} from './workspace-card/activity/worktree-card-send-target-inputs'
 
 export function useWorktreeAgentSendTargets(worktreeId: string) {
   const languageRevision = useUiLanguageRevision()

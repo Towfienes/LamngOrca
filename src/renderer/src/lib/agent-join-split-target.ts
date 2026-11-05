@@ -1,4 +1,4 @@
-import type { TerminalPaneLayoutNode } from '../../../shared/terminal-tab-types'
+import type { TerminalPaneLayoutNode } from '../../../shared/workspace-layout/terminal-tab-types'
 import {
   findLargestPaneSplit,
   type PaneSplitDirection

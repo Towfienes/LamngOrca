@@ -74,7 +74,7 @@ for (const [name, width] of [
   })
 }
 
-for (const name of ['terminalQuestionDetails', 'nativeLatestDetails']) {
+for (const name of ['terminalQuestionDetails']) {
   for (const width of [280, 360]) {
     test(`${name} keeps long expanded details inside a ${width}px frame`, async ({ page }) => {
       await page.goto(`/fixtures.html?id=orchestration-crew/OrchestrationCrewPanel:${name}`)

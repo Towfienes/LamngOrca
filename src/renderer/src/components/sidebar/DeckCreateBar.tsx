@@ -12,8 +12,8 @@ import { DeckIdleRamBadge } from './DeckIdleRamBadge'
 import { deckAccountLaunchIsLocal, deckAgentHasAccountStep } from './deck-account-agent-launch'
 import { launchClaude9Tab, loadClaude9Sessions } from './deck-claude9-launch'
 import { launchDeckAgentSession } from './deck-agent-session-launch'
-import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { AiVaultSession } from '../../../../shared/ai-vault-types'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
+import type { AiVaultSession } from '../../../../shared/ai-vault/contracts/ai-vault-types'
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -248,7 +248,7 @@ describe('WorktreeCard compact hover ownership', () => {
       ]
     })
     workspacePortScan = makePortScan(worktree)
-    const { default: WorktreeCard } = await import('./WorktreeCard')
+    const { default: WorktreeCard } = await import('./workspace-card/surface/WorktreeCard')
 
     act(() => {
       root.render(<WorktreeCard worktree={worktree} repo={makeRepo()} isActive={false} />)

@@ -8,14 +8,14 @@ export {
   readActionRecipeTextDraft,
   type ActionRecipeTextDraft
 } from './repository-source-control-ai-recipe-text'
-import { normalizeRepoSourceControlAiOverrides } from '../../../../../../shared/source-control-ai-repo-settings'
-import { resolveSourceControlActionRecipe } from '../../../../../../shared/source-control-ai-operation-policy'
+import { normalizeRepoSourceControlAiOverrides } from '../../../../../../shared/source-control/ai/settings/source-control-ai-repo-settings'
+import { resolveSourceControlActionRecipe } from '../../../../../../shared/source-control/ai/source-control-ai-operation-policy'
 import {
   SOURCE_CONTROL_ACTION_IDS,
   SOURCE_CONTROL_TEXT_ACTION_IDS,
   type SourceControlActionId
-} from '../../../../../../shared/source-control-ai-actions'
-import type { RepoSourceControlAiOverrides } from '../../../../../../shared/source-control-ai-types'
+} from '../../../../../../shared/source-control/ai/recipes/source-control-ai-actions'
+import type { RepoSourceControlAiOverrides } from '../../../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import { withRepoTextModelEdits } from '../../source-control-text-action-model-replay'
 import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
 import { completeRepoActionRecipe } from './repository-source-control-ai-labels'

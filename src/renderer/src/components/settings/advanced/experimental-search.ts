@@ -1,4 +1,3 @@
-import { getOrchestrationPanelExperimentalSearchEntry } from '../orchestration/orchestration-panel-experimental-search'
 import type { SettingsSearchEntry } from '../search/settings-search'
 import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 import { translate } from '@/i18n/i18n'
@@ -182,7 +181,6 @@ export const getExperimentalPaneSearchEntries = createLocalizedCatalog(
     },
     getNewWorktreeCardStyleSearchEntry(),
     getEphemeralVmsSearchEntry(),
-    getOrchestrationPanelExperimentalSearchEntry(),
     getBrowserExtensionsExperimentalSearchEntry(),
     // Index WSL toggles only on Windows desktops that expose them.
     ...(typeof window !== 'undefined' && window.api?.runtimeEnvironments?.wslHosts
@@ -202,7 +200,6 @@ function findEntry(title: string): SettingsSearchEntry {
 
 export function getExperimentalSearchEntry() {
   return {
-    orchestrationPanel: getOrchestrationPanelExperimentalSearchEntry(),
     pet: findEntry(translate('auto.components.settings.experimental.search.87d99e634b', 'Pet')),
     agentDashboard: findEntry(
       translate(

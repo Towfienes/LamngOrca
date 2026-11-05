@@ -308,7 +308,7 @@ export abstract class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRu
   async resolveAgentTerminalCreateOptions(
     workspace: TerminalWorkspaceLaunchScope,
     opts: TerminalCreateOptions,
-    sessionOptions?: Readonly<Record<string, SessionOptionValue>>
+    sessionOptions: Readonly<Record<string, SessionOptionValue>> | undefined = opts.sessionOptions
   ): Promise<TerminalCreateOptions> {
     const toSessionOptions = this.toAgentSessionOptions.bind(this)
     const resolvedLaunch = await resolveAgentTerminalCreateOptions(

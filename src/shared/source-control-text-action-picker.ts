@@ -1,5 +1,5 @@
-import type { AgentPickerEntry, AgentPickerDraft } from './agent-launch-picker'
-import type { AgentDedicatedChoices } from './agent-launch-choices'
+import type { AgentPickerEntry, AgentPickerDraft } from './agent-launch/picker/agent-launch-picker'
+import type { AgentDedicatedChoices } from './agent-launch/choices/agent-launch-choices'
 
 export const TEXT_ACTION_DEFAULT_MODEL = '__text_action_default__'
 export type TextActionPickerCatalog = {

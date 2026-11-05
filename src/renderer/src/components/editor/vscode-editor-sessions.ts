@@ -8,7 +8,10 @@ import { basename, getRelativePathInsideRoot } from '@/lib/path'
 import { detectLanguage } from '@/lib/language-detect'
 import { useVSCodeEditorPanes } from './vscode-editor-panes'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
-import { ORCA_EDITOR_FILE_SAVED_EVENT, type EditorFileSavedDetail } from './editor-autosave'
+import {
+  ORCA_EDITOR_FILE_SAVED_EVENT,
+  type EditorFileSavedDetail
+} from './autosave/editor-autosave'
 
 export const vscodeEditorSessions = new Map<string, { id: string }>()
 export const vscodeEditorContexts = new Map<

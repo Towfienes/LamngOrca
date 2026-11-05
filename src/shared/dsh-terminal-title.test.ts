@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { detectAgentStatusFromTitle, normalizeTerminalTitle } from './agent-title-status'
-import { isDshTerminalTitle, isGeminiTerminalTitle } from './agent-title-core'
-import { getAgentLabel, resolveExplicitTerminalTitleAgentType } from './terminal-title-agent-type'
-import { getDshTerminalSessionTitle } from './dsh-terminal-title'
+import {
+  detectAgentStatusFromTitle,
+  normalizeTerminalTitle
+} from './agent-status/title/agent-title-status'
+import { isGeminiTerminalTitle } from './agent-status/title/agent-title-core'
+import {
+  getAgentLabel,
+  resolveExplicitTerminalTitleAgentType
+} from './agent-status/title/terminal-title-agent-type'
+import {
+  isDshTerminalTitle,
+  getDshTerminalSessionTitle
+} from './agent-status/title/providers/dsh-terminal-title'
 
 // DSH’s idle ✦ and working braille collide with Gemini/Claude; whale identity must win. Capture: src/main/runtime/__fixtures__/dsh-tui-ready-no-key.txt.
 const RESTING = '✦ \u{1F40B} dsh-demo-repo'

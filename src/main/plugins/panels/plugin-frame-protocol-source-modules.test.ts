@@ -26,7 +26,7 @@ async function fixture(options: { installed: boolean }): Promise<ValidDiscovered
   await mkdir(join(rootDir, 'src'), { recursive: true })
   await writeFile(
     join(rootDir, 'src', 'panel.tsx'),
-    "import { Text } from 'orca'\nimport { label } from './label'\nexport default () => <Text>{label}</Text>\n"
+    "import { Text } from 'orca'\nimport { label } from '../../../renderer/src/components/ui/label'\nexport default () => <Text>{label}</Text>\n"
   )
   await writeFile(join(rootDir, 'src', 'label.ts'), "export const label: string = 'hi'\n")
   await writeFile(join(rootDir, 'src', 'page.ts'), "document.body.append('page')\n")

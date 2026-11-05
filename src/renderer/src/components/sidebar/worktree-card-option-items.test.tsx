@@ -6,7 +6,7 @@ import {
   WorktreeCardDisplayMenuItem,
   WorktreeCardLayoutMenuItem,
   WorktreeCardPropertiesMenuItem
-} from './worktree-card-option-items'
+} from './workspace-card/surface/worktree-card-option-items'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

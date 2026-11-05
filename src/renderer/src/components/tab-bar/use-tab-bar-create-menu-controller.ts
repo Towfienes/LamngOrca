@@ -1,7 +1,7 @@
 import type { TabBarCreateMenuController } from './tab-bar-create-menu-contract'
 export type { TabBarCreateMenuController } from './tab-bar-create-menu-contract'
 import { useAgentLaunchPickerInventorySource } from '../agent/use-agent-launch-picker-inventory'
-import type { AgentPickerEntry } from '../../../../shared/agent-launch-picker'
+import type { AgentPickerEntry } from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import type { WindowsTerminalCapabilities } from '@/lib/windows-terminal-capabilities'
@@ -227,9 +227,11 @@ export function useTabBarCreateMenuController({
   })
   const launchAgentFromNewTabEntry = (option: TabAgentLaunchOption) => {
     if (option.row) {
-      return (option.setup
-        ? launchAgentRow(option.row, option.setup, option.pickerEntry)
-        : launchAgentRow(option.row)) ?? false
+      return (
+        (option.setup
+          ? launchAgentRow(option.row, option.setup, option.pickerEntry)
+          : launchAgentRow(option.row)) ?? false
+      )
     }
     return false
   }

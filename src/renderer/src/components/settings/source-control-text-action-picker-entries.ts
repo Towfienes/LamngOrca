@@ -1,6 +1,6 @@
 import { translate } from '@/i18n/i18n'
-import type { AgentPickerEntry } from '../../../../shared/agent-launch-picker'
-import { getCommitMessageAgentSpec } from '../../../../shared/commit-message-agent-spec'
+import type { AgentPickerEntry } from '../../../../shared/agent-launch/picker/agent-launch-picker'
+import { getCommitMessageAgentSpec } from '../../../../shared/source-control/ai/generation/commit-message-agent-spec'
 import { removeSourceControlAiArgumentFlag } from '../../../../shared/source-control-ai-argument-flags'
 
 /** Per-render facts for a text entry: its default row label and what the card's Arguments own. */

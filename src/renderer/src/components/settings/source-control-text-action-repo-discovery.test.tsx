@@ -8,8 +8,8 @@ import { getDefaultSettings } from '../../../../shared/constants'
 import {
   getDefaultSourceControlAiSettings,
   normalizeSourceControlAiSettings
-} from '../../../../shared/source-control-ai'
-import type { SourceControlAiSettingsPatch } from '../../../../shared/source-control-ai-types'
+} from '../../../../shared/source-control/ai/source-control-ai-operation-resolution'
+import type { SourceControlAiSettingsPatch } from '../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import type { Repo } from '../../../../shared/repo-types'
 import { TooltipProvider } from '../ui/tooltip'
 import { SourceControlTextActionAgentPicker } from './SourceControlTextActionAgentPicker'

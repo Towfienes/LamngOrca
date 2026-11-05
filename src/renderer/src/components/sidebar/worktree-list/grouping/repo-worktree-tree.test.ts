@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { worktree } from '../../worktree-list-groups-test-fixtures'
+import { worktree } from './worktree-list-groups-test-fixtures'
 import { withRepoWorktreeTree } from './repo-worktree-tree'
 import type { Row, WorktreeRow } from '../../../../../../shared/sidebar-list/row-types'
 

@@ -1,7 +1,7 @@
 import type { Tab, TabContentType, TabGroupLayoutNode } from '../../../shared/tab-types'
-import type { TerminalAgent } from '../../../shared/terminal-agent'
-import { makePaneKey } from '../../../shared/stable-pane-id'
-import type { TerminalPaneLayoutNode } from '../../../shared/terminal-tab-types'
+import type { TerminalAgent } from '../../../shared/agent-status/identity/terminal-agent'
+import { makePaneKey } from '../../../shared/workspace-layout/stable-pane-id'
+import type { TerminalPaneLayoutNode } from '../../../shared/workspace-layout/terminal-tab-types'
 import { resolveUnifiedTabLabel } from '../../../shared/tab-title-resolution'
 import type { AppState } from '@/store/types'
 import {

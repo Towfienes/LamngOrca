@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type {
-  AgentStatusEntry,
-  MigrationUnsupportedPtyEntry
-} from '../../../../shared/agent-status-types'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
+import type { MigrationUnsupportedPtyEntry } from '../../../../shared/agent-status/contracts/agent-status-ipc-payload'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import {
   getFocusedAgentPaneKeyForWorktree,
   type FocusedAgentRowHighlightState
-} from './focused-agent-row-highlight'
+} from './workspace-card/activity/focused-agent-row-highlight'
 
 const WORKTREE_ID = 'repo-1::/worktree'
 const OTHER_WORKTREE_ID = 'repo-1::/other'

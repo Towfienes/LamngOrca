@@ -7,7 +7,7 @@ import { getDefaultSettings } from '../../../../shared/constants'
 import {
   getDefaultSourceControlAiSettings,
   normalizeSourceControlAiSettings
-} from '../../../../shared/source-control-ai'
+} from '../../../../shared/source-control/ai/source-control-ai-operation-resolution'
 import { TooltipProvider } from '../ui/tooltip'
 import { SourceControlTextActionAgentPicker } from './SourceControlTextActionAgentPicker'
 

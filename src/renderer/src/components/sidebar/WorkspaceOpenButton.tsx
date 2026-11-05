@@ -12,7 +12,7 @@ import { OpenInApplicationIcon } from '@/lib/open-in-app-catalog'
 import { getExternalEditorOpenCapability } from '@/lib/external-editor-open-capability'
 import { selectWorkspaceChromeTarget } from '@/lib/workspace-chrome-target'
 import { translate } from '@/i18n/i18n'
-import { openWorktreePath } from './WorktreeOpenInMenu'
+import { openWorktreePath } from './workspace-actions/open/WorktreeOpenInMenu'
 
 export function WorkspaceOpenButton({
   application

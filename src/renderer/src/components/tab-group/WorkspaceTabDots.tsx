@@ -21,7 +21,7 @@ import {
   selectTabDotsHostGroupId,
   type WorkspaceTabDot
 } from '@/lib/workspace-tab-dots'
-import type { TerminalPaneLayoutNode } from '../../../../shared/terminal-tab-types'
+import type { TerminalPaneLayoutNode } from '../../../../shared/workspace-layout/terminal-tab-types'
 
 // Why: the memoized selector returns the same array until a dots input changes, so terminal output never re-renders the strip.
 function useWorkspaceTabDots(worktreeId: string): readonly WorkspaceTabDot[] {

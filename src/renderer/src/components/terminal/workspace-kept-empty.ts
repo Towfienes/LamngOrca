@@ -1,5 +1,5 @@
 import type { AppState } from '@/store/types'
-import { isTerminalWorkspaceEmptiedOnPurpose } from '../../../../shared/closed-terminal-tab-tombstones'
+import { isTerminalWorkspaceEmptiedOnPurpose } from '../../../../shared/workspace-layout/closed-terminal-tab-tombstones'
 
 /** Deck: an empty root group is the launch chooser's surface, so it stays empty like a recorded close. */
 export function isWorkspaceKeptEmpty(

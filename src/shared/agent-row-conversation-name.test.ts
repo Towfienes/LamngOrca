@@ -3,7 +3,7 @@ import {
   getAgentRowConversationName,
   isUsableAgentSessionName,
   type ConversationNameTab
-} from './agent-row-conversation-name'
+} from './agent-status/presentation/agent-row-conversation-name'
 
 type TestTab = ConversationNameTab & { generatedTitle?: string | null }
 

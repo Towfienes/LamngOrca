@@ -9,8 +9,8 @@ vi.mock('electron', () => ({
   webContents: { fromId: vi.fn() }
 }))
 
-import { setupGuestMouseWheelZoomForwarding } from './browser-guest-wheel-zoom'
-import { setupGuestShortcutForwarding } from './browser-guest-shortcut-forwarding'
+import { setupGuestMouseWheelZoomForwarding } from './guest-lifecycle/input/browser-guest-wheel-zoom'
+import { setupGuestShortcutForwarding } from './guest-lifecycle/input/browser-guest-shortcut-forwarding'
 
 const zoomTo = (direction: 'in' | 'out' | 'reset') => ({ browserPageId: 'tab-1', direction })
 

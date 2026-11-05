@@ -8,7 +8,7 @@ import { useAppStore } from '@/store'
 import { claudeResumeAccountEnv } from '@/lib/claude-resume-account-env'
 import { CLIENT_PLATFORM } from '@/lib/new-workspace'
 import { createBrowserUuid } from '@/lib/browser-uuid'
-import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
+import { buildAgentResumeStartupPlan } from '../../../../../shared/agent-launch/startup/tui-agent-resume-startup'
 import {
   resolveRuntimeHostReportedPlatform,
   resolveRuntimeHostTerminalWindowsShell,
@@ -19,7 +19,7 @@ import {
   agentResumeOriginNamesAnotherExecutionHost,
   sleepingRecordNamesAnotherExecutionHost
 } from '@/lib/sleeping-record-execution-host-scope'
-import { resolveResumeLaunchRecipe } from '../../../../../shared/tui-agent-launch-defaults'
+import { resolveResumeLaunchRecipe } from '../../../../../shared/agent-launch/choices/tui-agent-launch-defaults'
 import {
   agentProviderSessionsEqual,
   isResumableTuiAgent,

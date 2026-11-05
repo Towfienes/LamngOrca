@@ -1,6 +1,6 @@
 import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
-import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
+import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-status/title/agent-title-decoration'
 import { collectLeafIdsInOrder } from '../terminal-pane/terminal-layout-leaf-ids'
 
 /** Deck names a multi-pane tab as a workspace; one agent's title would mislabel its siblings. */

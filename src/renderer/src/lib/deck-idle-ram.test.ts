@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '../../../shared/agent-status/contracts/agent-status-types'
 import type { MemorySnapshot, SessionMemory } from '../../../shared/process-stats-types'
 import { formatDeckIdleBytes, formatDeckIdleDuration, summarizeDeckIdleRam } from './deck-idle-ram'
 

@@ -1,13 +1,13 @@
 import { useAppStore } from '@/store'
-import { buildAgentStartupPlan } from '@/lib/tui-agent-startup'
+import { buildAgentStartupPlan } from '../../../../shared/agent-launch/startup/tui-agent-startup'
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
 import {
   resolveTuiAgentLaunchArgs,
   resolveTuiAgentLaunchEnv
-} from '../../../../shared/tui-agent-launch-defaults'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+} from '../../../../shared/agent-launch/choices/tui-agent-launch-defaults'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import {
   launchDeckAgentInPane,
   resolveDeckAgentSplitTarget,

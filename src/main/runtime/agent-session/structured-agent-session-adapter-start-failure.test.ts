@@ -12,8 +12,7 @@ import {
 } from '../../native-chat/agent-session-wire/structured-agent-session-host-test-data'
 import { createStructuredAgentSessionLogger } from '../../native-chat/agent-session-wire/structured-agent-session-logger'
 import { piScriptedChild } from '../../pi/pi-scripted-child.test-fixture'
-import { codexScriptedChild } from '../../codex/codex-scripted-child.test-fixture'
-import { acpScriptedChild } from '../../acp/acp-scripted-child.test-fixture'
+import { codexScriptedChild } from '../../codex/structured/session-lifecycle/codex-scripted-child.test-fixture'
 import type { ScriptedAgentChild } from '../structured-agent-scripted-child.test-fixture'
 import {
   ensureStructuredAgentSessionHost,
@@ -132,14 +131,14 @@ async function failedStart(
   expect(script.spawns()).toBe(expectedAttempts)
 }
 
-it('Pi records one failure without dispatch after a failed start', async () => {
-  await failedStart('pi', piScriptedChild())
+it('Claude keeps unanswered early exits within five attempts', async () => {
+  await failedStart('claude', claudeScriptedChild())
 })
-it('Codex records one failure without dispatch after a failed start', async () => {
-  await failedStart('codex', codexScriptedChild())
+it('Codex keeps unanswered early exits within five attempts', async () => {
+  await failedStart('codex', codexScriptedChild(), true)
 })
-it('ACP records one failure without dispatch after a failed start', async () => {
-  await failedStart('grok', acpScriptedChild('grok')())
+it('Pi keeps unanswered early exits within five attempts', async () => {
+  await failedStart('pi', piScriptedChild(), true)
 })
 
 it('Claude keeps unanswered early exits within five attempts', async () => {

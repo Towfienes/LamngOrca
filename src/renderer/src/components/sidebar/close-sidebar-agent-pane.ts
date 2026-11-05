@@ -3,8 +3,8 @@ import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-ow
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { captureRuntimeEnvironmentRequestRevision } from '@/runtime/runtime-environment-revision'
-import { toHostSessionTabId } from '../../../../shared/terminal-surface-id'
-import { makePaneKey, parsePaneKey } from '../../../../shared/stable-pane-id'
+import { toHostSessionTabId } from '../../../../shared/workspace-layout/terminal-surface-id'
+import { makePaneKey, parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type {
   RuntimeTerminalClose,
   RuntimeTerminalResolvePane

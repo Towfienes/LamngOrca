@@ -1,4 +1,4 @@
-import { isDecorativeAgentTitleFrameChange } from '../../../../shared/agent-decorative-title-signature'
+import { isDecorativeAgentTitleFrameChange } from '../../../../shared/agent-status/title/agent-decorative-title-signature'
 import { scheduleRuntimeGraphSync } from '@/runtime/sync-runtime-graph'
 import { classifyTitleActivity } from '@/lib/pane-agent-evidence'
 import {
@@ -10,7 +10,7 @@ import {
   getTerminalTabOwnerWorktreeId
 } from '../slices/terminal-tab-owner-index'
 import { getTabIdFromPaneKey } from './terminal-pty-identities'
-import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault-session-title'
+import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault/contracts/ai-vault-session-title'
 import type { TerminalSlice, TerminalStoreGet, TerminalStoreSet } from './terminal-state'
 
 export function createTerminalTabPresentationActions(

@@ -1,7 +1,7 @@
 import { useAppStore } from '@/store'
-import { resolveTuiAgentLaunchArgs } from '../../../../shared/tui-agent-launch-defaults'
-import type { AiVaultSession } from '../../../../shared/ai-vault-types'
-import { resolveAiVaultTargetWorkspacePath } from '../right-sidebar/ai-vault-session-launch-target'
+import { resolveTuiAgentLaunchArgs } from '../../../../shared/agent-launch/choices/tui-agent-launch-defaults'
+import type { AiVaultSession } from '../../../../shared/ai-vault/contracts/ai-vault-types'
+import { resolveAiVaultTargetWorkspacePath } from '../right-sidebar/ai-vault/session-actions/ai-vault-session-launch-target'
 import { launchDeckAccountAgent } from './deck-account-agent-launch'
 import type { DeckAgentSplitTarget } from './deck-agent-split'
 

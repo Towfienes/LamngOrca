@@ -1,8 +1,8 @@
 import { useAppStore } from '@/store'
-import { getAgentRowConversationName } from '../../../../shared/agent-row-conversation-name'
-import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault-session-title'
-import type { AgentType } from '../../../../shared/agent-status-types'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
+import { getAgentRowConversationName } from '../../../../shared/agent-status/presentation/agent-row-conversation-name'
+import { aiVaultSessionTitleKey } from '../../../../shared/ai-vault/contracts/ai-vault-session-title'
+import type { AgentType } from '../../../../shared/agent-status/contracts/agent-status-types'
+import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { resolveAgentRowPaneLiveTitle } from '@/components/dashboard/agent-row-pane-live-title'
 
 /**

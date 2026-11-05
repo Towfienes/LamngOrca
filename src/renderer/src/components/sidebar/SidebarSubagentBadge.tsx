@@ -3,10 +3,10 @@ import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { AgentStateDot, agentStateLabel } from '../AgentStateDot'
 import type { DashboardAgentRow } from '../dashboard/useDashboardData'
-import { getAgentDotState } from './worktree-card-agent-summary'
-import { buildSubagentChildRows } from './worktree-subagent-child-rows'
-import { isExplicitAgentStatusFresh } from '@/lib/agent-status'
-import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status-types'
+import { agentRowDisplayDotState as getAgentDotState } from '../../lib/agent-row-dot-state'
+import { buildSubagentChildRows } from './workspace-card/activity/worktree-subagent-child-rows'
+import { isExplicitAgentStatusFresh } from '../../lib/pane-agent-evidence'
+import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status/contracts/agent-status-freshness'
 
 export function SidebarSubagentBadge({
   parent,

@@ -7,9 +7,9 @@ import type {
   TerminalLayoutSnapshot,
   TerminalPaneLayoutNode,
   TerminalTab
-} from '../../../../shared/terminal-tab-types'
+} from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { AppState } from '@/store/types'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
+import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 
 function containsLeaf(root: TerminalPaneLayoutNode | null | undefined, leafId: string): boolean {
   return Boolean(

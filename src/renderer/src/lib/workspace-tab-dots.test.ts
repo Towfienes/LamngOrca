@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '../../../shared/agent-status/contracts/agent-status-types'
 import type { Tab, TabGroup, TabGroupLayoutNode } from '../../../shared/tab-types'
 import {
   NO_WORKSPACE_TAB_DOTS,

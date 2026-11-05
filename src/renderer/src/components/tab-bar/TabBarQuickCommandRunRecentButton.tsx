@@ -6,7 +6,7 @@ import type { HostedTerminalQuickCommand } from '@/hooks/use-terminal-quick-comm
 import {
   getTerminalQuickCommandBody,
   isTerminalAgentQuickCommand
-} from '../../../../shared/terminal-quick-commands'
+} from '../../../../shared/terminal/quick-commands/terminal-quick-commands'
 
 /** Left half of the quick-command split button: reruns the most recent command. */
 export function TabBarQuickCommandRunRecentButton({

@@ -1,7 +1,7 @@
 import type { Tab } from './tab-types'
-import type { TerminalTab } from './terminal-tab-types'
-import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
-import { getDshTerminalSessionTitle } from './dsh-terminal-title'
+import type { TerminalTab } from './workspace-layout/terminal-tab-types'
+import { isMeaningfulOpenCodeTerminalTitle } from './agent-status/title/providers/opencode-terminal-title'
+import { getDshTerminalSessionTitle } from './agent-status/title/providers/dsh-terminal-title'
 
 export function resolveTerminalTabTitle(
   tab: Pick<TerminalTab, 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title'> & {

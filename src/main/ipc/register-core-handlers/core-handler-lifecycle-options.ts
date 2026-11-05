@@ -1,7 +1,7 @@
 import type {
   AiVaultPrepareSessionResumeArgs,
   AiVaultPrepareSessionResumeResult
-} from '../../../shared/ai-vault-resume-preparation'
+} from '../../../shared/ai-vault/resume/ai-vault-resume-preparation'
 
 export type CoreHandlerLifecycleOptions = {
   onBeforeRelaunch?: () => void | Promise<void>

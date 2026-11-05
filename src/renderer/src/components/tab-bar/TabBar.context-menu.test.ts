@@ -114,7 +114,7 @@ vi.mock('../../store', () => ({
   useAppStore: useAppStoreExport
 }))
 
-vi.mock('../right-sidebar/status-display', () => ({
+vi.mock('../../lib/git-path-decoration', () => ({
   buildStatusMap: () => new Map()
 }))
 
@@ -304,7 +304,13 @@ const TERMINAL_TAB = {
   createdAt: 0
 }
 
-const EDITOR_FILE = { id: 'file-1', tabId: 'unified-editor-1', worktreeId: 'wt-1', relativePath: 'foo.ts', isDirty: false }
+const EDITOR_FILE = {
+  id: 'file-1',
+  tabId: 'unified-editor-1',
+  worktreeId: 'wt-1',
+  relativePath: 'foo.ts',
+  isDirty: false
+}
 
 describe('TabBar context menu wiring', () => {
   beforeEach(() => {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeAgentStatusPayload } from './agent-status-types'
+import { normalizeAgentStatusPayload } from './agent-status/contracts/agent-status-types'
 import {
   getAgentRowFallbackName,
   getAgentRowPrimaryText,
   getAgentSessionTooltip
-} from './agent-row-primary-text'
+} from './agent-status/presentation/agent-row-primary-text'
 
 describe('getAgentRowPrimaryText', () => {
   it('ignores sticky orchestration labels that belong to a different task id', () => {

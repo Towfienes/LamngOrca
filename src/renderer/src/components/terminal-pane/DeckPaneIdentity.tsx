@@ -2,7 +2,8 @@ import { usePaneAccountIdentity } from './use-pane-account-identity'
 import { usePaneSessionTitle } from './use-pane-session-title'
 import { SquareTerminal } from 'lucide-react'
 import { AgentIcon } from '@/lib/agent-catalog'
-import { agentTypeToIconAgent, formatAgentTypeLabel } from '@/lib/agent-status'
+import { agentTypeToIconAgent } from '../../../../shared/agent-status/presentation/agent-type-icon-agent'
+import { formatAgentTypeLabel } from '../../../../shared/agent-status/presentation/agent-type-label'
 import { translate } from '@/i18n/i18n'
 
 export function DeckPaneIdentity({

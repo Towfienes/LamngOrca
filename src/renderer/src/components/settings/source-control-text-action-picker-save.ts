@@ -2,7 +2,7 @@ import {
   agentPickerEffectiveChoices,
   type AgentPickerEntry,
   type AgentPickerDraft
-} from '../../../../shared/agent-launch-picker'
+} from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import { saveSourceControlAiActionModelChoice } from '../../../../shared/source-control-ai-action-model-choice'
 import {
   addSourceControlAiModelEdit,
@@ -15,7 +15,7 @@ import type {
   SourceControlAiSettings,
   SourceControlAiModelChoice,
   RepoSourceControlAiOverrides
-} from '../../../../shared/source-control-ai-types'
+} from '../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { Repo } from '../../../../shared/repo-types'
 

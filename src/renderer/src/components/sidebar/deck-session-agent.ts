@@ -1,5 +1,8 @@
-import { AI_VAULT_AGENTS, type AiVaultSession } from '../../../../shared/ai-vault-types'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import {
+  AI_VAULT_AGENTS,
+  type AiVaultSession
+} from '../../../../shared/ai-vault/contracts/ai-vault-types'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 
 export function getDeckSessionAgents(agent: TuiAgent) {
   const historyAgent = agent === 'claude-agent-teams' ? 'claude' : agent
