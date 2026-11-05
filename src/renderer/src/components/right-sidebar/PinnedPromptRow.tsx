@@ -38,7 +38,7 @@ export function PinnedPromptRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          className="group flex min-w-0 items-center gap-1 rounded-md px-1 hover:bg-sidebar-accent"
+          className="group/prompt flex min-w-0 items-center gap-1 rounded-md px-1 hover:bg-sidebar-accent"
           data-pinned-prompt={pin.filePath}
           draggable={!disabled}
           onDragStart={(event) => {
@@ -62,23 +62,21 @@ export function PinnedPromptRow({
         >
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 text-left outline-none focus-visible:ring-1 focus-visible:ring-ring"
             onClick={onOpen}
             aria-label={`Open ${name}`}
+            title={pin.relativePath}
           >
             <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-            <span className="min-w-0">
-              <span className="block truncate text-[13px]">{name.replace(/\.(md|txt)$/i, '')}</span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {pin.relativePath}
-              </span>
-            </span>
+            <span className="truncate text-xs">{name.replace(/\.(md|txt)$/i, '')}</span>
           </button>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon-xs"
+                className="pinned-prompt-action"
+                data-busy={busy || undefined}
                 aria-label={`Copy ${name}`}
                 disabled={busy}
                 onClick={onCopy}
@@ -93,6 +91,7 @@ export function PinnedPromptRow({
               <Button
                 variant="ghost"
                 size="icon-xs"
+                className="pinned-prompt-action"
                 aria-label={`Unpin ${name}`}
                 disabled={disabled}
                 onClick={onRemove}

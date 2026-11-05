@@ -5,12 +5,14 @@ test.use({
   orcaAppExtraArgs: [
     ...(process.platform === 'linux' ? ['--ozone-platform=headless'] : []),
     '--disable-background-timer-throttling',
-    '--disable-renderer-backgrounding'
+    '--disable-renderer-backgrounding',
+    '--disable-backgrounding-occluded-windows'
   ]
 })
 
 test('Deck header keeps the signature readable and its compact controls actionable', async ({
-  orcaPage: page
+  orcaPage: page,
+  electronApp
 }, testInfo) => {
   await page.setViewportSize({ width: 1400, height: 900 })
   await waitForSessionReady(page)
@@ -32,6 +34,7 @@ test('Deck header keeps the signature readable and its compact controls actionab
   await ensureTerminalVisible(page)
   const signature = page.getByRole('img', { name: 'Lamng', exact: true })
   await expect(signature).toBeVisible()
+  await expect(page.getByRole('img', { name: 'LamngOrca', exact: true })).toHaveCount(0)
   await expect(page.locator('.deck-workspace-breadcrumb')).toHaveCount(0)
   const command = page.getByRole('button', { name: 'Add quick command', exact: true })
   await expect(command).toHaveText('')
@@ -52,6 +55,38 @@ test('Deck header keeps the signature readable and its compact controls actionab
   ).toBeVisible()
   await expect(page.locator('.deck-workspace-strip-caption').first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Application menu', exact: true })).toHaveCount(1)
+  // Observe the IPC without opening a native menu on the user's display.
+  const menuSpy = await electronApp.evaluateHandle(({ ipcMain }) => {
+    const handlers = ipcMain
+      .listeners('menu:popup')
+      .filter((handler): handler is (...args: unknown[]) => void => typeof handler === 'function')
+    if (handlers.length === 0) {
+      throw new Error('The application menu must have its native handler')
+    }
+    let requests = 0
+    const observe = (): void => {
+      requests += 1
+    }
+    ipcMain.removeAllListeners('menu:popup')
+    ipcMain.on('menu:popup', observe)
+    return {
+      requests: () => requests,
+      restore: () => {
+        ipcMain.removeListener('menu:popup', observe)
+        for (const handler of handlers) {
+          ipcMain.on('menu:popup', handler)
+        }
+      }
+    }
+  })
+  try {
+    const menu = page.getByRole('button', { name: 'Application menu', exact: true })
+    await menu.click()
+    await expect.poll(() => menuSpy.evaluate((spy) => spy.requests())).toBe(1)
+  } finally {
+    await menuSpy.evaluate((spy) => spy.restore())
+    await menuSpy.dispose()
+  }
   await expect(page.getByRole('button', { name: 'Go back', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Go forward', exact: true })).toHaveCount(0)
   const caption = page.locator('.deck-workspace-strip-caption:visible').first()
@@ -70,6 +105,7 @@ test('Deck header keeps the signature readable and its compact controls actionab
     'New worktree',
     'Add folder',
     'New blank terminal',
+    'New OpenCode session',
     'New Claude session',
     'New Codex session',
     'New Antigravity session',
@@ -235,6 +271,9 @@ test('Deck header keeps the signature readable and its compact controls actionab
     const rect = (await newAgent.boundingBox())!
     expect(rect.x).toBeGreaterThanOrEqual(0)
     expect(rect.x + rect.width).toBeLessThanOrEqual(width)
+    const signatureBounds = (await signature.boundingBox())!
+    expect(signatureBounds.x).toBeGreaterThanOrEqual(0)
+    expect(signatureBounds.x + signatureBounds.width).toBeLessThanOrEqual(width)
     await page.screenshot({ path: testInfo.outputPath(`toolbar-${width}.png`) })
   }
 })

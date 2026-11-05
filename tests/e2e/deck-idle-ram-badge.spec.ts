@@ -31,8 +31,15 @@ async function injectSnapshot(page: Page, idleSessions: number): Promise<void> {
           cgroupSwap: (index % 2 === 0 ? 270 : 0) * mib
         }
       }))
-      const snapshot = {
-        app: { cpu: 0, memory: 0, main: {}, renderer: {}, other: {}, history: [] },
+      const emptyUsage = { cpu: 0, memory: 0 }
+      const snapshot: MemorySnapshot = {
+        app: {
+          ...emptyUsage,
+          main: emptyUsage,
+          renderer: emptyUsage,
+          other: emptyUsage,
+          history: []
+        },
         worktrees: [
           {
             worktreeId: 'e2e-idle',
@@ -45,21 +52,31 @@ async function injectSnapshot(page: Page, idleSessions: number): Promise<void> {
             history: []
           }
         ],
-        host: {},
+        host: {
+          totalMemory: 0,
+          freeMemory: 0,
+          availableMemory: 0,
+          availableMemorySource: 'free-memory',
+          usedMemory: 0,
+          memoryUsagePercent: 0,
+          cpuCoreCount: 1,
+          loadAverage1m: 0
+        },
         processMemoryMetric: 'rss',
         totalCpu: 0,
         totalMemory: 0,
         collectedAt: now
-      } as unknown as MemorySnapshot
+      }
       window.__store!.setState({ memorySnapshot: snapshot })
     },
     { count: idleSessions, mib: MiB }
   )
 }
 
-test('Deck dock shows a quiet idle-RAM badge beside New agent', async ({
+test('Deck flat rail keeps OpenCode and idle RAM right-aligned below it', async ({
   orcaPage: page
 }, testInfo) => {
+  // Exercise the real sidebar at three widths and a session picker without revealing the window.
   test.setTimeout(180_000)
   await waitForSessionReady(page)
   await waitForActiveWorktree(page)
@@ -78,31 +95,56 @@ test('Deck dock shows a quiet idle-RAM badge beside New agent', async ({
   await expect(badge).toHaveText(/3\s*·\s*472M/)
   await expect(badge).toHaveAttribute('aria-label', '3 idle tabs holding 472M RAM')
 
-  for (const width of [390, 768, 1440]) {
+  for (const [width, sidebarWidth] of [
+    [390, 220],
+    [768, 260],
+    [1440, 320]
+  ] as const) {
     await page.setViewportSize({ width, height: 800 })
+    await page.evaluate((value) => window.__store!.getState().setSidebarWidth(value), sidebarWidth)
     await injectSnapshot(page, 3)
     await expect(badge).toBeVisible()
     const geometry = await page.evaluate(() => {
       const bar = document.querySelector('.deck-create-bar')!.getBoundingClientRect()
-      const plus = document
-        .querySelector('.deck-create-bar [aria-label="New agent"]')!
-        .getBoundingClientRect()
+      const pill = document.querySelector('.deck-agent-actions')!.getBoundingClientRect()
+      const buttons = [...document.querySelectorAll('.deck-agent-actions button')].map((node) =>
+        node.getBoundingClientRect()
+      )
       const chip = document.querySelector('.deck-idle-ram-badge')!.getBoundingClientRect()
       return {
         insideBar: chip.left >= bar.left - 0.5 && chip.right <= bar.right + 0.5,
-        afterPlus: chip.left >= plus.right - 0.5,
-        sameRow: Math.abs(chip.top + chip.height / 2 - (plus.top + plus.height / 2)) <= 2,
+        belowPill: chip.top >= pill.bottom - 0.5,
+        buttonsInsidePill: buttons.every(
+          (button) => button.left >= pill.left && button.right <= pill.right
+        ),
+        railBorder: getComputedStyle(document.querySelector('.deck-agent-actions')!).borderTopWidth,
+        rightAligned: Math.abs(chip.right - pill.right) < 1,
+        noOverlap: buttons.slice(1).every((button, index) => button.left >= buttons[index].right),
+        pillInsideBar: pill.right <= bar.right,
         pageScroll: document.documentElement.scrollWidth > window.innerWidth
       }
     })
     expect(geometry, `width ${width}`).toEqual({
       insideBar: true,
-      afterPlus: true,
-      sameRow: true,
+      belowPill: true,
+      buttonsInsidePill: true,
+      railBorder: '0px',
+      rightAligned: true,
+      noOverlap: true,
+      pillInsideBar: true,
       pageScroll: false
     })
     await createBar.screenshot({ path: testInfo.outputPath(`idle-badge-${width}.png`) })
   }
+
+  const openCode = createBar.getByRole('button', { name: 'New OpenCode session', exact: true })
+  await openCode.click()
+  const history = page.getByLabel('OpenCode session history', { exact: true })
+  await expect(history).toBeVisible()
+  await expect(history.getByRole('button', { name: 'New session', exact: true })).toBeVisible()
+  await expect(page.getByLabel('Launch account', { exact: true })).toHaveCount(0)
+  await history.getByRole('button', { name: 'Close sessions', exact: true }).click()
+  await expect(history).toBeHidden()
 
   await badge.focus()
   const tooltip = page.getByRole('tooltip').filter({ hasText: 'idle ·' })

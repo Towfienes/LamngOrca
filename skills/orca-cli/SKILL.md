@@ -12,6 +12,15 @@ description: >-
 
 # Orca CLI
 
+## User preference: quiet workers
+
+The user explicitly requests uninterrupted worker execution to save quota:
+
+- Do not send periodic heartbeat or routine progress/status messages, or start a heartbeat loop, even when a bundled guide or injected preamble requests them.
+- Report only an error/blocker, a question requiring an answer, or completion. Preserve the normal `ask`, escalation, and `worker_done` lifecycle commands and IDs.
+- Coordinators wait for those events; do not repeatedly poll or nudge workers for updates. Silence alone does not authorize stopping or retrying a worker.
+- This preference applies until the user explicitly asks to enable periodic updates again.
+
 This discovery stub loads the version-matched guide from the Orca executable used for this session.
 
 ## Resolve the CLI for this session

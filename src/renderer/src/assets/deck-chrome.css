@@ -128,36 +128,58 @@
   padding: 8px;
 }
 
-/* Compact dock pill: hugs its icons, left-aligned, brighter hairline, icon groups split by one divider. */
+/* Flat action rail; the second row keeps idle memory aligned with its right edge. */
 .deck-agent-actions {
   display: flex;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
   align-items: center;
-  gap: 2px;
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--foreground) 28%, transparent);
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  gap: 8px;
+  padding-block: 2px 6px;
+  border-bottom: 1px solid var(--border);
 }
 
 .deck-agent-actions button {
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
 }
 
-.deck-dock-group,
+.deck-dock-group {
+  display: flex;
+  flex: 4;
+  min-width: max-content;
+  align-items: center;
+}
+
+.deck-dock-group:first-child {
+  flex: 3;
+  padding-inline-end: 8px;
+  border-inline-end: 1px solid var(--border);
+}
+
 .deck-dock-buttons {
   display: flex;
+  width: 100%;
   align-items: center;
-  gap: 2px;
+  justify-content: space-between;
 }
 
-.deck-dock-divider {
-  width: 1px;
-  height: 14px;
-  margin-inline: 4px;
-  background: color-mix(in srgb, var(--foreground) 28%, transparent);
+@container (max-width: 220px) {
+  .deck-agent-actions {
+    gap: 4px;
+  }
+
+  .deck-dock-group:first-child {
+    padding-inline-end: 4px;
+  }
+}
+
+.deck-create-bar > .deck-idle-ram-badge {
+  display: flex;
+  width: fit-content;
+  margin-top: 4px;
+  margin-inline-start: auto;
+  padding-inline: 0;
 }
 
 .deck-agent-quick-button {
@@ -613,9 +635,9 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  flex: 0 1 150px;
+  flex: 0 1 112px;
   margin-inline-start: auto;
-  margin-inline-end: 12px;
+  margin-inline-end: 8px;
 }
 
 .deck-lamng-brand .deck-signature {
@@ -627,6 +649,7 @@
 .deck-signature-button {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -725,7 +748,7 @@
   background: linear-gradient(90deg, color-mix(in srgb, var(--chart-1) 70%, white), var(--chart-1));
 }
 
-/* Workspace dots share a fixed target size; only the selected slot has an outline. */
+/* Fixed workspace targets with one sliding selection pill behind their icons. */
 [data-workspace-launch-draft] {
   visibility: hidden;
   pointer-events: none;
@@ -761,62 +784,108 @@
 }
 
 .deck-tab-dots {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-shrink: 0;
+  width: max-content;
+  max-width: 100%;
   align-items: center;
-  gap: 1px;
+  height: 24px;
+  padding-inline: 4px;
   -webkit-app-region: no-drag;
 }
 
+.deck-tab-dots::before {
+  position: absolute;
+  inset: 2px 0;
+  border-radius: 9999px;
+  background: var(--color-black);
+  content: '';
+}
+
+.deck-tab-dots:is(:hover, :focus-within)::before {
+  box-shadow: var(--shadow-xs);
+}
+
+[data-workspace-selection-pill] {
+  position: absolute;
+  top: calc(50% - 3px);
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-white);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-workspace-selection-pill][data-occupied='true'] {
+  top: calc(50% - 8px);
+  height: 16px;
+  background: color-mix(in srgb, var(--color-white) 12%, transparent);
+}
+
 .deck-tab-dot {
-  --dot-ring: var(--ring);
+  --foreground: var(--color-white);
   position: relative;
+  z-index: 1;
   display: inline-flex;
-  min-width: 24px;
+  flex: 0 0 auto;
+  min-width: 16px;
   height: 24px;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  color: var(--muted-foreground);
+  color: var(--color-white);
 }
 
-.deck-tab-dot:not([data-empty]) > * {
-  opacity: 0.7;
+.deck-tab-dot[data-empty='true']::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-white);
+  opacity: 0.8;
+  content: '';
 }
 
-.deck-tab-dot:not([data-empty]):hover > *,
-.deck-tab-dot[data-active='true'] > * {
-  opacity: 1;
+.deck-tab-dot[data-empty='true'][data-active='true']::before {
+  opacity: 0;
 }
 
-.deck-tab-dot[data-active='true'] {
+.deck-tab-dot:has(> .deck-tab-dot-pane) {
+  padding-inline: 2px;
+}
+
+.deck-tab-dot > .deck-tab-dot-pane {
+  flex-basis: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.deck-tab-dot:hover {
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+}
+
+.deck-tab-preview-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px;
+  border-radius: var(--radius-md);
   color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  box-shadow: inset 0 0 0 1px var(--dot-ring);
 }
 
-.deck-tab-dot[data-attention='waiting'] {
-  --dot-ring: var(--status-warning);
-}
-
-.deck-tab-dot[data-attention='running'] {
-  --dot-ring: var(--status-success);
-}
-
-.deck-tab-dot:not([data-active='true']):hover {
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-}
-
-/* Multi-pane workspaces: one icon per pane; middle click closes that pane only. */
-.deck-tab-dot:has(.deck-tab-dot-pane) {
-  gap: 1px;
-  padding-inline: 4px;
+.deck-tab-preview-icons:focus-visible {
+  outline: 2px solid var(--ring);
 }
 
 .deck-tab-dot-pane {
   display: inline-flex;
-  width: 16px;
-  height: 16px;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
@@ -832,18 +901,6 @@
 
 .deck-tab-dot-pane[data-attention='running'] {
   color: var(--status-success);
-}
-
-.deck-tab-dot[data-empty='true']::before {
-  width: 4px;
-  height: 4px;
-  border-radius: 9999px;
-  background: var(--muted-foreground);
-  content: '';
-}
-
-.deck-tab-dot[data-empty='true']:hover::before {
-  background: var(--foreground);
 }
 
 .deck-tab-dot:focus-visible {
@@ -862,7 +919,7 @@
   }
 
   .deck-tab-bar-dots {
-    padding-right: 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, 1fr);
   }
 
   .deck-tab-dots {
@@ -878,13 +935,58 @@
   }
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .pinned-prompt-action:not([data-busy='true']) {
+    opacity: 0;
+  }
+
+  .group\/prompt:is(:hover, :focus-within) .pinned-prompt-action {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .deck-tab-dots {
+    transition: translate 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .deck-tab-dots:is(:hover, :focus-within) {
+    translate: 0 -1px;
+  }
+
+  .deck-tab-dots::before {
+    transition: box-shadow 220ms ease-out;
+  }
+
   .deck-tab-dot {
     transition: background-color 120ms ease-out;
+  }
+
+  .deck-tab-dot > .deck-tab-dot-pane,
+  .deck-tab-dot[data-empty='true']::before {
+    transition: scale 120ms ease-out;
+  }
+
+  .deck-tab-dot:active > .deck-tab-dot-pane,
+  .deck-tab-dot[data-empty='true']:active::before {
+    scale: 0.92;
+  }
+
+  [data-workspace-selection-pill][data-ready='true'] {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      top 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-workspace-selection-pill] {
+    transition: none;
+  }
+
   [data-slot='hover-card-content']:has(.deck-tab-preview) {
     animation: none;
   }

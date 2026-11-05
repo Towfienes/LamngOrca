@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type * as TabDotsModule from '@/lib/workspace-tab-dots'
@@ -59,6 +59,11 @@ vi.mock('@/store', () => {
     })
   }
 })
+vi.mock('@/components/ui/hover-card', () => ({
+  HoverCard: ({ children }: { children: ReactNode }) => <>{children}</>,
+  HoverCardTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  HoverCardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>
+}))
 const { WorkspaceTabDots } = await import('./WorkspaceTabDots')
 
 const dot = (overrides: Partial<WorkspaceTabDot>): WorkspaceTabDot => ({
@@ -99,6 +104,7 @@ afterEach(() => {
   act(() => mountedRoot?.unmount())
   mountedRoot = undefined
   host.remove()
+  vi.restoreAllMocks()
 })
 
 const newWorkspace = vi.fn()
@@ -206,13 +212,16 @@ it.each([
   expect(host.querySelectorAll('button.deck-tab-dot[data-empty]')).toHaveLength(total - occupied)
 })
 
-it('draws the agent icon inside an agent workspace and a content icon otherwise', () => {
+it('shows agent and tool icons directly in occupied slots', () => {
   setDots(dot({ agent: 'claude' }), dot({ id: 'b', active: false, contentType: 'browser' }))
   render('g1')
   const [agentDot, browserDot] = host.querySelectorAll('button.deck-tab-dot:not([data-empty])')
   expect(agentDot.querySelector('svg, img')).not.toBeNull()
-  expect(browserDot.querySelector('svg.lucide-globe, svg')).not.toBeNull()
-  expect(agentDot.innerHTML).not.toBe(browserDot.innerHTML)
+  expect(browserDot.querySelector('svg, img')).not.toBeNull()
+  const previews = host.querySelectorAll('[data-workspace-pane-preview]')
+  expect(previews).toHaveLength(2)
+  expect(previews[0].querySelector('svg, img')).not.toBeNull()
+  expect(previews[1].querySelector('svg.lucide-globe, svg')).not.toBeNull()
 })
 
 it('selects a draft dot and returns to an occupied workspace without creating a tab', () => {
@@ -242,7 +251,7 @@ it('closes a workspace with a middle click on its dot', () => {
   expect(closeTab).toHaveBeenCalledTimes(1)
 })
 
-it('draws one icon per pane and middle click closes only the pane under the pointer', () => {
+it('supports per-pane focus and middle-click close from occupied slots', () => {
   closeTab.mockClear()
   const closed: unknown[] = []
   const onClosePane = (event: Event): void => {
@@ -260,8 +269,11 @@ it('draws one icon per pane and middle click closes only the pane under the poin
     })
   )
   render('g1')
-  const panes = host.querySelectorAll<HTMLElement>('[data-dot-pane-leaf]')
+  expect(host.querySelectorAll('button.deck-tab-dot [data-dot-pane-leaf]')).toHaveLength(3)
+  const panes = host.querySelectorAll<HTMLElement>('button.deck-tab-dot [data-dot-pane-leaf]')
   expect([...panes].map((pane) => pane.dataset.dotPaneLeaf)).toEqual(['l1', 'l2', 'l3'])
+  act(() => panes[1].click())
+  expect(mocks.focusSurface).toHaveBeenCalledWith('term-a', 'l2')
   act(() => {
     panes[1].dispatchEvent(new MouseEvent('auxclick', { bubbles: true, button: 1 }))
   })
@@ -291,9 +303,9 @@ it('shows the VS Code brand for registered notebook views and removes it when th
       }
     })
   )
-  expect(host.querySelector('[data-vscode-workspace-icon] img')?.getAttribute('src')).toContain(
-    'code.visualstudio.com'
-  )
+  expect(
+    host.querySelector('button.deck-tab-dot [data-vscode-workspace-icon] img')?.getAttribute('src')
+  ).toContain('code.visualstudio.com')
   act(() => useVSCodeEditorPanes.getState().remove('pane'))
   expect(host.querySelector('[data-vscode-workspace-icon]')).toBeNull()
 })
@@ -329,4 +341,37 @@ it('keeps a tab in workspace 3 while workspace 2 is empty', () => {
   expect(buttons[1].getAttribute('data-empty')).toBe('true')
   expect(buttons[2].getAttribute('aria-current')).toBe('true')
   expect(buttons[2].getAttribute('data-empty')).toBeNull()
+})
+
+it('moves one decorative pill between occupied and empty slots without moving their buttons', () => {
+  vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function (
+    this: HTMLElement
+  ) {
+    const slot = Number(this.dataset.workspaceSlot ?? 1)
+    return 4 + (slot - 1) * 16
+  })
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (
+    this: HTMLElement
+  ) {
+    return 16
+  })
+  setDots(dot({ agent: 'codex' }))
+  render('g1')
+  const pill = host.querySelector<HTMLElement>('[data-workspace-selection-pill]')
+  expect(pill).not.toBeNull()
+  expect(pill?.getAttribute('aria-hidden')).toBe('true')
+  expect(pill?.style.transform).toBe('translateX(4px)')
+  expect(pill?.style.width).toBe('16px')
+  expect(pill?.dataset.occupied).toBe('true')
+  act(() => useWorkspaceLaunchSelection.getState().open('wt', 1, 2))
+  expect(host.querySelector('[data-workspace-selection-pill]')).toBe(pill)
+  expect(pill?.style.transform).toBe('translateX(41px)')
+  expect(pill?.style.width).toBe('6px')
+  expect(host.querySelectorAll('button.deck-tab-dot')).toHaveLength(4)
+  expect(
+    [...host.querySelectorAll<HTMLButtonElement>('button.deck-tab-dot')].every(
+      (button) => button.style.transform === ''
+    )
+  ).toBe(true)
+  vi.restoreAllMocks()
 })

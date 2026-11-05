@@ -145,6 +145,7 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
           shadow: style.boxShadow,
           background: style.backgroundColor,
           width: box.width,
+          contentWidth: node.scrollWidth,
           height: box.height,
           inactive: [...node.querySelectorAll('button:not([data-active="true"])')].map(
             (button) => getComputedStyle(button).boxShadow
@@ -159,8 +160,15 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
         height: 24,
         dotShadow: 'none'
       })
-      expect(styles.width).toBeGreaterThanOrEqual(99)
-      expect(styles.width).toBeLessThanOrEqual(124)
+      expect(styles.contentWidth).toBe(
+        await strip
+          .locator('button.deck-tab-dot')
+          .evaluateAll((buttons) =>
+            buttons.reduce((width, button) => width + button.clientWidth, 8)
+          )
+      )
+      expect(styles.width).toBeGreaterThanOrEqual(32)
+      expect(styles.width).toBeLessThanOrEqual(styles.contentWidth)
       expect(styles.inactive.every((shadow) => shadow === 'none')).toBe(true)
     }
     await page.screenshot({

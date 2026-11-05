@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import {
   useWorkspaceLaunchSelection,
   workspaceSlotLayoutKey
@@ -199,6 +199,8 @@ export function WorkspaceTabDots({
   /** Unified tab id; dots replace the text strip, so they carry its close action. */
   onCloseTab: (tabId: string) => void
 }): React.JSX.Element | null {
+  const stripRef = useRef<HTMLDivElement>(null)
+  const pillRef = useRef<HTMLSpanElement>(null)
   const dots = useWorkspaceTabDots(worktreeId)
   const draftSelected = useWorkspaceLaunchSelection((state) => state.workspaceId === worktreeId)
   const draftSlot = useWorkspaceLaunchSelection((state) =>
@@ -208,6 +210,39 @@ export function WorkspaceTabDots({
     (state) => state.layouts[workspaceSlotLayoutKey(worktreeId, dots[0]?.groupId ?? '')]
   )
   const hostGroupId = useAppStore((state) => selectTabDotsHostGroupId(state, worktreeId))
+  useLayoutEffect(() => {
+    const strip = stripRef.current
+    const pill = pillRef.current
+    if (!strip || !pill) {
+      return
+    }
+    const update = (): void => {
+      const active = strip.querySelector<HTMLButtonElement>('button[data-active="true"]')
+      if (!active) {
+        pill.style.visibility = 'hidden'
+        return
+      }
+      const occupied = active.dataset.empty !== 'true'
+      const width = occupied ? active.offsetWidth : 6
+      pill.dataset.occupied = String(occupied)
+      const left = active.offsetLeft + (active.offsetWidth - width) / 2
+      pill.style.transform = `translateX(${left}px)`
+      pill.style.width = `${width}px`
+      pill.style.visibility = 'visible'
+      if (!pill.dataset.ready) {
+        // Establish the first position without animating in from the strip's edge.
+        pill.getBoundingClientRect()
+        pill.dataset.ready = 'true'
+      }
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(strip)
+    for (const button of strip.querySelectorAll('button.deck-tab-dot')) {
+      observer.observe(button)
+    }
+    return () => observer.disconnect()
+  }, [dots, layout, draftSelected, draftSlot, hostGroupId, groupId])
   if (dots.length === 0 || hostGroupId !== groupId) {
     return null
   }
@@ -229,7 +264,8 @@ export function WorkspaceTabDots({
   }
   const count = Math.max(WORKSPACE_MIN_SLOTS, slots.length + 1, draftSelected ? draftSlot + 2 : 0)
   return (
-    <div className="deck-tab-dots" role="group" aria-label="Workspace tabs">
+    <div ref={stripRef} className="deck-tab-dots" role="group" aria-label="Workspace tabs">
+      <span ref={pillRef} data-workspace-selection-pill aria-hidden="true" />
       {Array.from({ length: count }, (_, index) => {
         const dot = slots[index]
         if (!dot) {
@@ -248,6 +284,20 @@ export function WorkspaceTabDots({
             />
           )
         }
+        const activate = (event: React.MouseEvent<HTMLButtonElement>): void =>
+          activateDotTab(worktreeId, dot, paneLeafAt(event.target))
+        const close = (event: React.MouseEvent<HTMLButtonElement>): void => {
+          if (event.button !== 1) {
+            return
+          }
+          event.preventDefault()
+          const leafId = paneLeafAt(event.target)
+          if (leafId && dot.previewTabId) {
+            closeDotPane(dot.previewTabId, leafId)
+          } else {
+            onCloseTab(dot.id)
+          }
+        }
         return (
           <HoverCard key={dot.id} openDelay={120} closeDelay={60}>
             <HoverCardTrigger asChild>
@@ -260,20 +310,8 @@ export function WorkspaceTabDots({
                 data-attention={dot.attention ?? undefined}
                 aria-current={dot.active && !draftSelected ? 'true' : undefined}
                 aria-label={describeDot(dot)}
-                onClick={(event) => activateDotTab(worktreeId, dot, paneLeafAt(event.target))}
-                // Middle click closes the pane icon under the pointer, else the whole workspace.
-                onAuxClick={(event) => {
-                  if (event.button !== 1) {
-                    return
-                  }
-                  event.preventDefault()
-                  const leafId = paneLeafAt(event.target)
-                  if (leafId && dot.previewTabId) {
-                    closeDotPane(dot.previewTabId, leafId)
-                  } else {
-                    onCloseTab(dot.id)
-                  }
-                }}
+                onClick={activate}
+                onAuxClick={close}
               >
                 <DotGlyphs dot={dot} />
               </button>
@@ -281,6 +319,16 @@ export function WorkspaceTabDots({
             <HoverCardContent side="bottom" align="start" sideOffset={6}>
               <div className="deck-tab-preview">
                 <TabPreview dot={dot} index={index} />
+                <button
+                  type="button"
+                  className="deck-tab-preview-icons"
+                  data-workspace-pane-preview
+                  aria-label={describeDot(dot)}
+                  onClick={activate}
+                  onAuxClick={close}
+                >
+                  <DotGlyphs dot={dot} />
+                </button>
                 <button
                   type="button"
                   className="deck-tab-preview-close"

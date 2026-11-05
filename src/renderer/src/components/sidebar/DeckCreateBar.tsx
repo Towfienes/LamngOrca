@@ -31,7 +31,7 @@ import { resolveDeckAgentSplitTarget, type DeckAgentSplitTarget } from './deck-a
 import { selectWorktreeRunningAgentsKey } from '@/lib/deck-agent-activity'
 import { useWorkspaceLaunchSelection } from '@/store/workspace-launch-selection'
 
-const QUICK_AGENTS = ['claude', 'codex', 'antigravity'] as const
+const QUICK_AGENTS = ['opencode', 'claude', 'codex', 'antigravity'] as const
 
 export function DeckCreateBar({
   renderActions,
@@ -212,11 +212,14 @@ export function DeckCreateBar({
                   </Tooltip>
                 </div>
               </div>
-              <span className="deck-dock-divider" aria-hidden />
               <div className="deck-dock-group" role="group" aria-label="Agents">
                 <div className="deck-dock-buttons">
                   {QUICK_AGENTS.map((agent) => {
-                    const running = runningAgents.split(',').includes(agent)
+                    const running = runningAgents
+                      .split(',')
+                      .some(
+                        (type) => type === agent || (agent === 'opencode' && type === 'opencode2')
+                      )
                     return (
                       <span
                         key={agent}
@@ -311,7 +314,6 @@ export function DeckCreateBar({
                   ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <DeckIdleRamBadge />
             </div>
           )}
         </PopoverAnchor>
@@ -397,6 +399,7 @@ export function DeckCreateBar({
           ) : null}
         </PopoverContent>
       </Popover>
+      {!renderActions && <DeckIdleRamBadge />}
     </div>
   )
 }

@@ -174,7 +174,7 @@ Header pane giữ logo + title phiên; metadata để hover. Zoom bằng Ctrl/Cm
 
 ### Header và caption workspace
 
-- Lamng là SVG fill dùng `currentColor`, trace trực tiếp từ mẫu chữ ký user đã duyệt ngày 2026-10-24; không phụ thuộc font. `LamngSignature.tsx` giữ vị trí/kích thước cũ. Yuji là PNG alpha: `src/renderer/src/assets/lamng-avatar.png`.
+- Lamng giữ nguyên SVG signature đã duyệt và nút menu ứng dụng. Revision 2026-11-03 bỏ K2 khỏi header; tên workspace hiện có nằm ngay cạnh chữ ký, không lặp caption. Dock B là rail phẳng, có divider giữa nhóm tạo/agent và dòng RAM căn phải bên dưới. Workspace selector là pill đen nhỏ: chấm trắng 4px, chấm đang chọn 6px trượt 220ms, vùng bấm 16×24px; reduced-motion vẫn hoạt động. Revision 2026-11-04: ô có nội dung hiện lại icon agent/tool/VS Code ngay trong pill, mỗi pane một icon; chỉ ô trống là chấm trắng. Nền chọn nhẹ sau icon giữ độ tương phản; chọn/đóng từng pane hoạt động cả trực tiếp và trong hover preview; không đổi launch, sparse slot hay session.
 - [Ảnh chữ ký trong titlebar thật](docs/assets/orca-signature-titlebar.png). Đây là vector trace từ mẫu đã duyệt, không phải font hoặc chữ ký tự sinh lại.
 - Yuji mở menu ứng dụng; không xóa hành vi đó khi chỉ sửa vị trí ảnh.
 - Caption dùng `selectWorkspaceChromeTarget` để hiểu cả worktree và folder workspace.
@@ -417,3 +417,11 @@ files byte-identical). Quit and reopen Orca to load it.
 Quota checks every 30 seconds while its section is expanded and the app is visible/focused. It reuses the provider cycles for Claude/Codex and inactive-account probes, bounds concurrent work and honors Retry-After. It never forces local cost-log scans; the existing scan notifications continue updating cost figures. `rateLimits.get({refreshQuota:true})` is additive: old peers safely return the cached snapshot; web clients retain their server account stream.
 
 Click Boruto to open a manga speech-balloon checklist. It uses the existing `orca.global-notes.v1` notes, retains plain lines, and writes Markdown checkbox lines on edits/toggles. Add/edit/tick/remove save immediately; Escape, outside click and Close dismiss the popover. Notes are local to the Orca profile and shared across folder/git/SSH workspace switches. The feature neither sends notes to an agent nor changes agent/account settings. The bundled Patrick Hand font is scoped to the balloon and has Vietnamese glyphs.
+
+### Workspace motion, compact prompts and ordinary desktop drag (2026-11-05)
+
+The compact black capsule keeps its provider/tool icons, sparse slots and existing selection slide. Header-only feedback adds a 1px lift, existing shadow-xs and a small press scale; prefers-reduced-motion disables spatial motion. Terminal canvases remain unanimated. Global prompts are one 24px row per file, full relative path in title; actions appear on hover/focus for fine pointers and remain visible for coarse pointers. Unpin still preserves the file.
+
+Explorer ordinary drag retains Orca path/owner MIME and adds local desktop URI-list plus single-file Chromium DownloadURL. No Alt/Option is required. SSH, unresolved owners and browser runtime paths never become local file URLs; use existing Download for remote files. Multi-file/folder export depends on the receiving app's URI-list support. Import/move routing, ownership/generation guards and no-overwrite behavior remain unchanged.
+
+Installed renderer index-am0RbtUS.js into ~/Applications/Orca-1.4.244-Lamng; backend/preload unchanged. Candidate and actual installed hidden smoke passed, including actual folder workspace, terminal, compact prompts and drag payload. No observed black screen or renderer/asset errors. Scoped 63 unit tests, typecheck/lint/format and UI checks at 390/768/1440 passed. Native external desktop drop and live SSH were not checked; hidden Ozone cannot start an OS drag. Aggregate check:changed remains non-green from existing repo/artifact/i18n/ratchet issues. Evidence: output/workspace-prompts-drag/ and ~/.local/state/lamng-installs/2026-11-04T17-18-36-894Z-workspace-prompts-drag/. User app was not restarted or revealed.

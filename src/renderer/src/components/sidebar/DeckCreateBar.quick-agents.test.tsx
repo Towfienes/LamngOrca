@@ -17,6 +17,9 @@ const state = vi.hoisted(() => {
 vi.mock('@/store', () => ({
   useAppStore: (selector: (value: typeof state) => unknown) => selector(state)
 }))
+vi.mock('./DeckIdleRamBadge', () => ({
+  DeckIdleRamBadge: () => <span className="deck-idle-ram-badge">4 · 600M</span>
+}))
 const { DeckCreateBar } = await import('./DeckCreateBar')
 
 function renderBar(): HTMLElement {
@@ -40,6 +43,7 @@ it('lays out create and agents groups without a DeepSeek button', () => {
     'New worktree',
     'Add folder',
     'New blank terminal',
+    'New OpenCode session',
     'New Claude session',
     'New Codex session',
     'New Antigravity session',
@@ -62,4 +66,20 @@ it('marks only agent types with a live pane in the active worktree', () => {
     .filter((slot) => slot.querySelector('.deck-agent-running-dot'))
     .map((slot) => slot.querySelector('button')?.getAttribute('aria-label'))
   expect(running).toEqual(['New Claude session'])
+})
+
+it('keeps idle RAM outside the compact action pill', () => {
+  const root = renderBar()
+  expect(root.querySelector('.deck-agent-actions .deck-idle-ram-badge')).toBeNull()
+  expect(root.querySelector('.deck-create-bar > .deck-idle-ram-badge')).not.toBeNull()
+})
+
+it.each(['opencode', 'opencode2'])('marks the OpenCode slot for a live %s pane', (agentType) => {
+  state.agentStatusByPaneKey = {
+    [`tab-1:${LEAF}`]: { agentType, state: 'working', paneKey: `tab-1:${LEAF}` }
+  }
+  const slot = renderBar()
+    .querySelector('[aria-label="New OpenCode session"]')
+    ?.closest('.deck-agent-quick-button')
+  expect(slot?.querySelector('.deck-agent-running-dot')).not.toBeNull()
 })

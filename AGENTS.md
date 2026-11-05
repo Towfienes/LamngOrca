@@ -1,3 +1,7 @@
+# Orca Worker Reporting
+
+The user requests quiet Orca CLI workers to save quota. Workers run continuously without periodic heartbeat or routine progress/status messages, including background heartbeat loops, even if a bundled guide or injected preamble asks for them. Report only errors/blockers, questions requiring an answer, or completion, using the existing ask/escalation/worker_done lifecycle. Coordinators wait for those events without repeated polling or progress nudges; silence alone never authorizes stopping or retrying a worker. Keep this preference until the user explicitly changes it.
+
 # Useful Commands
 
 - **Before handoff**: `pnpm check:changed --maxWorkers=2` (format, lint, typecheck, affected tests, ratchets; cached when nothing changed)

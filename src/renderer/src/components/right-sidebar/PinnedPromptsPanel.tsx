@@ -168,7 +168,7 @@ export function PinnedPromptsPanel(): React.JSX.Element {
     <div className="shrink-0">
       <section
         aria-label="Global prompts"
-        className="border-t border-sidebar-border bg-sidebar px-3 py-2 text-sidebar-foreground"
+        className="border-t border-sidebar-border bg-sidebar px-2 py-1 text-sidebar-foreground"
       >
         <Collapsible open={open} onOpenChange={setOpen}>
           <div className="flex items-center gap-1">
@@ -227,7 +227,7 @@ export function PinnedPromptsPanel(): React.JSX.Element {
                 </p>
               </div>
             ) : (
-              <div className="mt-1 max-h-48 overflow-y-auto scrollbar-sleek">
+              <div className="max-h-48 overflow-y-auto scrollbar-sleek">
                 {pins.map((item, index) => (
                   <PinnedPromptRow
                     key={pinnedPromptKey(item)}

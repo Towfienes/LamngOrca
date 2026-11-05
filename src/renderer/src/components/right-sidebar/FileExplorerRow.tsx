@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { FileTypeIcon } from '@/components/FileTypeIcon'
 import {
   encodeWorkspaceFilePaths,
+  writeWorkspaceFileDesktopDrag,
   WORKSPACE_FILE_PATH_MIME,
   WORKSPACE_FILE_PATHS_MIME,
   writeWorkspaceFileDragSourceIfResolved,
@@ -170,17 +171,22 @@ export function FileExplorerRow({
               selectedPaths.has(node.path) && selectedPaths.size > 1
                 ? [...selectedPaths]
                 : [node.path]
+            const sourceOwner = resolveDragSourceOwner?.(paths)
             event.dataTransfer.setData(WORKSPACE_FILE_PATH_MIME, node.path)
             if (paths.length > 1) {
               event.dataTransfer.setData(WORKSPACE_FILE_PATHS_MIME, encodeWorkspaceFilePaths(paths))
             }
-            const sourceOwner = resolveDragSourceOwner?.(paths)
             writeWorkspaceFileDragSourceIfResolved(
               event.dataTransfer,
               sourceWorkspaceId,
               sourceOwner?.executionHostId,
               sourceOwner?.runtimeEnvironmentId
             )
+            writeWorkspaceFileDesktopDrag(event.dataTransfer, paths, {
+              executionHostId: sourceOwner?.executionHostId,
+              isDirectory: node.isDirectory,
+              name: node.name
+            })
             event.dataTransfer.effectAllowed = 'copyMove'
             onDragSourceChange(node.path)
 

@@ -1,3 +1,4 @@
+import { filesystemPathToFileUri } from '../../../shared/file-uri-path'
 import { normalizeRuntimePathForComparison } from '../../../shared/cross-platform-path'
 import {
   NATIVE_FILE_DROP_MAX_PATH_BYTES,
@@ -293,4 +294,29 @@ export function getWorkspaceFileDragRejectionMessage(
     return 'Drop contains too many paths.'
   }
   return 'Drop path list is too large.'
+}
+
+export function writeWorkspaceFileDesktopDrag(
+  dataTransfer: Pick<DataTransfer, 'setData'>,
+  paths: readonly string[],
+  source: { executionHostId?: ExecutionHostId; isDirectory: boolean; name: string }
+): void {
+  if (
+    source.executionHostId !== 'local' ||
+    ('__ORCA_WEB_CLIENT__' in globalThis && globalThis.__ORCA_WEB_CLIENT__ === true) ||
+    paths.length === 0 ||
+    validateNativeFileDropPaths(paths).status === 'rejected' ||
+    paths.some((path) => !/^(\/|[A-Za-z]:[\\/]|\\\\)/.test(path) || /[\0\r\n]/.test(path))
+  ) {
+    return
+  }
+  const uris = paths.map(filesystemPathToFileUri)
+  dataTransfer.setData('text/uri-list', uris.join('\r\n'))
+  // shortcut: DownloadURL exports one file; use a native bridge if a target needs multiple OS file handles.
+  if (paths.length === 1 && !source.isDirectory) {
+    dataTransfer.setData(
+      'DownloadURL',
+      `application/octet-stream:${source.name.replaceAll(':', '_')}:${uris[0]}`
+    )
+  }
 }
