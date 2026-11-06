@@ -80,6 +80,13 @@ test('dragging icons keeps sparse slots and merges live terminals without relaun
       originalPtys
     )
   ).toEqual([true, true])
+  const detachedId = await slots.nth(2).getAttribute('data-workspace-tab-id')
+  await page.evaluate(() => window.api.session.flush())
+  await page.reload()
+  await waitForSessionReady(page)
+  await expect(slots.nth(0)).toHaveAttribute('data-empty', 'true')
+  await expect(slots.nth(2)).toHaveAttribute('data-workspace-tab-id', detachedId!)
+  await expect.poll(bindings).toEqual(originalPtys)
   for (const width of [390, 768, 1440]) {
     await electronApp.evaluate(
       ({ BrowserWindow }, width) => BrowserWindow.getAllWindows()[0]!.setContentSize(width, 800),
