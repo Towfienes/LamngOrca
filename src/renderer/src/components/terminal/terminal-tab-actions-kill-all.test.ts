@@ -89,7 +89,7 @@ describe('closeTerminalTab kill-all routing', () => {
       })
     )
 
-    closeTerminalTab('terminal-1', { force: true })
+    closeTerminalTab('terminal-1', { force: true, hostCloseReason: 'user' })
 
     expect(requestPinnedTabCloseConfirm).not.toHaveBeenCalled()
     expect(closeTab).toHaveBeenCalledWith('terminal-1', { reason: undefined })
@@ -102,7 +102,7 @@ describe('closeTerminalTab kill-all routing', () => {
     })
     getStateMock.mockReturnValue(state)
 
-    closeTerminalTab('terminal-1', { force: true })
+    closeTerminalTab('terminal-1', { force: true, hostCloseReason: 'user' })
 
     expect(state.closeTab).toHaveBeenCalledWith('terminal-1')
     expect(state.setActiveFile).toHaveBeenCalledWith('editor-1')
@@ -119,7 +119,7 @@ describe('closeTerminalTab kill-all routing', () => {
     })
     getStateMock.mockReturnValue(state)
 
-    closeTerminalTab('terminal-1', { force: true })
+    closeTerminalTab('terminal-1', { force: true, hostCloseReason: 'user' })
 
     expect(state.setActiveBrowserTab).toHaveBeenCalledWith('browser-1')
     expect(state.setActiveTabType).toHaveBeenCalledWith('browser', 'wt')
@@ -132,7 +132,7 @@ describe('closeTerminalTab kill-all routing', () => {
     const state = baseState()
     getStateMock.mockReturnValue(state)
 
-    closeTerminalTab('terminal-1', { force: true })
+    closeTerminalTab('terminal-1', { force: true, hostCloseReason: 'user' })
 
     expect(state.setActiveWorktree).not.toHaveBeenCalled()
     expect(state.ensureWorktreeRootGroup).toHaveBeenCalledWith('wt')

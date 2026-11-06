@@ -97,7 +97,7 @@ function paneLeafAt(target: EventTarget): string | undefined {
 function closeDotPane(tabId: string, leafId: string): void {
   window.dispatchEvent(
     new CustomEvent<CloseTerminalPaneDetail>(CLOSE_TERMINAL_PANE_EVENT, {
-      detail: { tabId, leafId }
+      detail: { tabId, leafId, lastPaneCloseReason: 'user' }
     })
   )
 }

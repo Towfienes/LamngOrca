@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 
+vi.mock('./DeckIdleRamBadge', () => ({ DeckIdleRamBadge: () => null }))
+
 const mocks = vi.hoisted(() => ({
   state: {} as Record<string, unknown>,
   // Keep callback identities stable so companion-board effects track real state changes only.

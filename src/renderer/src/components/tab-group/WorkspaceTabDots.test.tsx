@@ -278,7 +278,7 @@ it('supports per-pane focus and middle-click close from occupied slots', () => {
     panes[1].dispatchEvent(new MouseEvent('auxclick', { bubbles: true, button: 1 }))
   })
   window.removeEventListener('orca-close-terminal-pane', onClosePane)
-  expect(closed).toEqual([{ tabId: 'term-a', leafId: 'l2' }])
+  expect(closed).toEqual([{ tabId: 'term-a', leafId: 'l2', lastPaneCloseReason: 'user' }])
   expect(closeTab).not.toHaveBeenCalled()
 })
 
