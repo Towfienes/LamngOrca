@@ -420,3 +420,38 @@ it('merges into an existing tab durably, preserving both terminals and pane owne
   expect(session.tabsByWorktree[WT]?.map((tab) => tab.id)).toEqual([SOURCE, TARGET])
   expect(session.terminalPtyIncarnationsByPaneKey?.[TO]).toBe('inc-1')
 })
+
+it('layout-owner merge moves unread marks with the pane in the same durable write', async () => {
+  const store = openStore(newDataFile())
+  const targetLeaf = '33333333-3333-4333-8333-333333333333'
+  await seedSplitSource(store)
+  await store.persistPtyBinding({
+    worktreeId: WT,
+    tabId: TARGET,
+    leafId: targetLeaf,
+    ptyId: 'pty-target'
+  })
+  store.updateUI({
+    acknowledgedAgentsByPaneKey: { [FROM]: 11 },
+    manuallyUnreadTurnsByPaneKey: { [FROM]: 22 }
+  })
+  await expect(
+    store.applyLayoutCommand(
+      {
+        type: 'movePane',
+        workspace: WT,
+        tabId: SOURCE,
+        leafId: MOVED,
+        targetTabId: TARGET,
+        targetLeafId: targetLeaf,
+        side: 'right'
+      },
+      ['local']
+    )
+  ).resolves.toMatchObject({ ok: true })
+  expect(store.getUI()).toMatchObject({
+    acknowledgedAgentsByPaneKey: { [TO]: 11 },
+    manuallyUnreadTurnsByPaneKey: { [TO]: 22 }
+  })
+  expect(store.getUI().acknowledgedAgentsByPaneKey?.[FROM]).toBeUndefined()
+})
