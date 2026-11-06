@@ -186,7 +186,7 @@ describe('Sidebar', () => {
 
     const markup = renderSidebar()
     // React hoists image preloads (Deck's agent icons) ahead of the root element.
-    const rootStart = markup.indexOf('<div')
+    const rootStart = markup.indexOf('<div class="deck-sidebar ')
     const sidebarRootTag = markup.slice(rootStart, markup.indexOf('>', rootStart))
 
     expect(sidebarRootTag).toContain('--worktree-sidebar:#101820')

@@ -92,3 +92,21 @@ it('keeps the slot when an editor preview is replaced in the same layout update'
     useWorkspaceLaunchSelection.getState().layouts[JSON.stringify(['workspace', 'previews'])]
   ).toEqual(['a', null, 'next-preview'])
 })
+
+it('moves an existing tab to an exact empty slot and persists holes without swapping', () => {
+  const saved = new Map<string, string>()
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => saved.get(key) ?? null,
+    setItem: (key: string, value: string) => saved.set(key, value)
+  })
+  const state = useWorkspaceLaunchSelection.getState()
+  const key = JSON.stringify(['workspace', 'group'])
+  state.reconcile('workspace', 'group', ['a', 'b'])
+  expect(state.placeTab('workspace', 'group', 'a', 2)).toBe(true)
+  expect(useWorkspaceLaunchSelection.getState().layouts[key]).toEqual([null, 'b', 'a'])
+  expect(state.placeTab('workspace', 'group', 'a', 1)).toBe(false)
+  expect(state.placeTab('workspace', 'group', 'a', -1)).toBe(false)
+  state.reconcile('workspace', 'group', ['a', 'b'])
+  expect(useWorkspaceLaunchSelection.getState().layouts[key]).toEqual([null, 'b', 'a'])
+  expect(JSON.parse(saved.get(`orca:workspace-slots:v1:${key}`)!)).toEqual([null, 'b', 'a'])
+})
