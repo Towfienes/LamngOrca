@@ -375,3 +375,20 @@ it('moves one decorative pill between occupied and empty slots without moving th
   ).toBe(true)
   vi.restoreAllMocks()
 })
+
+it('makes occupied workspace icons draggable while leaving empty slots as drop targets', () => {
+  setDots(
+    dot({
+      panes: [
+        { leafId: 'l1', agent: 'codex', attention: null },
+        { leafId: 'l2', agent: 'claude', attention: null }
+      ]
+    })
+  )
+  render('g1')
+  expect(host.querySelector('button[data-workspace-tab-id]')?.getAttribute('draggable')).toBe(
+    'true'
+  )
+  expect(host.querySelector('[data-dot-pane-leaf="l2"]')?.getAttribute('draggable')).toBe('true')
+  expect(host.querySelector('button[data-empty]')?.getAttribute('draggable')).not.toBe('true')
+})
