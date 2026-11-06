@@ -90,6 +90,12 @@ export function commitLayoutCommand(
   if (!routed) {
     return { value: { ok: false, code: 'workspace_not_found' }, persist: false }
   }
+  const merging =
+    command.type === 'movePane' && command.targetTabId && command.targetTabId !== command.tabId
+  const refused = merging && changes.find(({ change }) => !change.value.ok)?.change.value
+  if (refused) {
+    return { value: refused, persist: false }
+  }
   const effects = routed.ok ? changes[0]!.change.effects : undefined
   // Stop first so refusal retains the pane; failed writes restore bindings for the next spawn to replace.
   if (effects?.stopPtyIds.length && run.stopBeforeWrite?.(effects.stopPtyIds) === false) {
@@ -98,7 +104,34 @@ export function commitLayoutCommand(
   if (effects) {
     run.noteEffects?.(effects)
   }
-  return written(routed, routed.ok ? changes.filter(({ change }) => change.value.ok) : [], context)
+  const before = merging ? context.getSession(hostIds[0]!) : null
+  const committed = written(
+    routed,
+    routed.ok ? changes.filter(({ change }) => change.value.ok) : [],
+    context
+  )
+  if (!merging || !before || !committed.value.ok || committed.persist === false) {
+    return committed
+  }
+  const entityId = (id: string): string =>
+    before.unifiedTabs?.[command.workspace]?.find((tab) => tab.id === id)?.entityId ?? id
+  const restores = writeMovedLeafProfileRecords(
+    {
+      worktreeId: command.workspace,
+      sourceTabId: entityId(command.tabId),
+      targetTabId: entityId(command.targetTabId!),
+      leafId: command.leafId,
+      ptyId: committed.value.result.ptyId ?? null
+    },
+    context
+  )
+  return {
+    value: committed.value,
+    rollback: () => {
+      restores.forEach((restore) => restore())
+      committed.rollback?.()
+    }
+  }
 }
 
 /** Any partition refusal prevents the whole write. */

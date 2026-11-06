@@ -91,6 +91,10 @@ export function serverLayoutApplyFor(
       command: order ? serverMove(command, tabId, route, order) : anchored(command, tabId, route)
     }
   }
+  if (command.type === 'movePane' && command.targetTabId) {
+    const targetTabId = route.serverTabId(command.targetTabId)
+    return targetTabId ? { route, command: { ...command, tabId, targetTabId } } : null
+  }
   // The desktop's terminal id is not the server's; that main names the moved terminal itself.
   return command.type === 'movePaneToNewTab'
     ? {

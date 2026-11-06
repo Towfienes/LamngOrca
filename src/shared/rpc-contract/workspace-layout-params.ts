@@ -55,6 +55,7 @@ const RenamePaneCommand = z.object({
 const MovePaneCommand = z.object({
   type: z.literal('movePane'),
   ...OnPane,
+  targetTabId: z.string().min(1).optional(),
   targetLeafId: z.string().min(1),
   side: z.enum(['left', 'right', 'top', 'bottom'])
 })

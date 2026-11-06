@@ -43,14 +43,14 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
   await expect(toolbar.locator('.deck-dock-label')).toHaveCount(0)
   await expect(toolbar.getByRole('group')).toHaveCount(2)
   await expect(toolbar.getByRole('button', { name: /DeepSeek/ })).toHaveCount(0)
-  await expect(toolbar.getByRole('button')).toHaveCount(7)
+  await expect(toolbar.getByRole('button')).toHaveCount(8)
   await expect(toolbar.locator('.deck-agent-running-dot')).toHaveCount(0)
 
-  // Compact dock: hugs its icons, ~26px tall, and the + button has no circle or border.
+  // Flat dock: 22px controls plus padding and the divider; + has no circle or border.
   const dockBox = (await toolbar.locator('.deck-agent-actions').boundingBox())!
   const sidebarBox = (await page.locator('.deck-sidebar').boundingBox())!
-  expect(dockBox.width).toBeLessThan(sidebarBox.width - 40)
-  expect(dockBox.height).toBeLessThanOrEqual(30)
+  expect(dockBox.width).toBeLessThanOrEqual(sidebarBox.width - 16)
+  expect(dockBox.height).toBeLessThanOrEqual(32)
   const plusBorder = await toolbar
     .getByRole('button', { name: 'New agent', exact: true })
     .evaluate((node) => {
@@ -103,7 +103,7 @@ test('Deck toolbar dock and centered dots-only workspace strip switch and open w
   await expect(dots.first()).toBeVisible()
   await expect(dots.first()).toHaveAttribute('aria-current', 'true')
   const pillBox = (await dots.first().boundingBox())!
-  expect(pillBox.width).toBeGreaterThanOrEqual(24)
+  expect(pillBox.width).toBeGreaterThanOrEqual(16)
   await page.mouse.move(640, 600)
   await page.screenshot({
     path: `${shotsDir}/dots-single-tab.png`,

@@ -54,7 +54,9 @@ test('sidebar Agent tiles into the last hovered pane without adding tabs', async
     // Keep choosing the original leaf even though each new agent takes keyboard focus.
     await page.locator(`.pane[data-leaf-id="${originalLeaf}"]`).hover()
     await page.getByRole('button', { name: 'New agent', exact: true }).click()
-    await page.getByRole('menuitem', { name: /^Codex(?:\s|$)/i }).click()
+    await page
+      .getByRole('menuitem', { name: 'Launch Codex in a new terminal', exact: true })
+      .click()
     // Agent → Account → Session (DECK_AGENT_UX).
     await press(page.locator('[aria-label="Launch account"] button').first())
     await press(page.getByRole('option', { name: 'New session', exact: true }))

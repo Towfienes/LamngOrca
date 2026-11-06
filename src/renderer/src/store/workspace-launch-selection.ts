@@ -38,6 +38,7 @@ type WorkspaceLaunchSelection = {
   layouts: Record<string, (string | null)[]>
   open: (workspaceId: string, tabCount: number, slotIndex?: number, groupId?: string) => void
   reconcile: (workspaceId: string, groupId: string, tabIds: string[]) => void
+  placeTab: (workspaceId: string, groupId: string, tabId: string, slotIndex: number) => boolean
   dismiss: (workspaceId: string) => void
 }
 
@@ -87,6 +88,28 @@ export const useWorkspaceLaunchSelection = create<WorkspaceLaunchSelection>((set
       saveSlotLayout(key, slots)
       return { layouts: { ...state.layouts, [key]: slots } }
     }),
+  placeTab: (workspaceId, groupId, tabId, slotIndex) => {
+    if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= 4096) {
+      return false
+    }
+    let placed = false
+    set((state) => {
+      const key = workspaceSlotLayoutKey(workspaceId, groupId)
+      const source = state.layouts[key] ?? loadSlotLayout(key)
+      if (source[slotIndex] && source[slotIndex] !== tabId) {
+        return state
+      }
+      const slots = source.map((id) => (id === tabId ? null : id))
+      while (slots.length <= slotIndex) {
+        slots.push(null)
+      }
+      slots[slotIndex] = tabId
+      saveSlotLayout(key, slots)
+      placed = true
+      return { layouts: { ...state.layouts, [key]: slots } }
+    })
+    return placed
+  },
   dismiss: (workspaceId) =>
     set((state) => (state.workspaceId === workspaceId ? { workspaceId: null } : state))
 }))

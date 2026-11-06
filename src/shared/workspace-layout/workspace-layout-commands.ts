@@ -32,7 +32,6 @@ import type { WorkspaceLayoutModel } from './workspace-layout-model'
 import {
   closePane,
   equalizePanes,
-  movePane,
   movePaneToNewTab,
   renamePane,
   setPaneGrid,
@@ -40,6 +39,7 @@ import {
   setPaneRatios,
   splitPane
 } from './workspace-layout-pane-commands'
+import { movePane } from './workspace-layout-pane-move'
 import { restartPane, sleep, startPane, wake } from './workspace-layout-process-commands'
 import {
   closeTabs,

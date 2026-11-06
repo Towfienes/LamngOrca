@@ -1,3 +1,4 @@
+import { useWorkspaceIconDrag } from './use-workspace-icon-drag'
 import { useLayoutEffect, useRef, useState } from 'react'
 import {
   useWorkspaceLaunchSelection,
@@ -112,6 +113,7 @@ function DotGlyphs({ dot }: { dot: WorkspaceTabDot }): React.JSX.Element {
         <span
           key={pane.leafId}
           className="deck-tab-dot-pane"
+          draggable
           data-dot-pane-leaf={pane.leafId}
           data-attention={pane.attention ?? undefined}
         >
@@ -202,6 +204,7 @@ export function WorkspaceTabDots({
   const stripRef = useRef<HTMLDivElement>(null)
   const pillRef = useRef<HTMLSpanElement>(null)
   const dots = useWorkspaceTabDots(worktreeId)
+  const drag = useWorkspaceIconDrag(worktreeId, dots[0]?.groupId ?? groupId)
   const draftSelected = useWorkspaceLaunchSelection((state) => state.workspaceId === worktreeId)
   const draftSlot = useWorkspaceLaunchSelection((state) =>
     state.workspaceId === worktreeId ? state.slotIndex : -1
@@ -271,6 +274,7 @@ export function WorkspaceTabDots({
         if (!dot) {
           return (
             <button
+              {...drag.dropProps(index)}
               key={`empty-${index}`}
               type="button"
               className="deck-tab-dot"
@@ -305,6 +309,11 @@ export function WorkspaceTabDots({
                 type="button"
                 className="deck-tab-dot"
                 data-workspace-slot={index + 1}
+                {...drag.dropProps(index, dot)}
+                draggable
+                onDragStart={(event) => drag.start(event, dot)}
+                onDragEnd={drag.end}
+                data-dragging={drag.dragging === dot.id ? 'true' : undefined}
                 data-workspace-tab-id={dot.id}
                 data-active={dot.active && !draftSelected ? 'true' : undefined}
                 data-attention={dot.attention ?? undefined}
@@ -322,6 +331,9 @@ export function WorkspaceTabDots({
                 <button
                   type="button"
                   className="deck-tab-preview-icons"
+                  draggable
+                  onDragStart={(event) => drag.start(event, dot)}
+                  onDragEnd={drag.end}
                   data-workspace-pane-preview
                   aria-label={describeDot(dot)}
                   onClick={activate}

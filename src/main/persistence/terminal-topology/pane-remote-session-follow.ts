@@ -31,15 +31,24 @@ export function followRemoteSessionAfterPaneClose(
 /** Detached panes carry their remote session ID to the new tab. */
 export function followRemoteSessionAfterPaneDetach(
   command: LayoutCommand,
-  written: WorkspaceSessionState
+  written: WorkspaceSessionState,
+  stored = written
 ): WorkspaceSessionState {
-  const targetTabId = command.type === 'movePaneToNewTab' && command.windowDetach?.tabId
+  if (command.type !== 'movePaneToNewTab' && command.type !== 'movePane') {
+    return written
+  }
+  const targetId =
+    command.type === 'movePaneToNewTab' ? command.windowDetach?.tabId : command.targetTabId
+  const targetTabId =
+    targetId &&
+    (written.unifiedTabs?.[command.workspace]?.find((tab) => tab.id === targetId)?.entityId ??
+      targetId)
   const remoteSessionIds = written.remoteSessionIdsByTabId
   if (!targetTabId || !remoteSessionIds) {
     return written
   }
   const sourceTabId =
-    written.unifiedTabs?.[command.workspace]?.find((entry) => entry.id === command.tabId)
+    stored.unifiedTabs?.[command.workspace]?.find((entry) => entry.id === command.tabId)
       ?.entityId ?? command.tabId
   const ptyId = written.terminalLayoutsByTabId[targetTabId]?.ptyIdsByLeafId?.[command.leafId]
   if (!ptyId || remoteSessionIds[sourceTabId] !== ptyId) {
@@ -48,7 +57,7 @@ export function followRemoteSessionAfterPaneDetach(
   const remaining = Object.values(
     written.terminalLayoutsByTabId[sourceTabId]?.ptyIdsByLeafId ?? {}
   )[0]
-  const next = { ...remoteSessionIds, [targetTabId]: ptyId }
+  const next = { ...remoteSessionIds, [targetTabId]: remoteSessionIds[targetTabId] ?? ptyId }
   if (remaining) {
     next[sourceTabId] = remaining
   } else {

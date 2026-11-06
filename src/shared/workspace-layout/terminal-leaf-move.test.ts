@@ -13,6 +13,7 @@ const valid = {
 describe('isTerminalLeafMoveRequest', () => {
   it('accepts a move between two tabs with a stable leaf id', () => {
     expect(isTerminalLeafMoveRequest(valid)).toBe(true)
+    expect(isTerminalLeafMoveRequest({ ...valid, intoExistingTab: true })).toBe(true)
     expect(isTerminalLeafMoveRequest({ ...valid, ptyId: 'pty-1' })).toBe(true)
   })
 
@@ -21,7 +22,8 @@ describe('isTerminalLeafMoveRequest', () => {
     ['a legacy numeric leaf id', { leafId: '2' }],
     ['a source tab id that would split a pane key', { sourceTabId: 'tab:source' }],
     ['a target tab id that would split a pane key', { targetTabId: 'tab:target' }],
-    ['an empty PTY id', { ptyId: '' }]
+    ['an empty PTY id', { ptyId: '' }],
+    ['an invalid merge flag', { intoExistingTab: 'true' }]
   ])('rejects %s', (_name, patch) => {
     expect(isTerminalLeafMoveRequest({ ...valid, ...patch })).toBe(false)
   })

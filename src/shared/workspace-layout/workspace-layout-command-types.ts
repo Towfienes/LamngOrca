@@ -100,7 +100,14 @@ export type LayoutCommand =
       root?: TerminalPaneLayoutNode
       ratios?: SplitRatioIntent[]
     })
-  | (On & { type: 'movePane'; tabId: string; leafId: string; targetLeafId: string; side: PaneSide })
+  | (On & {
+      type: 'movePane'
+      tabId: string
+      targetTabId?: string
+      leafId: string
+      targetLeafId: string
+      side: PaneSide
+    })
   | (On & { type: 'equalizePanes'; tabId: string })
   | (On & {
       type: 'movePaneToNewTab'

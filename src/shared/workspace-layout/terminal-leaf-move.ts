@@ -10,6 +10,8 @@ export type TerminalLeafMoveRequest = {
   ptyId: string | null
   /** The caller cannot retire an emptied source tab, so the move must leave the source a pane. */
   keepsSourcePane?: true
+  /** Merge into an existing terminal tab; older mains refuse its existing target. */
+  intoExistingTab?: true
 }
 
 export type TerminalLeafMoveResult =
@@ -56,6 +58,7 @@ export function isTerminalLeafMoveRequest(value: unknown): value is TerminalLeaf
     !isId(candidate.leafId) ||
     !(candidate.ptyId === null || isId(candidate.ptyId)) ||
     !(candidate.keepsSourcePane === undefined || candidate.keepsSourcePane === true) ||
+    !(candidate.intoExistingTab === undefined || candidate.intoExistingTab === true) ||
     candidate.sourceTabId === candidate.targetTabId
   ) {
     return false

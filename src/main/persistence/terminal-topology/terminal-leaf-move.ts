@@ -12,6 +12,7 @@ import type {
   TerminalTab
 } from '../../../shared/workspace-layout/terminal-tab-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session/workspace-session-state-types'
+import { transferTerminalLayoutLeaf } from '../../../shared/workspace-layout/terminal-layout-leaf-transfer'
 import { retireLeavesFromTerminalLayout } from '../../../shared/workspace-layout/terminal-layout-leaf-retirement'
 import { createMinimalPersistedTerminalTab } from '../restoring-sessions/session-owner-fields'
 import { layoutContainsLeafId } from '../restoring-sessions/terminal-layout-normalization'
@@ -108,17 +109,14 @@ function moveLeafInPartition(
       ? { ...tab, ptyId: remainingPtyIds[0] ?? null }
       : tab
   )
-  const movedTitle = sourceLayout.titlesByLeafId?.[leafId]
   const terminalLayoutsByTabId = {
     ...session.terminalLayoutsByTabId,
-    [targetTabId]: {
-      root: { type: 'leaf' as const, leafId },
-      activeLeafId: leafId,
-      expandedLeafId: null,
-      ...(ptyId ? { ptyIdsByLeafId: { [leafId]: ptyId } } : {}),
-      ...(movedTitle ? { titlesByLeafId: { [leafId]: movedTitle } } : {}),
-      ...(sourceLayout.chatLeafId === leafId ? { chatLeafId: leafId } : {})
-    }
+    [targetTabId]: transferTerminalLayoutLeaf(
+      sourceLayout,
+      request.intoExistingTab ? (session.terminalLayoutsByTabId[targetTabId] ?? null) : null,
+      leafId,
+      ptyId
+    )
   }
   if (remainingLayout) {
     terminalLayoutsByTabId[sourceTabId] = remainingLayout
@@ -128,7 +126,7 @@ function moveLeafInPartition(
   }
   const remoteSessionIdsByTabId = { ...session.remoteSessionIdsByTabId }
   if (ptyId && remoteSessionIdsByTabId[sourceTabId] === ptyId) {
-    remoteSessionIdsByTabId[targetTabId] = ptyId
+    remoteSessionIdsByTabId[targetTabId] ??= ptyId
     if (remainingPtyIds[0]) {
       remoteSessionIdsByTabId[sourceTabId] = remainingPtyIds[0]
     } else {
@@ -138,7 +136,10 @@ function moveLeafInPartition(
   return advanceTerminalTopologyRevision(
     {
       ...session,
-      tabsByWorktree: { ...session.tabsByWorktree, [worktreeId]: [...nextTabs, targetTab] },
+      tabsByWorktree: {
+        ...session.tabsByWorktree,
+        [worktreeId]: request.intoExistingTab ? nextTabs : [...nextTabs, targetTab]
+      },
       terminalLayoutsByTabId,
       ...(session.remoteSessionIdsByTabId ? { remoteSessionIdsByTabId } : {}),
       // Stale copies cannot carry another PTY's incarnation to the destination.
@@ -168,7 +169,10 @@ export function planTerminalLeafMove(
     reason: Extract<TerminalLeafMoveResult, { status: 'refused' }>['reason']
   ): PlannedTerminalLeafMove => ({ result: { status: 'refused', reason }, sessions: [] })
   const owners = partitions.filter(({ hostId }) => isTerminalOwnerPartition(hostId))
-  if (partitions.some(({ session }) => hasTabId(session, request.targetTabId))) {
+  if (
+    !request.intoExistingTab &&
+    partitions.some(({ session }) => hasTabId(session, request.targetTabId))
+  ) {
     return refuse('target_tab_exists')
   }
   if (owners.some(({ session }) => leafHeldByOtherTab(session, sourceTabId, leafId))) {
@@ -181,6 +185,17 @@ export function planTerminalLeafMove(
       ? [{ hostId, session, sourceTab, sourceLayout }]
       : []
   })
+  if (
+    request.intoExistingTab &&
+    (holders.length === 0 ||
+      holders.some(
+        ({ session }) =>
+          !session.tabsByWorktree?.[worktreeId]?.some((tab) => tab.id === request.targetTabId) ||
+          !session.terminalLayoutsByTabId?.[request.targetTabId]?.root
+      ))
+  ) {
+    return refuse('invalid_request')
+  }
   if (holders.length === 0) {
     return { result: { status: 'not_held' }, sessions: [] }
   }

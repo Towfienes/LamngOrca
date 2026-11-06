@@ -513,7 +513,7 @@
   --deck-tree-x: 34px;
   --deck-tree-elbow-y: 13px;
   /* Seats the branch glyph's centre under the project name. */
-  --deck-worktree-shift: 6px;
+  --deck-worktree-shift: 13px;
   --deck-tree-nested-inset: 24px;
   /* Agent icons sit just left of the worktree name, clear of the connector line. */
   --deck-agent-inset: 14px;
@@ -548,7 +548,8 @@
 }
 
 /* Worktree row: branch glyph + name. */
-.deck-sidebar .deck-tree-header > div:first-child {
+.deck-sidebar .deck-tree-header > div:first-child,
+.deck-sidebar [data-worktree-card-hover-trigger] > div:first-child > div:first-child {
   gap: 8px;
 }
 
@@ -1167,4 +1168,13 @@
   .deck-sidebar [data-deck-agent]:active {
     transform: translateX(2px);
   }
+}
+
+.deck-tab-dot[data-drop-target='true'] {
+  background: var(--accent);
+  box-shadow: var(--shadow-xs);
+}
+
+.deck-tab-dot[data-dragging='true'] {
+  opacity: 0.5;
 }

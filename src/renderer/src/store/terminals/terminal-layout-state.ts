@@ -137,6 +137,10 @@ export function createTerminalLayoutActions(
             detachedPtyId
           ])
         }
+        const targetLayout = s.terminalLayoutsByTabId[targetTabId]
+        const targetPrimaryPtyId = targetLayout
+          ? (resolvePrimaryLayoutPtyId(targetLayout) ?? detachedPtyId)
+          : detachedPtyId
         const nextLastKnownRelayPtyIdByTabId = { ...s.lastKnownRelayPtyIdByTabId }
         if (sourcePrimaryPtyId) {
           nextLastKnownRelayPtyIdByTabId[sourceTabId] = sourcePrimaryPtyId
@@ -144,7 +148,7 @@ export function createTerminalLayoutActions(
           delete nextLastKnownRelayPtyIdByTabId[sourceTabId]
         }
         if (detachedPtyId) {
-          nextLastKnownRelayPtyIdByTabId[targetTabId] = detachedPtyId
+          nextLastKnownRelayPtyIdByTabId[targetTabId] = targetPrimaryPtyId ?? detachedPtyId
         }
         // Why: pane-to-tab detach moves a live PTY without spawning or exiting, so transfer identity without activity bumps.
         const sourceTabsByWorktree = withTerminalTabPtyId(
@@ -152,8 +156,8 @@ export function createTerminalLayoutActions(
           sourceTabId,
           sourcePrimaryPtyId
         )
-        const nextTabsByWorktree = detachedPtyId
-          ? withTerminalTabPtyId(sourceTabsByWorktree, targetTabId, detachedPtyId)
+        const nextTabsByWorktree = targetPrimaryPtyId
+          ? withTerminalTabPtyId(sourceTabsByWorktree, targetTabId, targetPrimaryPtyId)
           : sourceTabsByWorktree
         return {
           ptyIdsByTabId: nextPtyIdsByTabId,

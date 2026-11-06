@@ -54,7 +54,7 @@ it('merges one live pane into an occupied tab without starting or stopping termi
     leafId
   ])
   expect(result.model.workspaces[WS]!.leaves).toEqual(model.workspaces[WS]!.leaves)
-  expect(checkWorkspaceLayoutModelRules(result.model)).toEqual([])
+  expect(checkWorkspaceLayoutModelRules([result.model], [model])).toEqual([])
   expect(collectLayoutLeafIdsInOrder(terminalTab(model, sourceId).panes.root)).toContain(leafId)
 })
 

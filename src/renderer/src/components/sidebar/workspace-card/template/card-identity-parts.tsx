@@ -1,4 +1,5 @@
 import React from 'react'
+import { Folder, GitBranch } from 'lucide-react'
 import { DetachedHeadBadge } from '@/components/DetachedHeadBadge'
 import { useWslHostDistro, WslHostMark } from '@/components/wsl-host-mark/WslHostMark'
 import { getWorktreeExecutionHostId } from '../../../../../../shared/execution-host'
@@ -90,6 +91,11 @@ function sidebarLabel(text: string, tooltip: unknown): React.ReactNode {
 }
 
 export const CARD_IDENTITY_PARTS = {
+  BranchGlyph: part([], (_props, _children, card) => (
+    <span className="deck-branch-glyph text-muted-foreground" aria-hidden="true">
+      {card.isFolder ? <Folder className="size-3" /> : <GitBranch className="size-3" />}
+    </span>
+  )),
   Title: part(['dimWhenRead', 'tooltip'], (props, _children, card) => title(props, card)),
   RepoChip: part([], (_props, _children, { repo }) =>
     repo ? <WorktreeCardRepoChip repo={repo} /> : null

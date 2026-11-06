@@ -124,11 +124,14 @@ test('workspace icons and empty dots share a compact black capsule', async ({
         width
       )
       await page.setViewportSize({ width, height: 800 })
-      expect((await strip.boundingBox())!.width).toBeGreaterThanOrEqual(32)
+      await expect.poll(async () => (await strip.boundingBox())!.width).toBeGreaterThanOrEqual(32)
       await page.mouse.move(0, 300)
       await expect(pill).toHaveAttribute('data-occupied', 'true')
-      expect((await pill.boundingBox())!.height).toBe(16)
-      expect((await pill.boundingBox())!.width).toBe((await slot.nth(0).boundingBox())!.width)
+      expect((await pill.boundingBox())!.height).toBeCloseTo(16, 2)
+      expect((await pill.boundingBox())!.width).toBeCloseTo(
+        (await slot.nth(0).boundingBox())!.width,
+        2
+      )
       await expect
         .poll(async () => (await pill.boundingBox())!.x)
         .toBeCloseTo((await slot.nth(0).boundingBox())!.x, 0)

@@ -80,26 +80,6 @@ export function closePane(model: WorkspaceLayoutModel, command: CommandOf<'close
   return applied(retired, { tabClosed }, { stopPtyIds: ptyId ? [ptyId] : [] })
 }
 
-export function movePane(model: WorkspaceLayoutModel, command: CommandOf<'movePane'>): Applied {
-  if (command.leafId === command.targetLeafId) {
-    return refuse('same_pane')
-  }
-  const tab = paneTab(model, command)
-  if (!tab) {
-    return refuse('tab_not_found')
-  }
-  const { root } = tab.panes
-  if (
-    !layoutContainsLeafId(root, command.leafId) ||
-    !layoutContainsLeafId(root, command.targetLeafId)
-  ) {
-    return refuse('pane_not_found')
-  }
-  const without = removeLayoutLeaf(root, command.leafId)!
-  const moved = insertLeafBeside(without, command.targetLeafId, command.leafId, command.side)
-  return updateTab(model, command.workspace, { ...tab, panes: { ...tab.panes, root: moved } })
-}
-
 /** Accept divider ratios only when the tree and panes still match (rule 11). */
 export function setPaneRatios(
   model: WorkspaceLayoutModel,

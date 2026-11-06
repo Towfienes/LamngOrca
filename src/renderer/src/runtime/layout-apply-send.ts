@@ -43,7 +43,14 @@ export type WindowLayoutCommand =
   | { type: 'closePane'; tabId: string; leafId: string }
   | { type: 'renamePane'; tabId: string; leafId: string; title: string | null }
   | { type: 'equalizePanes'; tabId: string }
-  | { type: 'movePane'; tabId: string; leafId: string; targetLeafId: string; side: PaneSide }
+  | {
+      type: 'movePane'
+      tabId: string
+      targetTabId?: string
+      leafId: string
+      targetLeafId: string
+      side: PaneSide
+    }
   | { type: 'setPaneRatios'; tabId: string; ratios: SplitRatioIntent[] }
   | { type: 'setChatPane'; tabId: string; leafId: string | null }
   | {

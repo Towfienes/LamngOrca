@@ -95,19 +95,30 @@ export async function applyWindowLayoutCommand(
       ? { ok: false, code: 'workspace_not_found' }
       : reply
   }
-  if (command.type === 'movePaneToNewTab') {
+  if (
+    command.type === 'movePaneToNewTab' ||
+    (command.type === 'movePane' && command.targetTabId && command.targetTabId !== command.tabId)
+  ) {
+    if (command.type === 'movePane') {
+      const targets = hostIdsFor(command.workspace, command.targetTabId!)
+      if (!holders.every((hostId) => targets.includes(hostId))) {
+        return { ok: false, code: 'host_not_owned' }
+      }
+    }
     const sourceTabId = terminalIdOf(store, hostIds[0], command.workspace, command.tabId)
     const reply = await store.applyLayoutCommand(
-      {
-        ...command,
-        // Main mints destination tab ids; discard the window's proposed id.
-        windowDetach: {
-          ptyId: command.windowDetach?.ptyId ?? null,
-          ...(command.windowDetach?.startupCwd
-            ? { startupCwd: command.windowDetach.startupCwd }
-            : {})
-        }
-      },
+      command.type === 'movePane'
+        ? command
+        : {
+            ...command,
+            // Main mints destination tab ids; discard the window's proposed id.
+            windowDetach: {
+              ptyId: command.windowDetach?.ptyId ?? null,
+              ...(command.windowDetach?.startupCwd
+                ? { startupCwd: command.windowDetach.startupCwd }
+                : {})
+            }
+          },
       holders,
       run
     )
@@ -115,7 +126,7 @@ export async function applyWindowLayoutCommand(
       const move = {
         worktreeId: command.workspace,
         sourceTabId,
-        targetTabId: reply.result.tabId,
+        targetTabId: terminalIdOf(store, hostIds[0], command.workspace, reply.result.tabId),
         leafId: command.leafId,
         ptyId: reply.result.ptyId ?? null
       }

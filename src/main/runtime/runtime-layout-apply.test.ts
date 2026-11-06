@@ -395,3 +395,39 @@ describe('applyWindowLayoutCommand', () => {
     expect(applyLayoutCommand).not.toHaveBeenCalled()
   })
 })
+
+it('merges panes only within shared holders and rekeys authority after persistence', async () => {
+  const { store, applyLayoutCommand } = storeWith()
+  const moved = vi.fn()
+  const command = {
+    type: 'movePane' as const,
+    workspace: 'wt-1',
+    tabId: 'source',
+    targetTabId: 'target',
+    leafId: 'leaf-1',
+    targetLeafId: 'leaf-2',
+    side: 'right' as const
+  }
+  applyLayoutCommand.mockResolvedValue({ ok: true, result: { tabId: 'target', ptyId: 'same-pty' } })
+  await expect(
+    applyWindowLayoutCommand(store, () => ['local'], command, moved)
+  ).resolves.toMatchObject({ ok: true })
+  expect(moved).toHaveBeenCalledExactlyOnceWith({
+    worktreeId: 'wt-1',
+    sourceTabId: 'source',
+    targetTabId: 'target',
+    leafId: 'leaf-1',
+    ptyId: 'same-pty'
+  })
+  applyLayoutCommand.mockClear()
+  await expect(
+    applyWindowLayoutCommand(
+      store,
+      (_workspace, tabId) => (tabId === 'source' ? ['local'] : ['ssh:target-1']),
+      command,
+      moved
+    )
+  ).resolves.toEqual({ ok: false, code: 'host_not_owned' })
+  expect(applyLayoutCommand).not.toHaveBeenCalled()
+  expect(moved).toHaveBeenCalledTimes(1)
+})

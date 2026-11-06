@@ -50,6 +50,7 @@
               "el": "Row",
               "props": { "grow": true, "align": "center", "gap": "md" },
               "children": [
+                { "el": "BranchGlyph" },
                 { "el": "RepoChip", "when": "vars.pinnedRepo" },
                 {
                   "el": "SshControl",

@@ -116,7 +116,8 @@ export function applyCommandToSession(
     return patched
       ? followRemoteSessionAfterPaneDetach(
           command,
-          followRemoteSessionAfterPaneClose(command, session, prunedOnRecord(command, patched))
+          followRemoteSessionAfterPaneClose(command, session, prunedOnRecord(command, patched)),
+          session
         )
       : null
   })

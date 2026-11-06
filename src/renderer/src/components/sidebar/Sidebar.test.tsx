@@ -177,23 +177,21 @@ describe('Sidebar', () => {
   it('applies left sidebar appearance variables to the workspace sidebar surface', () => {
     setSidebarState({
       ...getDefaultSettings(tmpdir()),
-      leftSidebarAppearanceMode: 'match-terminal',
-      terminalColorOverrides: {
-        background: '#101820',
-        foreground: '#f0f4f8'
-      }
+      leftSidebarAppearanceMode: 'tinted',
+      leftSidebarTintColor: '#101820',
+      leftSidebarTintOpacity: 0.2
     })
 
-    const markup = renderSidebar()
-    // React hoists image preloads (Deck's agent icons) ahead of the root element.
-    const rootStart = markup.indexOf('<div class="deck-sidebar ')
-    const sidebarRootTag = markup.slice(rootStart, markup.indexOf('>', rootStart))
-
-    expect(sidebarRootTag).toContain('--worktree-sidebar:#101820')
-    expect(sidebarRootTag).toContain('--worktree-sidebar-foreground:#f0f4f8')
-    expect(sidebarRootTag).toMatch(/[;"]color:#f0f4f8/)
-    expect(markup).toContain('data-testid="workspace-kanban-drawer"')
-    expect(markup.match(/--worktree-sidebar:#101820/g)).toHaveLength(2)
+    const view = render(sidebarElement())
+    const sidebar = view.container.querySelector<HTMLElement>('.deck-sidebar')!
+    const drawer = view.getByTestId('workspace-kanban-drawer')
+    expect(sidebar.style.getPropertyValue('--worktree-sidebar')).toBe(
+      'color-mix(in srgb, #101820 20%, var(--background))'
+    )
+    expect(sidebar.style.getPropertyValue('--worktree-sidebar-foreground')).toBe(
+      'var(--foreground)'
+    )
+    expect(drawer.getAttribute('style')).toBe(sidebar.getAttribute('style'))
   })
 
   it('passes status bar visibility into the workspace board drawer', () => {
