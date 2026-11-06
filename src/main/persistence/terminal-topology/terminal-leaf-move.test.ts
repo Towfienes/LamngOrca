@@ -399,3 +399,24 @@ describe('STA-9259 move sequence', () => {
     expect(tabsHoldingLeaf(restarted.getWorkspaceSession(), MOVED)).toEqual([TARGET])
   })
 })
+
+it('merges into an existing tab durably, preserving both terminals and pane ownership', async () => {
+  const store = openStore(newDataFile())
+  const targetLeaf = '33333333-3333-4333-8333-333333333333'
+  await seedSplitSource(store)
+  await store.persistPtyBinding({
+    worktreeId: WT,
+    tabId: TARGET,
+    leafId: targetLeaf,
+    ptyId: 'pty-target',
+    incarnationId: 'inc-target'
+  })
+  const request = { ...moveRequest, ptyId: 'pty-agent', intoExistingTab: true as const }
+  await expect(store.moveTerminalLeafToNewTab(request)).resolves.toMatchObject({ status: 'moved' })
+  const session = store.getWorkspaceSession()
+  expect(ownersOf(session, 'pty-agent')).toEqual([TO])
+  expect(ownersOf(session, 'pty-target')).toEqual([`${TARGET}:${targetLeaf}`])
+  expect(ownersOf(session, 'pty-left')).toEqual([`${SOURCE}:${LEFT}`])
+  expect(session.tabsByWorktree[WT]?.map((tab) => tab.id)).toEqual([SOURCE, TARGET])
+  expect(session.terminalPtyIncarnationsByPaneKey?.[TO]).toBe('inc-1')
+})
