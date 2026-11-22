@@ -7,7 +7,7 @@ export function shouldUseDeckTitlebarStatus({
   platform,
   isWebClient
 }: DesktopWindowChromeInput): boolean {
-  return platform === 'linux' && !isWebClient
+  return (platform === 'linux' || platform === 'win32') && !isWebClient
 }
 
 export function isPairedWebClientWindow(): boolean {

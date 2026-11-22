@@ -18,12 +18,18 @@ export const usesDeckTitlebarStatus = shouldUseDeckTitlebarStatus({
   isWebClient: isPairedWebClientWindow()
 })
 
-// Reserve the top-right chrome for Linux status or Windows window controls.
-export const WINDOW_CONTROLS_WIDTH = usesDeckTitlebarStatus
-  ? 'min(280px, 40vw)'
-  : hasCustomTitleBar
-    ? '138px'
-    : '0px'
+// Windows keeps its window buttons beside the Deck status; Linux uses that corner for status alone.
+export const hasWindowControls = hasCustomTitleBar && shortcutPlatform !== 'linux'
+
+// Reserve the top-right chrome for Deck status, window controls, or both on Windows.
+export const WINDOW_CONTROLS_WIDTH =
+  usesDeckTitlebarStatus && hasWindowControls
+    ? 'calc(138px + var(--deck-titlebar-status-width))'
+    : usesDeckTitlebarStatus
+      ? 'min(280px, 40vw)'
+      : hasCustomTitleBar
+        ? '138px'
+        : '0px'
 export const WINDOW_CONTROLS_HEIGHT = hasCustomTitleBar ? '36px' : '0px'
 
 // Only macOS desktop windows need left-side traffic-light clearance.

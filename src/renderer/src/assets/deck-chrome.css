@@ -123,6 +123,29 @@
   flex-shrink: 0;
 }
 
+:root {
+  --deck-titlebar-status-width: min(232px, 24vw);
+}
+
+.deck-right-sidebar {
+  anchor-name: --deck-right-sidebar;
+}
+
+/* Windows keeps its 138px buttons; status sits left of them, or left of an open right sidebar. */
+.deck-titlebar-status[data-window-buttons] {
+  right: max(138px, anchor(--deck-right-sidebar left, 138px));
+  width: var(--deck-titlebar-status-width);
+  padding-inline: 4px;
+}
+
+.app-layout:has(.deck-titlebar-status[data-window-buttons]) .right-sidebar-header-inset {
+  padding-right: 138px;
+}
+
+.app-layout:has(.deck-titlebar-status[data-window-buttons]) .right-sidebar-header-side-inset {
+  padding-right: 98px;
+}
+
 .deck-create-bar {
   container-type: inline-size;
   padding: 8px;
@@ -688,9 +711,15 @@
 /* Cost and model figures on the left, the full-body portrait in its own right column. */
 .deck-usage-top {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(130px, 46%, 190px);
+  /* The cost column keeps room for its caption; the portrait takes everything left over. */
+  grid-template-columns: minmax(0, 1fr) clamp(100px, calc(100% - 148px), 190px);
   align-items: stretch;
   column-gap: 4px;
+}
+
+/* Gives the portrait a taller stage when no provider rows fill the column. */
+.deck-usage-cost {
+  min-height: 104px;
 }
 
 /* Sized by the cost column, never taller than it plus the overlap, so no gap opens above Quota. */
@@ -739,7 +768,7 @@
 /* One line per window: label, percentage, bar, reset countdown. */
 .deck-quota-window {
   display: grid;
-  grid-template-columns: 1.5rem 2.25rem minmax(0, 1fr) 5.5rem;
+  grid-template-columns: 1.5rem 2.25rem minmax(0, 1fr) 6rem;
   column-gap: 6px;
   align-items: center;
 }

@@ -21,7 +21,7 @@ import {
   MAC_TRAFFIC_LIGHTS_WIDTH,
   WINDOW_CONTROLS_HEIGHT,
   WINDOW_CONTROLS_WIDTH,
-  hasCustomTitleBar,
+  hasWindowControls,
   usesDeckTitlebarStatus
 } from './app-shell/app-window-chrome'
 import { useAppChromeLayout } from './app-shell/use-app-chrome-layout'
@@ -134,13 +134,13 @@ function App(): React.JSX.Element {
         <div
           id="deck-titlebar-status"
           className="deck-titlebar-status"
+          data-window-buttons={hasWindowControls ? '' : undefined}
           style={layout.leftSidebarStyle}
           role="group"
           aria-label="System status"
         />
-      ) : hasCustomTitleBar ? (
-        <WindowControls />
       ) : null}
+      {hasWindowControls ? <WindowControls /> : null}
     </div>
   )
 }

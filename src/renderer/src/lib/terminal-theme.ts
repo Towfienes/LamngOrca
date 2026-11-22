@@ -14,8 +14,11 @@ import {
   type TerminalPaletteSettings,
   type TerminalThemeLookupSettings
 } from '../../../shared/terminal-themes/terminal-theme-selection'
+import { terminalColorOverridesForSlot } from '../../../shared/terminal-themes/terminal-color-overrides'
+import { isTerminalBackgroundLight } from '../../../shared/terminal-themes/terminal-title-contrast'
 
 export const BUILTIN_TERMINAL_THEME_NAMES = getThemeNames()
+const DECK_TERMINAL_BLACK = '#000000'
 
 export const DEFAULT_TERMINAL_DIVIDER_DARK = '#3f3f46'
 export const DEFAULT_TERMINAL_DIVIDER_LIGHT = '#d4d4d8'
@@ -116,9 +119,26 @@ export function resolveEffectiveTerminalAppearance(
     sourceTheme: settings.theme,
     themeName,
     dividerColor,
-    theme,
+    theme: withDeckBlackBackground(theme, settings, useLightVariant),
     systemPrefersDark
   }
+}
+
+/** Deck paints dark terminals true black; light palettes and a user-picked background are kept. */
+function withDeckBlackBackground(
+  theme: ITheme | null,
+  settings: TerminalPaletteSettings,
+  useLightVariant: boolean
+): ITheme | null {
+  if (
+    !theme ||
+    useLightVariant ||
+    terminalColorOverridesForSlot(settings, 'dark')?.background ||
+    isTerminalBackgroundLight(theme.background)
+  ) {
+    return theme
+  }
+  return { ...theme, background: DECK_TERMINAL_BLACK }
 }
 
 export function normalizeColor(value: string | undefined, fallback: string): string {

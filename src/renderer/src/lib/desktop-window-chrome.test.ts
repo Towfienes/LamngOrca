@@ -21,10 +21,11 @@ describe('shouldRenderDesktopWindowChrome', () => {
 })
 
 describe('Deck titlebar status', () => {
-  it('replaces Linux desktop buttons while preserving other platforms and web clients', () => {
+  it('moves status to the titlebar on Linux and Windows desktops only', () => {
     expect(shouldUseDeckTitlebarStatus({ platform: 'linux', isWebClient: false })).toBe(true)
     expect(shouldUseDeckTitlebarStatus({ platform: 'linux', isWebClient: true })).toBe(false)
-    expect(shouldUseDeckTitlebarStatus({ platform: 'win32', isWebClient: false })).toBe(false)
+    expect(shouldUseDeckTitlebarStatus({ platform: 'win32', isWebClient: false })).toBe(true)
+    expect(shouldUseDeckTitlebarStatus({ platform: 'win32', isWebClient: true })).toBe(false)
     expect(shouldUseDeckTitlebarStatus({ platform: 'darwin', isWebClient: false })).toBe(false)
   })
 })

@@ -25,7 +25,7 @@ const RANGES: { value: CodexUsageRange; label: string }[] = [
 ]
 
 // Content width the panel is laid out for; narrower docks scale it down instead of reflowing it.
-const USAGE_DESIGN_WIDTH = 324
+const USAGE_DESIGN_WIDTH = 248
 const USAGE_MIN_SCALE = 0.6
 
 function useUsageFitScale(node: HTMLElement | null): number {
@@ -140,14 +140,14 @@ export default function DeckUsagePanel(): React.JSX.Element {
   return (
     <Collapsible open={open} onOpenChange={setOpen} asChild>
       <div
-        className="deck-usage-panel relative isolate flex min-h-0 max-h-[50%] shrink flex-col gap-2 border-t border-sidebar-border bg-sidebar px-3 pt-2 pb-2 text-sidebar-foreground"
+        className="deck-usage-panel relative isolate flex min-h-0 max-h-[50%] shrink flex-col gap-2 border-t border-sidebar-border bg-sidebar px-2 pt-2 pb-2 text-sidebar-foreground"
         aria-label="Usage panel"
         aria-busy={loading || refreshing}
         data-usage-open={open ? '' : undefined}
       >
         <div className="flex items-center justify-between gap-1">
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="xs">
+            <Button variant="ghost" size="xs" className="-ml-2">
               {open ? <ChevronDown /> : <ChevronRight />}
               Usage
             </Button>
@@ -181,7 +181,9 @@ export default function DeckUsagePanel(): React.JSX.Element {
                     className="deck-usage-cost min-w-0 text-popover-foreground"
                     aria-label="Estimated API cost"
                   >
-                    <span className="text-[11px] text-muted-foreground">Estimated API cost</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      Estimated API cost
+                    </span>
                     <p
                       className="deck-usage-total text-2xl leading-tight font-semibold tabular-nums"
                       aria-live="polite"
@@ -189,7 +191,7 @@ export default function DeckUsagePanel(): React.JSX.Element {
                       {formatUsageCost(overview.estimatedCostUsd)}
                     </p>
                     <p
-                      className="text-[11px] leading-4 text-muted-foreground"
+                      className="truncate text-[11px] leading-4 text-muted-foreground"
                       title="API-equivalent cost from local agent logs; not your subscription bill"
                     >
                       API equivalent · local logs
