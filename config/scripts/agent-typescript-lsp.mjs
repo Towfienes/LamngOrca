@@ -8,7 +8,7 @@ import { createIdleLanguageServer } from './agent-typescript-lsp-idle.mjs'
 const PULL_DEBOUNCE_MS = 100
 const BRIDGE_ID_PREFIX = 'orca-diagnostics-'
 const WINDOWS_TSC_MEMORY_LIMIT = '4GiB'
-const WINDOWS_TSC_IDLE_STOP_MS = 5 * 60_000
+const WINDOWS_TSC_IDLE_STOP_MS = 60_000
 
 export function resolveTypescriptLanguageServer({
   root,
