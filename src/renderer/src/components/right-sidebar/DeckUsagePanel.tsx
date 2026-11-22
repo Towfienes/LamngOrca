@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/colla
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { formatUsageCost, formatUsageTokens } from '../stats/usage-overview-model'
+import { enableDeckUsageTrackingOnce } from './deck-usage-tracking'
 import { useDeckUsageOverview } from './use-deck-usage-overview'
 import { DeckQuotaBlock } from './DeckQuotaBlock'
 import { DeckIssuesBalloon } from './DeckIssuesBalloon'
@@ -80,10 +81,14 @@ export default function DeckUsagePanel(): React.JSX.Element {
       }
       pending = true
       try {
+        if (await enableDeckUsageTrackingOnce()) {
+          return
+        }
         const state = useAppStore.getState()
+        // Why: scan state is empty after an app restart until a fetch loads it from main.
         await Promise.allSettled([
-          state.claudeUsageScanState?.enabled ? state.refreshClaudeUsage() : undefined,
-          state.codexUsageScanState?.enabled ? state.refreshCodexUsage() : undefined
+          state.claudeUsageScanState?.enabled ? state.refreshClaudeUsage() : state.fetchClaudeUsage(),
+          state.codexUsageScanState?.enabled ? state.refreshCodexUsage() : state.fetchCodexUsage()
         ])
       } finally {
         pending = false
@@ -289,11 +294,6 @@ export default function DeckUsagePanel(): React.JSX.Element {
                   </div>
                 </div>
                 <DeckQuotaBlock />
-                {!loading && providers.length === 0 && (
-                  <p className="mt-3 text-[11px] text-muted-foreground">
-                    Enable usage tracking in Settings to read your local agent logs.
-                  </p>
-                )}
                 {overview.hasPartialCost && (
                   <p className="mt-3 text-[11px] text-muted-foreground">Unpriced usage excluded.</p>
                 )}
