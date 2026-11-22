@@ -17,6 +17,7 @@ import {
   isAiVaultSessionResumableContent,
   type AiVaultSession
 } from '../../../../shared/ai-vault/contracts/ai-vault-types'
+import { isClaude9TranscriptPath } from '../../../../shared/claude9-models'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 
@@ -89,7 +90,16 @@ export function DeckAgentSessionPicker({
         setSessions(
           result.sessions.filter((s) => {
             const identity = `${s.agent}:${s.sessionId}`
-            if (s.executionHostId !== host || s.subagent || s.isSubagent || seen.has(identity)) {
+            // Why: the shared scan also finds claude9's config dir once a claude9 pane reports it,
+            // but those sessions belong only to the claude9 picker and cannot resume as `claude`.
+            const otherPool = !loadSessions && isClaude9TranscriptPath(s.filePath)
+            if (
+              otherPool ||
+              s.executionHostId !== host ||
+              s.subagent ||
+              s.isSubagent ||
+              seen.has(identity)
+            ) {
               return false
             }
             seen.add(identity)

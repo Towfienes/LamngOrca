@@ -12,7 +12,7 @@ vi.mock('@/store', () => ({ useAppStore: { getState: () => ({}) } }))
 vi.mock('@/lib/ai-vault-resume-target', () => ({
   getAiVaultResumeWorkspaceExecutionHostId: () => 'local'
 }))
-vi.mock('../right-sidebar/ai-vault-session-launch-target', () => ({
+vi.mock('../right-sidebar/ai-vault/session-actions/ai-vault-session-launch-target', () => ({
   resolveAiVaultTargetWorkspacePath: () => '/workspace'
 }))
 const list = vi.fn()

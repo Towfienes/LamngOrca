@@ -12,7 +12,7 @@ vi.mock('@/store', () => ({ useAppStore: { getState: () => ({}) } }))
 vi.mock('@/lib/ai-vault-resume-target', () => ({
   getAiVaultResumeWorkspaceExecutionHostId: () => 'local'
 }))
-vi.mock('../right-sidebar/ai-vault-session-launch-target', () => ({
+vi.mock('../right-sidebar/ai-vault/session-actions/ai-vault-session-launch-target', () => ({
   resolveAiVaultTargetWorkspacePath: () => '/workspace'
 }))
 vi.mock('../ui/command', () => ({
@@ -167,5 +167,45 @@ describe('Deck session history picker', () => {
     )
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Host unavailable')
     expect(screen.getByRole('button', { name: 'New session' })).toBeTruthy()
+  })
+  describe('keeps Claude and claude9 history apart', () => {
+    const claude9Session = {
+      ...session('claude9-here', 'claude'),
+      filePath: 'C:\\Users\\u\\.claude-9router\\projects\\p\\claude9-here.jsonl'
+    }
+    it('hides claude9 transcripts that the shared history scan also found', async () => {
+      list.mockResolvedValue({
+        sessions: [session('claude-here', 'claude'), claude9Session],
+        issues: [],
+        scannedAt: ''
+      })
+      render(
+        <DeckAgentSessionPicker
+          agent="claude"
+          worktreeId="wt"
+          accountLabel="b"
+          onBack={() => {}}
+          onLaunch={async () => {}}
+        />
+      )
+      await screen.findByText('claude-here', { selector: '[title]' })
+      expect(screen.queryByText('claude9-here')).toBeNull()
+      expect(screen.getByText('1–1 of 1')).toBeTruthy()
+    })
+    it('keeps claude9 transcripts in the claude9 picker', async () => {
+      const loadSessions = vi.fn(async () => [claude9Session])
+      render(
+        <DeckAgentSessionPicker
+          agent="claude"
+          worktreeId="wt"
+          accountLabel="9router (claude9)"
+          loadSessions={loadSessions}
+          onBack={() => {}}
+          onLaunch={async () => {}}
+        />
+      )
+      await screen.findByText('claude9-here', { selector: '[title]' })
+      expect(list).not.toHaveBeenCalled()
+    })
   })
 })
