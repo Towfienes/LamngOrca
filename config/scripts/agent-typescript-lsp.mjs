@@ -3,9 +3,12 @@ import { spawnProcess } from '@orca/process-host'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolveProjectCompilerInfo } from './run-typecheck-projects-in-parallel.mjs'
 import { resolveTsrsLauncher, supportsTsrs } from './tsrs-typecheck-compiler.mjs'
+import { createIdleLanguageServer } from './agent-typescript-lsp-idle.mjs'
 
 const PULL_DEBOUNCE_MS = 100
 const BRIDGE_ID_PREFIX = 'orca-diagnostics-'
+const WINDOWS_TSC_MEMORY_LIMIT = '4GiB'
+const WINDOWS_TSC_IDLE_STOP_MS = 5 * 60_000
 
 export function resolveTypescriptLanguageServer({
   root,
@@ -23,7 +26,20 @@ export function resolveTypescriptLanguageServer({
     server === 'tsrs'
       ? resolveTsrsLauncher(root).launcher
       : resolveProjectCompilerInfo('tsconfig.json', root).program
-  return { server, program: process.execPath, args: [launcher, '--lsp', '--stdio'], cwd: root }
+  const command = {
+    server,
+    program: process.execPath,
+    args: [launcher, '--lsp', '--stdio'],
+    cwd: root
+  }
+  // Why: Windows has no tsrs build, and tsc holds several GB for this repo even while idle.
+  return platform === 'win32' && server === 'tsc'
+    ? {
+        ...command,
+        env: { ...env, GOMEMLIMIT: env.GOMEMLIMIT ?? WINDOWS_TSC_MEMORY_LIMIT },
+        idleStopMs: WINDOWS_TSC_IDLE_STOP_MS
+      }
+    : command
 }
 
 export function createLspMessageReader(onMessage) {
@@ -173,30 +189,61 @@ export function createDiagnosticsBridge({
 
 function runLanguageServer() {
   const root = process.env.CLAUDE_PROJECT_DIR || fileURLToPath(new URL('../..', import.meta.url))
-  const command = resolveTypescriptLanguageServer({ root })
-  const child = spawnProcess({ ...command, stdio: ['pipe', 'pipe', 'inherit'] })
+  const { idleStopMs, ...command } = resolveTypescriptLanguageServer({ root })
+  let target
   const bridge = createDiagnosticsBridge({
     toClient: (message) => process.stdout.write(encodeLspMessage(message)),
-    toServer: (message) => child.stdin.write(encodeLspMessage(message))
+    toServer: (message) => target.send(message)
   })
+  const startServer = ({ onMessage, onExit }) => {
+    const child = spawnProcess({ ...command, stdio: ['pipe', 'pipe', 'inherit'] })
+    child.stdout.on('data', createLspMessageReader(onMessage))
+    child.on('error', (error) => {
+      console.error(`agent-typescript-lsp: ${error.message}`)
+      process.exit(1)
+    })
+    child.on('exit', onExit)
+    if (idleStopMs) {
+      // Why: a server stopping on its own can close stdin before the final `exit` is flushed.
+      child.stdin.on('error', () => {})
+    }
+    return {
+      write: (message) => child.stdin.write(encodeLspMessage(message)),
+      end: () => child.stdin.end(),
+      // Why: on Windows the npm launcher is only the parent of the real tsc.exe.
+      kill: (signal) =>
+        idleStopMs
+          ? spawnProcess({
+              program: 'taskkill',
+              args: ['/pid', String(child.pid), '/t', '/f'],
+              stdio: 'ignore'
+            })
+          : child.kill(signal)
+    }
+  }
+  if (idleStopMs) {
+    target = createIdleLanguageServer({
+      idleMs: idleStopMs,
+      startServer,
+      toClient: (message) => bridge.fromServer(message),
+      onExit: (code) => process.exit(code)
+    })
+  } else {
+    const server = startServer({
+      onMessage: (message) => bridge.fromServer(message),
+      onExit: (code, signal) => process.exit(code ?? (signal ? 1 : 0))
+    })
+    target = { send: server.write, close: server.end, kill: server.kill }
+  }
   process.stdin.on(
     'data',
     createLspMessageReader((message) => bridge.fromClient(message))
   )
-  child.stdout.on(
-    'data',
-    createLspMessageReader((message) => bridge.fromServer(message))
-  )
   // The client owns the session: when it goes away, so does the server.
-  process.stdin.on('end', () => child.stdin.end())
+  process.stdin.on('end', () => target.close())
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-    process.on(signal, () => child.kill(signal))
+    process.on(signal, () => target.kill(signal))
   }
-  child.on('error', (error) => {
-    console.error(`agent-typescript-lsp: ${error.message}`)
-    process.exit(1)
-  })
-  child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)))
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
