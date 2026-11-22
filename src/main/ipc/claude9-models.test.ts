@@ -2,7 +2,32 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
 
-import { parseClaude9List } from './claude9-models'
+import { claude9ListInvocation, parseClaude9List } from './claude9-models'
+
+describe('claude9ListInvocation', () => {
+  it('runs the claude9.cmd shim through cmd.exe on Windows', () => {
+    expect(claude9ListInvocation('win32', 'C:\\Users\\Ngo Lam', () => true)).toEqual({
+      file: '"C:\\Users\\Ngo Lam\\.local\\bin\\claude9.cmd"',
+      args: ['--list', '--json'],
+      shell: true
+    })
+  })
+
+  it('falls back to claude9 on PATH when the Windows shim is missing', () => {
+    expect(claude9ListInvocation('win32', 'C:\\Users\\x', () => false)).toMatchObject({
+      file: 'claude9',
+      shell: true
+    })
+  })
+
+  it('executes the launcher directly elsewhere', () => {
+    expect(claude9ListInvocation('linux', '/home/x', () => true)).toEqual({
+      file: '/home/x/.local/bin/claude9',
+      args: ['--list', '--json'],
+      shell: false
+    })
+  })
+})
 
 describe('parseClaude9List', () => {
   it('keeps well-formed models and the default id', () => {

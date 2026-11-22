@@ -28,6 +28,16 @@ describe('buildClaude9Command', () => {
     ).toBe(`cd '/w/it'\\''s' && claude9 --resume abc-123`)
   })
 
+  it('changes directory with PowerShell syntax on a Windows desktop', () => {
+    expect(
+      buildClaude9Command(
+        '',
+        { sessionId: 'abc-123', cwd: "C:\\w\\it's", workspacePath: 'C:\\w\\Paper' },
+        true
+      )
+    ).toBe(`Set-Location -LiteralPath 'C:\\w\\it''s'; claude9 --resume abc-123`)
+  })
+
   it('rejects session ids that are not plain identifiers', () => {
     expect(() =>
       buildClaude9Command('', { sessionId: 'x; rm -rf ~', cwd: null, workspacePath: null })

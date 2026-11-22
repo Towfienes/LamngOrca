@@ -245,6 +245,8 @@ export const electronViteConfig: UserConfig = {
       ORCA_POSTHOG_WRITE_KEY: ORCA_POSTHOG_WRITE_KEY_LITERAL,
       ORCA_DIAGNOSTICS_TOKEN_URL: ORCA_DIAGNOSTICS_TOKEN_URL_LITERAL,
       ORCA_BUILD_COMMIT: ORCA_BUILD_COMMIT_LITERAL,
+      // Lamng fork: the release feed is upstream; installing it would replace this build.
+      ORCA_LAMNG_BLOCK_UPSTREAM_UPDATES: 'true',
       ...DARK_BUILD_DEFINES
     },
     // @xterm/headless declares exports:null; point Vite directly at its published CJS main to permit inlining.

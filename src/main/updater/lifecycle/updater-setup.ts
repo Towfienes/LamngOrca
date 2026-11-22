@@ -22,6 +22,7 @@ import { UpdaterDownloadInstall } from './updater-download-install'
 import { configureMacShipItScheduling } from '../mac-install/macos-shipit-scheduling'
 import { handleElectronUpdaterProxyLogin } from './electron-updater-proxy-session'
 import { resolveWindowsUpdateInstallDirectory } from './windows-update-install-directory'
+import { isLamngUpstreamUpdateBlocked } from '../lamng-upstream-update-block'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-state'
 
 export type UpdaterSetupOptions = {
@@ -140,7 +141,7 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
       this.sendErrorStatus(`The server update did not complete: ${serveHandoffFailure}`, true)
     }
 
-    if (!app.isPackaged) {
+    if (!app.isPackaged || isLamngUpstreamUpdateBlocked()) {
       return
     }
 

@@ -1,4 +1,5 @@
 import { useAppStore } from '@/store'
+import { isWindowsDesktopClient } from '@/lib/windows-path-access'
 import { resolveTuiAgentLaunchArgs } from '../../../../shared/agent-launch/choices/tui-agent-launch-defaults'
 import type { AiVaultSession } from '../../../../shared/ai-vault/contracts/ai-vault-types'
 import { resolveAiVaultTargetWorkspacePath } from '../right-sidebar/ai-vault/session-actions/ai-vault-session-launch-target'
@@ -11,6 +12,13 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`
 }
 
+/** Windows desktops type agent commands into PowerShell, which has its own quoting and `cd`. */
+function changeDirectoryCommand(cwd: string, windows: boolean): string {
+  return windows
+    ? `Set-Location -LiteralPath '${cwd.replace(/'/g, "''")}'; `
+    : `cd ${shellQuote(cwd)} && `
+}
+
 /**
  * The `claude9` command line: its default 9router model plus Claude's default launch args,
  * optionally resuming a session. `claude --resume` only finds a transcript under the project
@@ -18,7 +26,8 @@ function shellQuote(value: string): string {
  */
 export function buildClaude9Command(
   defaultArgs: string,
-  resume?: { sessionId: string; cwd: string | null; workspacePath: string | null }
+  resume?: { sessionId: string; cwd: string | null; workspacePath: string | null },
+  windows = isWindowsDesktopClient()
 ): string {
   if (resume && !SAFE_SESSION_ID.test(resume.sessionId)) {
     throw new Error(`Unsupported claude9 session id: ${resume.sessionId}`)
@@ -27,7 +36,7 @@ export function buildClaude9Command(
     .filter(Boolean)
     .join(' ')
   return resume?.cwd && resume.cwd !== resume.workspacePath
-    ? `cd ${shellQuote(resume.cwd)} && ${command}`
+    ? `${changeDirectoryCommand(resume.cwd, windows)}${command}`
     : command
 }
 

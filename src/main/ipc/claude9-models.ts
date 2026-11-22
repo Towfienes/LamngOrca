@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { readdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, win32 } from 'node:path'
 import type { Claude9Model, Claude9ModelList } from '../../shared/claude9-models'
 import type { AiVaultSession } from '../../shared/ai-vault/contracts/ai-vault-types'
 import { parseClaudeSessionFile } from '../ai-vault/scanners/claude/session-scanner-primary-parsers'
@@ -12,10 +12,22 @@ const CACHE_MS = 5 * 60_000
 let cached: Claude9ModelList | null = null
 let inflight: Promise<Claude9ModelList> | null = null
 
-function claude9Binary(): string {
-  // Why: a GUI-launched Electron main may not have ~/.local/bin on PATH.
-  const local = join(homedir(), '.local', 'bin', 'claude9')
-  return existsSync(local) ? local : 'claude9'
+/**
+ * How Orca runs `claude9 --list --json`. Why: a GUI-launched Electron main may not have
+ * ~/.local/bin on PATH, and on Windows claude9 is a .cmd shim that only cmd.exe can run.
+ */
+export function claude9ListInvocation(
+  platform: NodeJS.Platform = process.platform,
+  home: string = homedir(),
+  exists: (path: string) => boolean = existsSync
+): { file: string; args: string[]; shell: boolean } {
+  const args = ['--list', '--json']
+  if (platform === 'win32') {
+    const shim = win32.join(home, '.local', 'bin', 'claude9.cmd')
+    return { file: exists(shim) ? `"${shim}"` : 'claude9', args, shell: true }
+  }
+  const local = join(home, '.local', 'bin', 'claude9')
+  return { file: exists(local) ? local : 'claude9', args, shell: false }
 }
 
 export function parseClaude9List(stdout: string, now: number): Claude9ModelList {
@@ -40,11 +52,17 @@ export function parseClaude9List(stdout: string, now: number): Claude9ModelList 
 }
 
 function runList(): Promise<Claude9ModelList> {
+  const invocation = claude9ListInvocation()
   return new Promise((resolve) => {
     execFile(
-      claude9Binary(),
-      ['--list', '--json'],
-      { timeout: 25_000, maxBuffer: 4 * 1024 * 1024 },
+      invocation.file,
+      invocation.args,
+      {
+        timeout: 25_000,
+        maxBuffer: 4 * 1024 * 1024,
+        shell: invocation.shell,
+        windowsHide: true
+      },
       (error, stdout, stderr) => {
         const now = Date.now()
         if (error) {

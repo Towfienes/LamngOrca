@@ -10,4 +10,7 @@ declare const ORCA_DIAGNOSTICS_TOKEN_URL: string | null
 // Full commit the build was made from (`git rev-parse HEAD`); official skill installs pin to it.
 declare const ORCA_BUILD_COMMIT: string
 
+// Lamng fork: true in built apps so the upstream update feed never replaces this fork's build.
+declare const ORCA_LAMNG_BLOCK_UPSTREAM_UPDATES: boolean
+
 // ORCA_LAYOUT_OWNER is declared and read in one place: src/shared/layout-owner-switch.ts.

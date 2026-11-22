@@ -1,5 +1,6 @@
 import { app } from 'electron'
 import { isMacInstallRequested } from '../mac-install/updater-mac-install'
+import { isLamngUpstreamUpdateBlocked } from '../lamng-upstream-update-block'
 import { withUpdaterSpan } from '../../observability/instrumentation'
 import {
   AUTO_UPDATE_CHECK_INTERVAL_MS,
@@ -64,7 +65,7 @@ export abstract class UpdaterScheduling extends UpdaterCheckFailure {
     if (this.backgroundCheckLaunchPending || this.currentStatus.state === 'checking') {
       return false
     }
-    if (!app.isPackaged) {
+    if (!app.isPackaged || isLamngUpstreamUpdateBlocked()) {
       this.sendStatus({ state: 'not-available' })
       return false
     }

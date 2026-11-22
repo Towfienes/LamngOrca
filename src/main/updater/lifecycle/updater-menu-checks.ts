@@ -1,5 +1,6 @@
 import { app } from 'electron'
 import { isMacInstallRequested } from '../mac-install/updater-mac-install'
+import { isLamngUpstreamUpdateBlocked } from '../lamng-upstream-update-block'
 import type { UpdateCheckOptions } from '../../../shared/update-status-types'
 import type { ReleaseChannel } from '../../../shared/release-channel'
 import { UpdaterScheduling } from './updater-scheduling'
@@ -13,7 +14,7 @@ export abstract class UpdaterMenuChecks extends UpdaterScheduling {
     ) {
       return
     }
-    if (!app.isPackaged) {
+    if (!app.isPackaged || isLamngUpstreamUpdateBlocked()) {
       this.sendStatus({ state: 'not-available', userInitiated: true })
       return
     }
