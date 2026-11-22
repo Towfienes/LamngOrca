@@ -42,18 +42,6 @@ export const ANTIGRAVITY_ACCOUNT_METHODS = [
     handler: async (target) => getAntigravityAccountService(target).listAccounts()
   }),
   defineMethod({
-    name: 'accounts.antigravityInactiveUsage',
-    permission: 'workspace',
-    params: AntigravityAccountTargetParams,
-    handler: async (target) => fetchInactiveAntigravityUsage(getAntigravityAccountService(target))
-  }),
-  defineMethod({
-    name: 'accounts.antigravitySignOutForNewAccount',
-    permission: 'accounts-admin',
-    params: AntigravityAccountTargetParams,
-    handler: async (target) => getAntigravityAccountService(target).signOutForNewAccount()
-  }),
-  defineMethod({
     name: 'accounts.antigravityAddCurrent',
     permission: 'accounts-admin',
     params: AntigravityAccountTargetParams,
@@ -110,5 +98,18 @@ export const ANTIGRAVITY_ACCOUNT_METHODS = [
     params: AntigravityChatSignInCompleteParams,
     handler: async ({ flowId, callbackUrl }, ctx) =>
       completeAntigravityChatSignIn(signInOwner(ctx), flowId, callbackUrl)
+  }),
+  // Lamng additions stay last so upstream callers indexing this tuple keep their positions.
+  defineMethod({
+    name: 'accounts.antigravityInactiveUsage',
+    permission: 'workspace',
+    params: AntigravityAccountTargetParams,
+    handler: async (target) => fetchInactiveAntigravityUsage(getAntigravityAccountService(target))
+  }),
+  defineMethod({
+    name: 'accounts.antigravitySignOutForNewAccount',
+    permission: 'accounts-admin',
+    params: AntigravityAccountTargetParams,
+    handler: async (target) => getAntigravityAccountService(target).signOutForNewAccount()
   })
 ] as const
