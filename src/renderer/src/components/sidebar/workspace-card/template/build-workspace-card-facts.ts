@@ -115,7 +115,8 @@ export function buildWorkspaceCardFacts(card: WorktreeCardController): Workspace
       hideRepoBadge: card.hideRepoBadge === true,
       showProjectName: card.showProjectName === true,
       affiliateList: card.affiliateListMode,
-      deleteQuickAction: card.showDeleteQuickAction
+      deleteQuickAction: card.showDeleteQuickAction,
+      sleepQuickAction: card.showSleepQuickAction
     },
     options: {
       style: card.newCardStyle ? 'new' : card.compactCards ? 'compact' : 'classic',

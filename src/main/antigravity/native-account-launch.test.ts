@@ -48,6 +48,22 @@ describe('native account verification before agy launch', () => {
     })
     expect(prepareForLaunch).toHaveBeenCalledTimes(2)
   })
+  it('still launches agy when the saved-account vault cannot be read (keyring locked at startup)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(createEncryptedAntigravityAccountStore).mockReturnValue({
+      read: () => {
+        throw new Error(
+          'Protected secret storage is unavailable; Antigravity accounts were not changed.'
+        )
+      },
+      write: vi.fn()
+    })
+    await expect(
+      prepareAntigravityAccountForLaunch({ command: 'agy', env: { HOME: '/task/home' } })
+    ).resolves.toBeUndefined()
+    expect(prepareForLaunch).not.toHaveBeenCalled()
+  })
+
   it('preserves owning-host and distro boundaries without reading client credentials', async () => {
     await prepareAntigravityAccountForLaunch({
       launchAgent: 'antigravity',

@@ -7,13 +7,14 @@ import {
   ANTIGRAVITY_CHAT_SIGN_IN_RUNTIME_CAPABILITY
 } from '../../../shared/account-runtime-capabilities'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
+import type { ProviderRateLimits } from '../../../shared/rate-limit-types'
 import { assertRuntimeEnvironmentCapability, callRuntimeRpc } from './runtime-rpc-client'
 import { subscribeRuntimeRpc, type RuntimeRpcSubscriptionHandlers } from './runtime-rpc-subscribe'
 
 export async function callAntigravityAccounts(
   owner: RuntimeClientTarget,
   target: AntigravityAccountTarget,
-  action: 'List' | 'AddCurrent' | 'Select' | 'Remove',
+  action: 'List' | 'AddCurrent' | 'Select' | 'Remove' | 'SignOutForNewAccount',
   accountId?: string
 ): Promise<AntigravityAccountState> {
   if (owner.kind === 'environment') {
@@ -26,9 +27,20 @@ export async function callAntigravityAccounts(
   return callRuntimeRpc(
     owner,
     `accounts.antigravity${action}`,
-    action === 'List' || action === 'AddCurrent' ? target : { target, accountId },
+    action === 'List' || action === 'AddCurrent' || action === 'SignOutForNewAccount'
+      ? target
+      : { target, accountId },
     { timeoutMs: 20_000 }
   )
+}
+
+/** Quota of each saved account that is not the native one, keyed by account id. */
+export async function callAntigravityInactiveUsage(
+  target: AntigravityAccountTarget
+): Promise<Record<string, ProviderRateLimits>> {
+  return callRuntimeRpc({ kind: 'local' }, 'accounts.antigravityInactiveUsage', target, {
+    timeoutMs: 120_000
+  })
 }
 
 async function assertChatSignInHost(owner: RuntimeClientTarget): Promise<void> {

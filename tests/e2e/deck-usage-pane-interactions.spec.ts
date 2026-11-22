@@ -193,7 +193,9 @@ test('Deck Usage, compact commands and pane mouse interactions', async ({
   expect(usageGeometry.reservedGap).toBeLessThanOrEqual(1)
   expect(usageGeometry.headingGap).toBeLessThanOrEqual(8)
   expect(
-    await usage.locator('.deck-usage-portrait').evaluate((node) => getComputedStyle(node).top)
+    await usage
+      .getByRole('img', { name: 'Boruto Uzumaki', exact: true })
+      .evaluate((node) => getComputedStyle(node).top)
   ).toBe('8px')
   expect((await quota.boundingBox())!.width).toBeGreaterThan((await cost.boundingBox())!.width)
   await capture('deck-usage-quota.png')
@@ -241,20 +243,21 @@ test('Deck Usage, compact commands and pane mouse interactions', async ({
   await scroll.evaluate((node) => {
     node.scrollTop = 0
   })
-  const notesTrigger = usage.getByRole('button', { name: 'Open to-do notes' })
-  await notesTrigger.click()
+  // Boruto's balloon lists open GitHub issues assigned to the user (read-only gh, no AI).
+  const issuesTrigger = usage.getByRole('button', { name: 'Mở danh sách issue' })
+  await issuesTrigger.click()
   const bubble = page.locator('[data-manga-notes]')
   await expect(bubble).toBeVisible()
-  await bubble.getByRole('button', { name: 'Add task' }).click()
-  await bubble.getByRole('textbox', { name: 'Task 1' }).fill('Thuyết trình notebook tiếng Việt')
-  await bubble.getByRole('checkbox', { name: 'Complete task 1' }).click()
+  await expect(bubble.getByRole('heading', { name: /Issues của tôi/ })).toBeVisible()
+  // Hermetic: the gh poll may still be in flight, so loading, empty, error or a list are all fine.
+  await expect(
+    bubble.locator('[aria-busy="true"], [role="status"], [aria-label="Issue đang mở"]').first()
+  ).toBeVisible()
+  await expect(usage.locator('.deck-karma')).toHaveAttribute('data-karma', /^(rest|awake)$/)
   await page.keyboard.press('Escape')
   await expect(bubble).toBeHidden()
-  await notesTrigger.click()
-  await expect(bubble.getByRole('textbox', { name: 'Task 1' })).toHaveValue(
-    'Thuyết trình notebook tiếng Việt'
-  )
-  await expect(bubble.getByRole('checkbox', { name: 'Complete task 1' })).toBeChecked()
+  await issuesTrigger.click()
+  await expect(bubble).toBeVisible()
   for (const theme of ['dark', 'light'] as const) {
     await page.evaluate((theme) => window.__store!.getState().updateSettings({ theme }), theme)
     const colors = await bubble.evaluate((node) => ({
@@ -263,11 +266,14 @@ test('Deck Usage, compact commands and pane mouse interactions', async ({
     }))
     expect(colors).toEqual({ background: 'rgb(255, 255, 255)', color: 'rgb(0, 0, 0)' })
     await expect
-      .poll(() => page.evaluate(() => document.fonts.check('18px "Patrick Hand"', 'Thuyết trình')))
+      .poll(() =>
+        page.evaluate(() => document.fonts.check('18px "Patrick Hand"', 'Issues của tôi'))
+      )
       .toBe(true)
-    await capture(`deck-manga-notes-${theme}.png`)
+    await capture(`deck-issues-balloon-${theme}.png`)
   }
-  await bubble.getByRole('button', { name: 'Close notes' }).click()
+  await bubble.getByRole('button', { name: 'Đóng' }).click()
+  await expect(bubble).toBeHidden()
   await page.evaluate(() => window.__store!.getState().updateSettings({ theme: 'dark' }))
   await expect(cost).toBeVisible()
   await page.getByRole('button', { name: /^Explorer/ }).click()
@@ -345,7 +351,7 @@ test('Deck Usage, compact commands and pane mouse interactions', async ({
   await capture('deck-pane-reordered.png')
 })
 
-test('manga notes stay in the viewport and survive renderer restart', async ({
+test('issues balloon stays in the viewport and survives renderer restart', async ({
   orcaPage: page,
   electronApp
 }) => {
@@ -355,7 +361,6 @@ test('manga notes stay in the viewport and survive renderer restart', async ({
     const state = window.__store!.getState()
     state.dismissUsagePercentageDisplayChangeNotice()
     state.markCodexTerminalServerIsolationNoticeSeen()
-    localStorage.setItem('orca.global-notes.v1', '- [ ] Chuẩn bị demo\n- [x] Kiểm tra notebook')
     if (state.sidebarOpen) {
       state.toggleSidebar()
     }
@@ -371,7 +376,7 @@ test('manga notes stay in the viewport and survive renderer restart', async ({
       width
     )
     await page.setViewportSize({ width, height: 900 })
-    await page.getByRole('button', { name: 'Open to-do notes' }).click()
+    await page.getByRole('button', { name: 'Mở danh sách issue' }).click()
     const bubble = page.locator('[data-manga-notes]')
     await expect(bubble).toBeVisible()
     const bounds = (await bubble.boundingBox())!
@@ -379,17 +384,16 @@ test('manga notes stay in the viewport and survive renderer restart', async ({
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(width)
     expect(bounds.y).toBeGreaterThanOrEqual(0)
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(900)
-    await expect(bubble.getByRole('textbox', { name: 'Task 1' })).toHaveValue('Chuẩn bị demo')
-    await expect(bubble.getByRole('checkbox', { name: 'Complete task 2' })).toBeChecked()
+    await expect(bubble.getByRole('heading', { name: /Issues của tôi/ })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(bubble).toBeHidden()
   }
   await page.reload()
   await waitForSessionReady(page)
-  await page.getByRole('button', { name: 'Open to-do notes' }).click()
+  await page.getByRole('button', { name: 'Mở danh sách issue' }).click()
   await expect(
-    page.locator('[data-manga-notes]').getByRole('textbox', { name: 'Task 1' })
-  ).toHaveValue('Chuẩn bị demo')
+    page.locator('[data-manga-notes]').getByRole('heading', { name: /Issues của tôi/ })
+  ).toBeVisible()
   expect(
     await electronApp.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows().every((window) => !window.isVisible())

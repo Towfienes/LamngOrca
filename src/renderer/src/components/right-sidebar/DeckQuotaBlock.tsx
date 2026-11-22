@@ -7,6 +7,7 @@ import { AgentIcon } from '@/lib/agent-catalog'
 import { getCodexAccountDisplayLabel } from '@/lib/codex-account-display-label'
 import { formatWindowLabel } from '../../../../shared/rate-limit-window-label'
 import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
+import { DeckAntigravityQuotaRows } from './DeckAntigravityQuotaRows'
 import { formatResetCountdown, getWindowSections } from '../status-bar/tooltip'
 import { getUsageRosterRowState } from '../status-bar/usage-roster-row-state'
 import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
@@ -22,7 +23,7 @@ type QuotaAccountRow = {
   active: boolean
 }
 
-/** Quota windows of every managed Claude and Codex account, active account first. */
+/** Quota windows of every managed Claude, Codex and Antigravity account, active account first. */
 export function DeckQuotaBlock(): React.JSX.Element | null {
   const [open, setOpen] = useState(true)
   const settings = useAppStore((s) => s.settings)
@@ -94,7 +95,11 @@ export function DeckQuotaBlock(): React.JSX.Element | null {
     })),
     inactiveCodex
   )
-  if (claudeRows.length === 0 && codexRows.length === 0) {
+  const hasAgy = useAppStore((s) => {
+    const agy = s.rateLimits?.antigravity
+    return Boolean(agy && agy.status !== 'unavailable')
+  })
+  if (claudeRows.length === 0 && codexRows.length === 0 && !hasAgy) {
     return null
   }
   return (
@@ -117,6 +122,7 @@ export function DeckQuotaBlock(): React.JSX.Element | null {
             {codexRows.map((row) => (
               <QuotaRows key={row.key} provider="codex" row={row} />
             ))}
+            <DeckAntigravityQuotaRows open={open} />
           </div>
         </CollapsibleContent>
       </section>

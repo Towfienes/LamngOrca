@@ -27,14 +27,16 @@ if [ -z "$latest" ]; then
 fi
 
 git fetch --quiet --no-tags upstream "refs/tags/$latest:refs/tags/$latest"
-branch=$(git rev-parse --abbrev-ref HEAD)
-if git merge-base --is-ancestor "$latest" HEAD; then
+# The base is the newest deck-update/* branch (the last installed line); HEAD of this checkout may be older.
+branch=${LAMNG_ORCA_BASE:-$(git for-each-ref --sort=-committerdate --count=1 --format='%(refname:short)' 'refs/heads/deck-update/*')}
+branch=${branch:-$(git rev-parse --abbrev-ref HEAD)}
+if git merge-base --is-ancestor "$latest" "$branch"; then
   echo "$(date -Is) up to date: $branch already contains $latest" >"$STATE/LATEST.txt"
   exit 0
 fi
 
-behind=$(git rev-list --count "HEAD..$latest")
-if conflicts=$(git merge-tree --write-tree --name-only --no-messages HEAD "$latest" | tail -n +2); then
+behind=$(git rev-list --count "$branch..$latest")
+if conflicts=$(git merge-tree --write-tree --name-only --no-messages "$branch" "$latest" | tail -n +2); then
   summary="$latest available ($behind commits), merges cleanly"
 else
   count=$(grep -c . <<<"$conflicts" || true)
@@ -44,7 +46,7 @@ fi
   echo "$(date -Is) $summary"
   echo "branch: $branch"
   [ -n "${conflicts:-}" ] && printf 'conflicting files:\n%s\n' "$conflicts"
-  echo "next: ask Claude to update Orca to $latest (separate worktree, tests, hidden smoke, side-by-side install)"
+  echo "next: ask Claude to update Orca to $latest (follow LAMNG_UPSTREAM_UPDATE.md; latest tag only)"
 } >"$STATE/LATEST.txt"
 
 # One desktop notification per release.

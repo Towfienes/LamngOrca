@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { OrcaCloudSession } from './profile-cloud-session-store'
@@ -134,6 +134,83 @@ describe('Orca cloud session store', () => {
     } finally {
       rmSync(otherUserDataPath, { recursive: true, force: true })
     }
+  })
+
+  it.each(['read', 'quit'] as const)(
+    'persists a memory-only sign-in after the keyring recovers during %s',
+    async (trigger) => {
+      safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
+      const store = await loadSessionStore()
+      const session = makeSession()
+      store.saveOrcaCloudSession('profile-1', userDataPath, session)
+      store.flushUnsavedOrcaCloudSessions()
+
+      safeStorageMock.isEncryptionAvailable.mockReturnValue(true)
+      if (trigger === 'read') {
+        store.readOrcaCloudSession('profile-1', userDataPath)
+      } else {
+        store.flushUnsavedOrcaCloudSessions()
+      }
+
+      const restarted = await loadSessionStore()
+      expect(restarted.readOrcaCloudSession('profile-1', userDataPath)).toEqual({
+        status: 'found',
+        session,
+        persistence: 'encrypted'
+      })
+    }
+  )
+
+  it('keeps a saved session recoverable when the keyring is unavailable at startup', async () => {
+    const store = await loadSessionStore()
+    const session = makeSession()
+    store.saveOrcaCloudSession('profile-1', userDataPath, session)
+    const restarted = await loadSessionStore()
+    safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
+
+    expect(restarted.readOrcaCloudSession('profile-1', userDataPath).status).toBe('unreadable')
+
+    safeStorageMock.isEncryptionAvailable.mockReturnValue(true)
+    expect(restarted.readOrcaCloudSession('profile-1', userDataPath)).toEqual({
+      status: 'found',
+      session,
+      persistence: 'encrypted'
+    })
+  })
+
+  it('never replays the spent disk token after a memory-only rotation', async () => {
+    const store = await loadSessionStore()
+    store.saveOrcaCloudSession('profile-1', userDataPath, makeSession())
+    safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
+    const rotated = { ...makeSession(), refreshToken: 'rotated-refresh-token' }
+
+    store.saveOrcaCloudSession('profile-1', userDataPath, rotated, { spentOnFailure: true })
+    store.flushUnsavedOrcaCloudSessions()
+    expect(existsSync(store.getOrcaCloudSessionPath('profile-1', userDataPath))).toBe(false)
+
+    safeStorageMock.isEncryptionAvailable.mockReturnValue(true)
+    store.flushUnsavedOrcaCloudSessions()
+    const restarted = await loadSessionStore()
+    expect(restarted.readOrcaCloudSession('profile-1', userDataPath)).toEqual({
+      status: 'found',
+      session: rotated,
+      persistence: 'encrypted'
+    })
+  })
+
+  it('does not restore an explicitly cleared memory-only session when the keyring recovers', async () => {
+    safeStorageMock.isEncryptionAvailable.mockReturnValue(false)
+    const store = await loadSessionStore()
+    store.saveOrcaCloudSession('profile-1', userDataPath, makeSession())
+    store.clearOrcaCloudSession('profile-1', userDataPath)
+
+    safeStorageMock.isEncryptionAvailable.mockReturnValue(true)
+    store.flushUnsavedOrcaCloudSessions()
+    const restarted = await loadSessionStore()
+    expect(restarted.readOrcaCloudSession('profile-1', userDataPath)).toEqual({
+      status: 'missing',
+      persistence: 'none'
+    })
   })
 
   it('writes explicit dev plaintext only when the dev escape hatch is enabled', async () => {

@@ -13,6 +13,7 @@ import {
   WorktreeCardRenameErrorButton,
   WorktreeCardRepoChip,
   WorktreeCardRuntimeHostMark,
+  WorktreeCardSleepQuickAction,
   WorktreeCardSparseBadge
 } from '../identity/worktree-card-header-items'
 import {
@@ -90,7 +91,12 @@ function sidebarLabel(text: string, tooltip: unknown): React.ReactNode {
   )
 }
 
+const DeckTreeHeaderRow = part([], (_props, children) => (
+  <div className="deck-tree-header flex min-w-0 items-center justify-between gap-2">{children}</div>
+))
+
 export const CARD_IDENTITY_PARTS = {
+  TreeHeaderRow: DeckTreeHeaderRow,
   BranchGlyph: part([], (_props, _children, card) => (
     <span className="deck-branch-glyph text-muted-foreground" aria-hidden="true">
       {card.isFolder ? <Folder className="size-3" /> : <GitBranch className="size-3" />}
@@ -123,6 +129,9 @@ export const CARD_IDENTITY_PARTS = {
       hasHoverDetails={props.hasHoverDetails === true}
       directories={card.worktree.sparseDirectories}
     />
+  )),
+  SleepQuickAction: part([], (_props, _children, card) => (
+    <WorktreeCardSleepQuickAction card={card} />
   )),
   DeleteQuickAction: part([], (_props, _children, card) => (
     <WorktreeCardDeleteQuickAction

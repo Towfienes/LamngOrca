@@ -67,7 +67,7 @@ vi.mock('../activity/use-worktree-activity-status', () => ({
   useWorktreeActivityStatus: () => 'idle'
 }))
 
-vi.mock('./use-worktree-sleep-state', () => ({
+vi.mock('../../workspace-actions/sleep/use-worktree-sleep-state', () => ({
   useIsSleepingWorktree: () => workspaceSleeping
 }))
 

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CodexUsageRange } from '../../../../shared/codex-usage-types'
@@ -11,10 +11,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { formatUsageCost, formatUsageTokens } from '../stats/usage-overview-model'
 import { useDeckUsageOverview } from './use-deck-usage-overview'
 import { DeckQuotaBlock } from './DeckQuotaBlock'
-import { GlobalNotesPanel } from './GlobalNotesPanel'
+import { DeckIssuesBalloon } from './DeckIssuesBalloon'
+import { BorutoKarmaPortrait } from './BorutoKarmaPortrait'
+import { useDeckAssignedIssues } from './use-deck-assigned-issues'
 import { Popover, PopoverArrow, PopoverContent, PopoverTrigger } from '../ui/popover'
 import '@/assets/manga-notes.css'
-import borutoPortrait from '@/assets/boruto-portrait.webp'
 
 const RANGES: { value: CodexUsageRange; label: string }[] = [
   { value: '7d', label: '7 days' },
@@ -46,7 +47,8 @@ function useUsageFitScale(node: HTMLElement | null): number {
 }
 
 export default function DeckUsagePanel(): React.JSX.Element {
-  const [notesOpen, setNotesOpen] = useState(false)
+  const [issuesOpen, setIssuesOpen] = useState(false)
+  const assigned = useDeckAssignedIssues()
   const [range, setRange] = useState<CodexUsageRange>('all')
   const [revision, setRevision] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
@@ -64,6 +66,38 @@ export default function DeckUsagePanel(): React.JSX.Element {
       (provider.id === 'claude' || provider.id === 'codex') &&
       (provider.enabled || provider.hasData)
   )
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    // Why: getSnapshot only reads the last scan, so without a rescan the cost froze until a
+    // manual refresh. Scans are incremental (unchanged log files are reused), so a minute is cheap.
+    let pending = false
+    const rescan = async (): Promise<void> => {
+      if (pending || document.visibilityState === 'hidden') {
+        return
+      }
+      pending = true
+      try {
+        const state = useAppStore.getState()
+        await Promise.allSettled([
+          state.claudeUsageScanState?.enabled ? state.refreshClaudeUsage() : undefined,
+          state.codexUsageScanState?.enabled ? state.refreshCodexUsage() : undefined
+        ])
+      } finally {
+        pending = false
+      }
+    }
+    void rescan()
+    const timer = window.setInterval(() => void rescan(), 60_000)
+    const onVisible = (): void => void rescan()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [open])
 
   const refresh = async (): Promise<void> => {
     if (refreshing) {
@@ -202,29 +236,35 @@ export default function DeckUsagePanel(): React.JSX.Element {
                     </div>
                   </section>
                   <div className="deck-usage-figure">
-                    <Popover open={notesOpen} onOpenChange={setNotesOpen}>
+                    <Popover
+                      open={issuesOpen}
+                      onOpenChange={(next) => {
+                        setIssuesOpen(next)
+                        if (next) {
+                          assigned.refresh()
+                        }
+                      }}
+                    >
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <PopoverTrigger asChild>
                             <button
                               type="button"
                               className="deck-usage-portrait-button"
-                              aria-label="Open to-do notes"
+                              aria-label="Mở danh sách issue"
                             >
-                              <img
-                                src={borutoPortrait}
-                                alt="Boruto Uzumaki"
-                                className="deck-usage-portrait"
-                                decoding="async"
-                                draggable={false}
-                              />
+                              <BorutoKarmaPortrait awake={assigned.issues.length > 0} />
                             </button>
                           </PopoverTrigger>
                         </TooltipTrigger>
-                        <TooltipContent>To-do notes</TooltipContent>
+                        <TooltipContent>
+                          {assigned.issues.length > 0
+                            ? `${assigned.issues.length} issue đang mở`
+                            : 'Không có issue đang mở'}
+                        </TooltipContent>
                       </Tooltip>
                       <PopoverContent
-                        aria-label="To-do notes"
+                        aria-label="Issues của tôi"
                         side="top"
                         align="center"
                         sideOffset={8}
@@ -232,7 +272,15 @@ export default function DeckUsagePanel(): React.JSX.Element {
                         data-manga-notes
                         wheelScroll
                       >
-                        <GlobalNotesPanel variant="bubble" onClose={() => setNotesOpen(false)} />
+                        <DeckIssuesBalloon
+                          issues={assigned.issues}
+                          loading={assigned.loading}
+                          refreshing={assigned.refreshing}
+                          error={assigned.error}
+                          updatedAt={assigned.updatedAt}
+                          onRefresh={() => assigned.refresh(true)}
+                          onClose={() => setIssuesOpen(false)}
+                        />
                         <PopoverArrow data-manga-tail width={22} height={14} />
                       </PopoverContent>
                     </Popover>

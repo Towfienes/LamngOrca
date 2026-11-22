@@ -5,6 +5,7 @@ import {
   writeAntigravityMacOSCredential
 } from './native-macos-credentials'
 import type { AntigravityCredentialBackend } from './native-account-service'
+import { createAntigravityLinuxCredentialBackend } from './native-linux-credentials'
 import {
   createAntigravityWindowsCredentialBackend,
   getAntigravityWindowsHome
@@ -36,12 +37,13 @@ export function createAntigravityHostCredentialBackend(home: string): Antigravit
   if (isAntigravityFileStorageHost(process.env, kernelRelease)) {
     return file
   }
-  if (process.platform !== 'darwin') {
-    throw new Error(
-      'Native Antigravity account switching is not supported on this host yet. Windows Credential Manager and Linux Secret Service need a verified adapter.'
-    )
-  }
   const marker = join(root, 'cache', 'antigravity-keyring-unavailable')
+  if (process.platform === 'linux') {
+    return createAntigravityLinuxCredentialBackend(marker)
+  }
+  if (process.platform !== 'darwin') {
+    throw new Error('Native Antigravity account switching is not supported on this host yet.')
+  }
   async function read() {
     if (existsSync(marker)) {
       throw new Error(

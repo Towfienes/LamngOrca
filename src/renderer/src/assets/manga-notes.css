@@ -74,3 +74,8 @@
   stroke: var(--manga-ink);
   stroke-width: 1.5px;
 }
+
+/* Issue rows stay in the UI sans for legibility; only the balloon title keeps the hand font. */
+[data-manga-notes] .deck-issues-title {
+  font-family: 'Patrick Hand', var(--font-sans);
+}

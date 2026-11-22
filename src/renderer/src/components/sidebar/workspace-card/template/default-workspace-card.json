@@ -25,7 +25,7 @@
     "titleIndicators": "!vars.classic && vars.indicators",
     "hasMetaRow": "vars.metaRow ? vars.metaRepo || vars.hostBadge || vars.folderInMeta || vars.branch || vars.identityInMeta || vars.detachedInMeta || vars.conflict || git.cacheTimerActive || vars.metaIndicators : vars.conflict || git.cacheTimerActive",
     "star": "vars.compact && ws.isMain && !vars.folder",
-    "headerActions": "vars.star || place.deleteQuickAction",
+    "headerActions": "vars.star || place.deleteQuickAction || place.sleepQuickAction",
     "inlineAgents": "options.show.inlineAgents && !vars.compact",
     "title": "trim(ws.title)",
     "hoverBranch": "vars.newStyle ? ws.identity : vars.compact && vars.branch ? ws.branch : null",
@@ -43,8 +43,7 @@
       "props": { "fill": true, "gap": "md", "hoverGroup": true, "marker": "hover-trigger" },
       "children": [
         {
-          "el": "Row",
-          "props": { "align": "center", "justify": "between", "gap": "lg" },
+          "el": "TreeHeaderRow",
           "children": [
             {
               "el": "Row",
@@ -101,6 +100,7 @@
               },
               "children": [
                 { "el": "PrimaryStar", "when": "vars.star" },
+                { "el": "SleepQuickAction", "when": "place.sleepQuickAction" },
                 { "el": "DeleteQuickAction", "when": "place.deleteQuickAction" }
               ]
             }

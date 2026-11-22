@@ -15,6 +15,8 @@ export type AntigravityCredentialBackend = {
   parse?(contents: string): AntigravityNativeCredential
   read(): Promise<AntigravityNativeCredential | null>
   write(contents: string, expected: string | null): Promise<void>
+  /** Signs agy out by removing the native credential; hosts without it cannot add accounts here. */
+  clear?(expected: string): Promise<void>
 }
 
 function matches(
@@ -137,6 +139,64 @@ export class AntigravityAccountService {
       latest.accounts = latest.accounts.filter((entry) => entry.id !== id)
       this.store.write(latest)
       return this.state({ vault: latest, current: readback })
+    })
+  }
+
+  /** Saves the native account, then signs agy out so its next start signs in another account. */
+  signOutForNewAccount(): Promise<AntigravityAccountState> {
+    return this.serialize(async () => {
+      if (!this.backend.clear) {
+        throw new Error(
+          'Signing agy out from Orca is not supported on this host. Run /logout in agy.'
+        )
+      }
+      const { vault, current } = await this.reconcile()
+      if (!current) {
+        return this.state({ vault, current: null })
+      }
+      const saved = vault.accounts.find((entry) => this.matches(entry, current))
+      if (!saved || saved.credentials !== current.contents) {
+        throw new Error('Save the current agy account before adding another one.')
+      }
+      await this.backend.clear(current.contents)
+      const latest = this.store.read()
+      latest.selectedAccountId = null
+      this.store.write(latest)
+      return this.state({ vault: latest, current: null })
+    })
+  }
+
+  /** Saved accounts other than the native one, for usage probes that never touch the native store. */
+  inactiveCredentials(): Promise<{ id: string; credentials: string }[]> {
+    return this.serialize(async () => {
+      const { vault, current } = await this.reconcile()
+      return vault.accounts
+        .filter((account) => !current || !this.matches(account, current))
+        .map(({ id, credentials }) => ({ id, credentials }))
+    })
+  }
+
+  /** Keeps a token agy refreshed during a usage probe, only if the snapshot is unchanged. */
+  updateInactiveCredential(id: string, previous: string, next: string): Promise<void> {
+    return this.serialize(async () => {
+      if (next === previous) {
+        return
+      }
+      const parseCredential = this.backend.parse ?? parseAntigravityNativeCredential
+      let refreshed: AntigravityNativeCredential
+      try {
+        refreshed = parseCredential(next)
+      } catch {
+        return
+      }
+      const latest = this.store.read()
+      const account = latest.accounts.find((entry) => entry.id === id)
+      if (!account || account.credentials !== previous || !this.matches(account, refreshed)) {
+        return
+      }
+      account.credentials = next
+      account.updatedAt = this.now()
+      this.store.write(latest)
     })
   }
 

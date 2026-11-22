@@ -91,6 +91,8 @@ export type WorkspaceCardFacts = {
     affiliateList: boolean
     /** The delete modifier is held over a card that may be deleted. */
     deleteQuickAction: boolean
+    /** This workspace may be put to sleep from its header. */
+    sleepQuickAction: boolean
   }
   options: {
     style: WorkspaceCardStyle

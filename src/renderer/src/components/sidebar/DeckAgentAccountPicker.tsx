@@ -10,6 +10,7 @@ import { CodexLoginLinkNotice } from '../settings/accounts/codex/CodexLoginLinkN
 import { DeckAccountUsage } from './DeckAccountUsage'
 import { DeckClaude9Detail, DeckClaude9Section, useClaude9Models } from './DeckClaude9Section'
 import type { DeckAccountAgent } from './deck-account-agent-launch'
+import { useDeckAntigravityAccounts } from './use-deck-antigravity-accounts'
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
 
 export function accountNeedsSignIn(usage: ProviderRateLimits | null): boolean {
@@ -47,17 +48,25 @@ export function DeckAgentAccountPicker({
   const showClaude9 = local && agent === 'claude' && Boolean(onLaunchClaude9)
   const claude9 = useClaude9Models(showClaude9)
   const [c9Preview, setC9Preview] = useState(false)
+  const agy = useDeckAntigravityAccounts(local && agent === 'antigravity')
   const activeId =
-    agent === 'claude'
-      ? (settings?.activeClaudeManagedAccountIdsByRuntime?.host ??
-        settings?.activeClaudeManagedAccountId)
-      : agent === 'codex'
-        ? (settings?.activeCodexManagedAccountIdsByRuntime?.host ??
-          settings?.activeCodexManagedAccountId)
-        : null
-  const accounts =
-    !local || agent === 'antigravity'
-      ? []
+    agent === 'antigravity'
+      ? (agy.state?.activeAccountId ?? null)
+      : agent === 'claude'
+        ? (settings?.activeClaudeManagedAccountIdsByRuntime?.host ??
+          settings?.activeClaudeManagedAccountId)
+        : agent === 'codex'
+          ? (settings?.activeCodexManagedAccountIdsByRuntime?.host ??
+            settings?.activeCodexManagedAccountId)
+          : null
+  const accounts = !local
+    ? []
+    : agent === 'antigravity'
+      ? (agy.state?.accounts ?? []).map((a) => ({
+          id: a.id,
+          label: a.email ?? 'Saved Google account',
+          detail: null
+        }))
       : agent === 'claude'
         ? (settings?.claudeManagedAccounts ?? [])
             .filter((a) => a.managedAuthRuntime !== 'wsl')
@@ -70,18 +79,24 @@ export function DeckAgentAccountPicker({
               detail: a.workspaceLabel
             }))
   const usageForAccount = (id: string | null): ProviderRateLimits | null => {
-    if (agent === 'antigravity') {
-      return limits.antigravity
-    }
     if (id === null || id === (activeId ?? null)) {
+      if (agent === 'antigravity') {
+        return limits.antigravity
+      }
       return limits[agent]
+    }
+    if (agent === 'antigravity') {
+      return agy.usage[id] ?? null
     }
     const roster = agent === 'claude' ? limits.inactiveClaudeAccounts : limits.inactiveCodexAccounts
     return roster.find((a) => a.accountId === id)?.rateLimits ?? null
   }
   const fetchingForAccount = (id: string | null): boolean => {
-    if (id === null || id === (activeId ?? null) || agent === 'antigravity') {
+    if (id === null || id === (activeId ?? null)) {
       return false
+    }
+    if (agent === 'antigravity') {
+      return agy.fetching
     }
     const roster = agent === 'claude' ? limits.inactiveClaudeAccounts : limits.inactiveCodexAccounts
     return roster.find((a) => a.accountId === id)?.isFetching === true
@@ -105,7 +120,7 @@ export function DeckAgentAccountPicker({
     onClose()
     const state = useAppStore.getState()
     state.openSettingsTarget({
-      pane: agent === 'antigravity' ? 'agents' : 'accounts',
+      pane: 'accounts',
       repoId: null,
       sectionId: `accounts-${agent}`
     })
@@ -163,6 +178,20 @@ export function DeckAgentAccountPicker({
     }
     previewAccount(id)
     setTargetId(id)
+    if (agent === 'antigravity') {
+      // Why: agy reads one native credential, so the saved account becomes native before launch.
+      busyRef.current = true
+      setBusy(true)
+      void (async () => {
+        if (id === null || id === activeId || (await agy.select(id))) {
+          onLaunch(undefined)
+          return
+        }
+        busyRef.current = false
+        setBusy(false)
+      })()
+      return
+    }
     // Why: choosing a signed-out account means renewing exactly that account.
     if (accountNeedsSignIn(usageForAccount(id))) {
       void reauthenticate(id)
@@ -171,6 +200,22 @@ export function DeckAgentAccountPicker({
     busyRef.current = true
     setBusy(true)
     onLaunch(id ?? undefined)
+  }
+  const addAntigravityAccount = (): void => {
+    if (busyRef.current) {
+      return
+    }
+    busyRef.current = true
+    setBusy(true)
+    void (async () => {
+      // Why: agy has no login command; once signed out, its next start opens Google sign-in.
+      if (await agy.prepareNewAccount()) {
+        onLaunch(undefined)
+        return
+      }
+      busyRef.current = false
+      setBusy(false)
+    })()
   }
   const previewLabel =
     accounts.find((a) => a.id === selectedId)?.label ??
@@ -204,15 +249,23 @@ export function DeckAgentAccountPicker({
           aria-label="Launch account"
         >
           {[
-            {
-              id: null,
-              label: !local
-                ? 'Workspace host account'
-                : agent === 'antigravity'
-                  ? 'Current agy account'
-                  : 'Orca default',
-              detail: null
-            },
+            // Why: a signed-in agy account is saved automatically, so its row replaces this one.
+            ...(agent === 'antigravity' &&
+            local &&
+            agy.state &&
+            (activeId || !agy.state.currentAccount)
+              ? []
+              : [
+                  {
+                    id: null,
+                    label: !local
+                      ? 'Workspace host account'
+                      : agent === 'antigravity'
+                        ? 'Current agy account'
+                        : 'Orca default',
+                    detail: null
+                  }
+                ]),
             ...accounts
           ].map((account) => {
             const selected = selectedId === account.id
@@ -278,16 +331,16 @@ export function DeckAgentAccountPicker({
             }}
           />
         ) : null}
-        {local && agent === 'antigravity' ? (
+        {local && agent === 'antigravity' && accounts.length === 0 && agy.state ? (
           <p className="text-xs text-muted-foreground">
-            agy manages this login. Multiple saved accounts are not supported yet.
+            Sign in with agy; the account is saved here automatically.
           </p>
-        ) : local && accounts.length === 0 ? (
+        ) : local && agent !== 'antigravity' && accounts.length === 0 ? (
           <p className="text-xs text-muted-foreground">No saved accounts yet.</p>
         ) : null}
-        {error ? (
+        {error || agy.error ? (
           <p role="alert" className="text-xs text-destructive">
-            {error}
+            {error ?? agy.error}
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
@@ -295,19 +348,17 @@ export function DeckAgentAccountPicker({
             variant="ghost"
             size="xs"
             disabled={busy}
-            onClick={
-              agent === 'antigravity' && local ? () => onLaunch(undefined, true) : openAccounts
-            }
+            onClick={agent === 'antigravity' && local ? addAntigravityAccount : openAccounts}
           >
             <Plus />
-            {agent === 'antigravity' ? 'Sign in' : 'Add account'}
+            Add account
           </Button>
           {signingIn ? (
             <Button variant="ghost" size="xs" onClick={cancelSignIn}>
               <X />
               Cancel
             </Button>
-          ) : targetId ? (
+          ) : targetId && agent !== 'antigravity' ? (
             <Button
               variant={signedOut ? 'default' : 'link'}
               size="xs"

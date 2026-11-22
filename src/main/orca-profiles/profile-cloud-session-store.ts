@@ -144,7 +144,7 @@ function writeOrcaCloudSession(
     return 'dev-plaintext'
   }
 
-  // Production refresh tokens must not fall back to plaintext; retain them in memory until restart.
+  // Production refresh tokens must not fall back to plaintext while the keyring is unavailable.
   rememberMemorySession(cacheKey, { session, persistence: 'memory-only' })
   return 'memory-only'
 }
@@ -158,21 +158,25 @@ export function saveOrcaCloudSession(
   const key = orcaCloudSessionKey(profileId, userDataPath)
   try {
     const persistence = writeOrcaCloudSession(profileId, userDataPath, session)
-    unsavedRotations.delete(key)
-    return persistence
+    if (persistence !== 'memory-only') {
+      unsavedRotations.delete(key)
+      return persistence
+    }
   } catch (error) {
     if (!options.spentOnFailure) {
       throw error
     }
-    // Losing rotated tokens would replay spent disk tokens and risk revoking the family.
-    unsavedRotations.set(key, { profileId, userDataPath, session })
+  }
+  // Retry memory-only sign-ins too, once the keyring recovers.
+  unsavedRotations.set(key, { profileId, userDataPath, session })
+  if (options.spentOnFailure) {
     try {
       rmSync(getOrcaCloudSessionPath(profileId, userDataPath), { force: true })
     } catch {
       // A spent token left on disk costs one sign-in after restart, never a loop.
     }
-    return 'memory-only'
   }
+  return 'memory-only'
 }
 
 function retryUnsavedRotation(key: string): void {
@@ -181,8 +185,14 @@ function retryUnsavedRotation(key: string): void {
     return
   }
   try {
-    writeOrcaCloudSession(unsaved.profileId, unsaved.userDataPath, unsaved.session)
-    unsavedRotations.delete(key)
+    const persistence = writeOrcaCloudSession(
+      unsaved.profileId,
+      unsaved.userDataPath,
+      unsaved.session
+    )
+    if (persistence !== 'memory-only') {
+      unsavedRotations.delete(key)
+    }
   } catch {
     // Retry unsaved rotation on the next read or quit flush.
   }
@@ -230,7 +240,7 @@ export function readOrcaCloudSession(
     if (parsed.format === 'electron-safe-storage-v1') {
       if (!safeStorage.isEncryptionAvailable()) {
         return {
-          status: 'decrypt-failed',
+          status: 'unreadable',
           persistence: 'none',
           error: 'OS-backed encryption is unavailable.'
         }

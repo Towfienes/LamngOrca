@@ -9,6 +9,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync
@@ -19,7 +20,14 @@ import { _electron as electron } from '@playwright/test'
 import { listedFiles, syncUnpackedDir } from './lamng-sync-asar-header.mjs'
 
 const repo = process.cwd()
-const app = process.env.LAMNG_APP ?? join(homedir(), 'Applications/Orca-1.4.244-Lamng')
+const latestLamngApp = () => {
+  const root = join(homedir(), 'Applications')
+  const dirs = readdirSync(root).filter((d) => /^Orca-\d+\.\d+\.\d+-Lamng$/.test(d))
+  const collator = new Intl.Collator(undefined, { numeric: true })
+  dirs.sort(collator.compare)
+  return join(root, dirs.at(-1) ?? 'Orca-Lamng')
+}
+const app = process.env.LAMNG_APP ?? latestLamngApp()
 const asar = join(app, 'resources/app.asar')
 const installed = join(app, 'resources/app.asar.unpacked/out/renderer')
 const built = join(repo, 'out/renderer')

@@ -1,0 +1,215 @@
+/* Boruto's Karma awakening. Front = how far the seal has climbed, as a fraction of the drawn
+   figure's height measured from its feet (0.31 = below the hand, 0.88 = past the Jogan eye). */
+@property --deck-karma-front {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0.31;
+}
+
+.deck-karma {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  --deck-karma-front: 0.31;
+  /* The portrait is object-fit: contain, bottom-right; this is the drawn figure's real height. */
+  --deck-karma-h: min(100cqh, 100cqw * 844 / 560);
+  --deck-karma-edge: calc(var(--deck-karma-h) * var(--deck-karma-front));
+}
+
+.deck-karma .deck-karma-ink,
+.deck-karma .deck-karma-trail,
+.deck-karma .deck-karma-tip,
+.deck-karma .deck-karma-eye,
+.deck-karma .deck-karma-eye-glow {
+  /* Only the base keeps the rim shadow; overlays must line up pixel for pixel. */
+  filter: none;
+  opacity: 0;
+}
+
+.deck-karma .deck-karma-trail,
+.deck-karma .deck-karma-tip,
+.deck-karma .deck-karma-eye-glow {
+  mix-blend-mode: screen;
+}
+
+.deck-karma .deck-karma-ink,
+.deck-karma .deck-karma-trail {
+  mask-image: linear-gradient(
+    to top,
+    #000 var(--deck-karma-edge),
+    transparent calc(var(--deck-karma-edge) + var(--deck-karma-h) * 0.025)
+  );
+}
+
+.deck-karma .deck-karma-tip {
+  mask-image: linear-gradient(
+    to top,
+    transparent calc(var(--deck-karma-edge) - var(--deck-karma-h) * 0.07),
+    #000 var(--deck-karma-edge),
+    transparent calc(var(--deck-karma-edge) + var(--deck-karma-h) * 0.025)
+  );
+}
+
+/* Awake: one-shot, about 3 s, then holds. */
+.deck-karma[data-karma='awake'] {
+  --deck-karma-front: 0.88;
+  animation: deck-karma-climb 1.6s cubic-bezier(0.45, 0, 0.55, 1) 0.25s both;
+}
+.deck-karma[data-karma='awake'] .deck-karma-ink {
+  opacity: 1;
+}
+.deck-karma[data-karma='awake'] .deck-karma-trail {
+  animation: deck-karma-trail 2.95s linear both;
+}
+.deck-karma[data-karma='awake'] .deck-karma-tip {
+  animation: deck-karma-tip 1.9s linear both;
+}
+.deck-karma[data-karma='awake'] .deck-karma-eye {
+  animation: deck-karma-fade-in 0.35s ease-in-out 1.8s both;
+}
+.deck-karma[data-karma='awake'] .deck-karma-eye-glow {
+  animation: deck-karma-eye-glow 1.2s ease-out 1.75s both;
+}
+
+/* Sleeping: the Jogan closes, then the seal retreats to the hand; ends equal to rest. */
+.deck-karma[data-karma='sleeping'] {
+  --deck-karma-front: 0.31;
+  animation: deck-karma-retreat 1.4s cubic-bezier(0.45, 0, 0.55, 1) 0.4s both;
+}
+.deck-karma[data-karma='sleeping'] .deck-karma-ink {
+  opacity: 1;
+}
+.deck-karma[data-karma='sleeping'] .deck-karma-trail {
+  animation: deck-karma-trail-out 1.9s linear both;
+}
+.deck-karma[data-karma='sleeping'] .deck-karma-tip {
+  animation: deck-karma-tip-out 1.9s linear both;
+}
+.deck-karma[data-karma='sleeping'] .deck-karma-eye {
+  animation: deck-karma-fade-out 0.4s ease-in-out both;
+}
+.deck-karma[data-karma='sleeping'] .deck-karma-eye-glow {
+  animation: deck-karma-eye-glow-out 0.45s ease-out both;
+}
+
+@keyframes deck-karma-climb {
+  from {
+    --deck-karma-front: 0.31;
+  }
+  to {
+    --deck-karma-front: 0.88;
+  }
+}
+@keyframes deck-karma-retreat {
+  from {
+    --deck-karma-front: 0.88;
+  }
+  to {
+    --deck-karma-front: 0.31;
+  }
+}
+@keyframes deck-karma-trail {
+  0% {
+    opacity: 0;
+  }
+  10%,
+  70% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.1;
+  }
+}
+@keyframes deck-karma-tip {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  90% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes deck-karma-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes deck-karma-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes deck-karma-eye-glow {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.38;
+  }
+}
+@keyframes deck-karma-trail-out {
+  0% {
+    opacity: 0.1;
+  }
+  25% {
+    opacity: 0.24;
+  }
+  85% {
+    opacity: 0.18;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes deck-karma-tip-out {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  30%,
+  88% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes deck-karma-eye-glow-out {
+  0% {
+    opacity: 0.38;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-karma,
+  .deck-karma * {
+    animation: none !important;
+  }
+  .deck-karma[data-karma='awake'] .deck-karma-trail {
+    opacity: 0.1;
+  }
+  .deck-karma[data-karma='awake'] .deck-karma-eye {
+    opacity: 1;
+  }
+  .deck-karma[data-karma='awake'] .deck-karma-eye-glow {
+    opacity: 0.38;
+  }
+}

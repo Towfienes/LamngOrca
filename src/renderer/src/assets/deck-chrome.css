@@ -631,6 +631,12 @@
   opacity: 1;
 }
 
+.deck-sidebar
+  [data-worktree-card-surface][data-worktree-card-active]
+  [data-worktree-sleep-quick-action] {
+  opacity: 1;
+}
+
 .deck-lamng-brand {
   display: flex;
   align-items: center;
@@ -747,6 +753,40 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, color-mix(in srgb, var(--chart-1) 70%, white), var(--chart-1));
+}
+
+/* Antigravity: one line per window holding a Gemini (G) and a Claude/GPT (C) cell. */
+.deck-quota-split {
+  display: grid;
+  grid-template-columns: 1.5rem repeat(2, minmax(0, 1fr)) 3.5rem;
+  column-gap: 6px;
+  align-items: center;
+}
+
+.deck-quota-cell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 2rem;
+  column-gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.deck-quota-cell > .tabular-nums {
+  text-align: right;
+}
+
+.deck-quota-pool {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.deck-quota-fill-low {
+  background: var(--color-status-warning, #e0a83a);
+}
+
+.deck-quota-fill-critical {
+  background: var(--color-status-error, #e5534b);
 }
 
 /* Fixed workspace targets with one sliding selection pill behind their icons. */

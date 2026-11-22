@@ -30,7 +30,18 @@ export async function prepareAntigravityAccountForLaunch(args: {
   if (!existsSync(path)) {
     return
   }
-  if (!createEncryptedAntigravityAccountStore(path).read().selectedAccountId) {
+  let selectedAccountId: string | null
+  try {
+    selectedAccountId = createEncryptedAntigravityAccountStore(path).read().selectedAccountId
+  } catch (error) {
+    // Why: an unreadable vault (e.g. OS keyring locked when Orca started) must never stop agy itself
+    // from opening; agy then simply uses its current native account.
+    console.warn(
+      `[antigravity] launching agy without the saved-account check: ${error instanceof Error ? error.message : error}`
+    )
+    return
+  }
+  if (!selectedAccountId) {
     return
   }
   const env = args.envIsComplete ? { ...args.env } : { ...process.env, ...args.env }

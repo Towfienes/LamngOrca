@@ -8,6 +8,7 @@ import {
   AntigravityChatSignInFlowParams
 } from '../../../../shared/rpc-contract/antigravity-accounts-params'
 import { getAntigravityAccountService } from '../../../antigravity/native-account-host'
+import { fetchInactiveAntigravityUsage } from '../../../antigravity/native-account-usage'
 import {
   cancelAntigravityChatSignIn,
   completeAntigravityChatSignIn,
@@ -39,6 +40,18 @@ export const ANTIGRAVITY_ACCOUNT_METHODS = [
     permission: 'workspace',
     params: AntigravityAccountTargetParams,
     handler: async (target) => getAntigravityAccountService(target).listAccounts()
+  }),
+  defineMethod({
+    name: 'accounts.antigravityInactiveUsage',
+    permission: 'workspace',
+    params: AntigravityAccountTargetParams,
+    handler: async (target) => fetchInactiveAntigravityUsage(getAntigravityAccountService(target))
+  }),
+  defineMethod({
+    name: 'accounts.antigravitySignOutForNewAccount',
+    permission: 'accounts-admin',
+    params: AntigravityAccountTargetParams,
+    handler: async (target) => getAntigravityAccountService(target).signOutForNewAccount()
   }),
   defineMethod({
     name: 'accounts.antigravityAddCurrent',

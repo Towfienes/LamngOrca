@@ -186,6 +186,10 @@ export async function readFreshOrcaCloudSession(
   userDataPath: string
 ): Promise<FreshCloudSessionResult> {
   const session = readCloudSession(active.profile.id, userDataPath)
+  if (session.status === 'unreadable') {
+    // Relay retries transient read failures; reconnect-required stops recovery as signed out.
+    throw new Error(session.error)
+  }
   if (session.status !== 'found') {
     return { status: 'reconnect-required' }
   }

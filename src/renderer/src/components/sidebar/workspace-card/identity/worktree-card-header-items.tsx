@@ -1,5 +1,14 @@
 import React from 'react'
-import { AlertCircle, FolderMinus, House, Server, ServerOff, Star, Trash2 } from 'lucide-react'
+import {
+  AlertCircle,
+  FolderMinus,
+  House,
+  Moon,
+  Server,
+  ServerOff,
+  Star,
+  Trash2
+} from 'lucide-react'
 
 import { RepoIconGlyph } from '@/components/repo/repo-icon'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +20,8 @@ import type { Repo } from '../../../../../../shared/repo-types'
 import { resolveRepoHeaderColor } from '../../worktree-list/rows/project-header-color'
 import type { WorktreeCardController } from '../controller/use-worktree-card-controller'
 import { formatSparseDirectoryPreview } from '../controller/worktree-card-model'
+import { runSleepWorktree } from '../../workspace-actions/sleep/sleep-worktree-flow'
+import { useIsSleepingWorktree } from '../../workspace-actions/sleep/use-worktree-sleep-state'
 
 export function WorktreeCardRepoChip({ repo }: { repo: Repo }): React.JSX.Element {
   return (
@@ -283,6 +294,56 @@ export function WorktreeCardSparseBadge({
             </div>
           ) : null}
         </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+export function WorktreeCardSleepQuickAction({
+  card
+}: {
+  card: WorktreeCardController
+}): React.JSX.Element | null {
+  const isSleeping = useIsSleepingWorktree(card.worktree.id)
+  if (!card.showSleepQuickAction || isSleeping || card.isDeleting) {
+    return null
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          data-workspace-board-preserve-open=""
+          data-worktree-sleep-quick-action=""
+          onPointerDown={card.stopQuickActionPointerPropagation}
+          onClick={(event) => {
+            // Why: the card's own click activates the workspace; sleeping must not also
+            // select it, or the sleep intent gets cleared by the activation it caused.
+            event.stopPropagation()
+            void runSleepWorktree(card.worktree.id)
+          }}
+          onDoubleClick={(event) => event.stopPropagation()}
+          className={cn(
+            'inline-flex size-4 items-center justify-center rounded bg-transparent opacity-0 transition-colors transition-opacity',
+            // Why: the selected workspace keeps its moon on screen — the affordance the user
+            // reaches for most often should not need a hover first.
+            card.isActiveSurface && 'opacity-100',
+            'group-hover/worktree-card:opacity-100 group-focus-within/worktree-card:opacity-100 focus-visible:opacity-100',
+            'text-muted-foreground hover:bg-worktree-sidebar-accent hover:text-worktree-sidebar-accent-foreground focus-visible:bg-worktree-sidebar-accent focus-visible:text-worktree-sidebar-accent-foreground'
+          )}
+          aria-label={translate(
+            'auto.components.sidebar.WorktreeCard.sleepWorkspace',
+            'Sleep workspace'
+          )}
+        >
+          <Moon className="size-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8} className="max-w-[220px]">
+        {translate(
+          'auto.components.sidebar.WorktreeContextMenu.0918b35e4f',
+          'Close all active panels in this workspace to free up memory and CPU.'
+        )}
       </TooltipContent>
     </Tooltip>
   )

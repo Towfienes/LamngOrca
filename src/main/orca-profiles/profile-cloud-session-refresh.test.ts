@@ -142,6 +142,19 @@ describe('profile cloud session refresh', () => {
     unsubscribe()
   })
 
+  it('lets relay retry an unreadable saved session instead of reporting sign-out', async () => {
+    readMock.mockReturnValue({
+      status: 'unreadable',
+      persistence: 'none',
+      error: 'OS-backed encryption is unavailable.'
+    })
+
+    await expect(readFreshOrcaCloudSession(config, active, '/data')).rejects.toThrow(
+      'OS-backed encryption is unavailable.'
+    )
+    expect(clearMock).not.toHaveBeenCalled()
+  })
+
   it('stays silent when a concurrent rotation already replaced the failed session', async () => {
     const invalidated = vi.fn()
     const unsubscribe = onOrcaCloudSessionInvalidated(invalidated)
