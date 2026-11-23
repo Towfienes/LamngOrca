@@ -4,17 +4,24 @@ import { importDeckAppearanceOnce } from './deck-appearance-import'
 
 const profiles = vi.fn()
 const settings = vi.fn()
+const currentSettings = vi.fn()
 const saveUI = vi.fn()
 
 beforeEach(() => {
   localStorage.clear()
   profiles.mockResolvedValue({ activeProfileId: 'local-default' })
   settings.mockResolvedValue({})
+  currentSettings.mockResolvedValue({
+    leftSidebarAppearanceMode: 'tinted',
+    leftSidebarTintOpacity: 0.35,
+    terminalThemeDark: 'Ayu Dark',
+    terminalDividerColorDark: '#3a3a3a'
+  })
   saveUI.mockResolvedValue(undefined)
   vi.stubGlobal('window', {
     api: {
       orcaProfiles: { list: profiles },
-      settings: { set: settings },
+      settings: { get: currentSettings, set: settings },
       ui: { setWithAck: saveUI }
     }
   })
@@ -53,6 +60,48 @@ describe('Deck appearance import', () => {
     await expect(importDeckAppearanceOnce()).rejects.toThrow('Could not save UI')
     await importDeckAppearanceOnce()
     expect(saveUI).toHaveBeenCalledTimes(2)
+  })
+
+  it('imports the tinted navy sidebar on a new profile', async () => {
+    await importDeckAppearanceOnce()
+    expect(settings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leftSidebarAppearanceMode: 'tinted',
+        leftSidebarTintColor: '#18181b',
+        leftSidebarTintOpacity: 0.35
+      })
+    )
+  })
+
+  it('repairs untouched defaults once on an already imported profile', async () => {
+    localStorage.setItem('orca.deckAppearanceImported.v1:local-default', 'true')
+    currentSettings.mockResolvedValue({
+      leftSidebarAppearanceMode: 'default',
+      leftSidebarTintOpacity: 0.08,
+      terminalThemeDark: '',
+      terminalDividerColorDark: '#3f3f46'
+    })
+    await importDeckAppearanceOnce()
+    await importDeckAppearanceOnce()
+    expect(settings).toHaveBeenCalledTimes(2)
+    expect(settings).toHaveBeenLastCalledWith({
+      leftSidebarAppearanceMode: 'tinted',
+      leftSidebarTintOpacity: 0.35,
+      terminalThemeDark: 'Ayu Dark',
+      terminalDividerColorDark: '#3a3a3a'
+    })
+  })
+
+  it('keeps appearance the user already customized', async () => {
+    localStorage.setItem('orca.deckAppearanceImported.v1:local-default', 'true')
+    currentSettings.mockResolvedValue({
+      leftSidebarAppearanceMode: 'default',
+      leftSidebarTintOpacity: 0.2,
+      terminalThemeDark: 'Dracula',
+      terminalDividerColorDark: '#123456'
+    })
+    await importDeckAppearanceOnce()
+    expect(settings).toHaveBeenCalledExactlyOnceWith({ terminalFocusFollowsMouse: true })
   })
 
   it('leaves an unsupported bridge untouched', async () => {
