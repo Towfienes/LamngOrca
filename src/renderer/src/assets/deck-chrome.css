@@ -891,11 +891,15 @@
   position: relative;
 }
 
-@container tab-strip (min-width: 480px) {
-  .deck-tab-bar-dots-end {
-    grid-column: 3;
-  }
+.deck-tab-bar-dots-end {
+  grid-area: 1 / 3;
+}
 
+.deck-tab-dots {
+  grid-area: 1 / 2;
+}
+
+@container tab-strip (min-width: 480px) {
   .deck-tab-dots {
     position: absolute;
     top: calc(50% - 12px);

@@ -228,6 +228,8 @@ export function renderTabBarSurface({
     return (
       <div ref={surfaceRef} className="deck-tab-bar deck-tab-bar-dots">
         <WorkspaceStripLabel workspaceId={worktreeId} />
+        <div className="deck-tab-bar-dots-end">{newTabMenu}</div>
+        {/* Why: Electron drag hit-testing follows DOM order, so the no-drag dots must come after the drag area. */}
         <WorkspaceTabDots
           worktreeId={worktreeId}
           groupId={resolvedGroupId}
@@ -243,7 +245,6 @@ export function renderTabBarSurface({
           }
           onCloseTab={closeDotTab}
         />
-        <div className="deck-tab-bar-dots-end">{newTabMenu}</div>
       </div>
     )
   }
