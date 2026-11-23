@@ -138,6 +138,26 @@
   padding-inline: 4px;
 }
 
+/* An open right sidebar hosts the status in its Usage footer, so the titlebar stays clear. */
+.deck-titlebar-status[data-window-buttons]:empty {
+  display: none;
+}
+
+.deck-usage-status {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.deck-usage-status > * {
+  flex-shrink: 0;
+}
+
 .app-layout:has(.deck-titlebar-status[data-window-buttons]) .right-sidebar-header-inset {
   padding-right: 138px;
 }
@@ -864,6 +884,24 @@
   height: 24px;
   padding-inline: 4px;
   -webkit-app-region: no-drag;
+}
+
+/* Center on the terminal itself; narrow splits keep the grid so the pill cannot cover the path. */
+[data-tab-group-strip-id]:has(.deck-tab-bar-dots) {
+  position: relative;
+}
+
+@container tab-strip (min-width: 480px) {
+  .deck-tab-bar-dots-end {
+    grid-column: 3;
+  }
+
+  .deck-tab-dots {
+    position: absolute;
+    top: calc(50% - 12px);
+    left: 50%;
+    translate: -50% 0;
+  }
 }
 
 .deck-tab-dots::before {

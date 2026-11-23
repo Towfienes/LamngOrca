@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { usesDeckTitlebarStatus } from '@/app-shell/app-window-chrome'
+import { useDeckUsageStatusSlot } from './deck-usage-status-slot'
 import { PanelsTopLeft, RefreshCw } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -67,6 +68,7 @@ export function StatusBarSurface({
   // Memoized labels still need to follow language changes.
   useTranslation()
   const controller = useStatusBarController(floatingTerminalOpen)
+  const usageStatusSlot = useDeckUsageStatusSlot()
   if (!controller) {
     return null
   }
@@ -113,9 +115,9 @@ export function StatusBarSurface({
   const usageMode = usageTightestOnly ? 'compact' : statusBarUsageMode
   const unitLabelState = getUsageUnitLabelState(rosterProviders, collapsedUsageProviders, usageMode)
 
-  // Deck on Linux: usage lives in the sidebar and system status moves into the titlebar.
+  // Deck: usage lives in the sidebar; system status sits in its footer on Windows, else the titlebar.
   const titlebarStatusHost = usesDeckTitlebarStatus
-    ? document.getElementById('deck-titlebar-status')
+    ? (usageStatusSlot ?? document.getElementById('deck-titlebar-status'))
     : null
   const systemSegmentsIconOnly = titlebarStatusHost ? false : segmentsIconOnly
   const usageControls = (

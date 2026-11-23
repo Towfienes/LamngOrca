@@ -2,7 +2,6 @@ import { Suspense, useCallback, useMemo } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { useDroppable } from '@dnd-kit/core'
 import { useAppStore } from '../../store'
-import { hasWindowControls, usesDeckTitlebarStatus } from '@/app-shell/app-window-chrome'
 import TabBar from '../tab-bar/TabBar'
 
 import { TabGroupPaneActionsMenu } from './TabGroupPaneActionsMenu'
@@ -308,16 +307,12 @@ export default function TabGroupPanel({
               ) : null}
             </div>
             {/* Why: Electron drag hit-test respects no-drag only on DOM descendants, not z-index siblings, so this no-drag spacer keeps the floating right-sidebar toggle + window controls clickable. */}
-            {reserveClosedExplorerToggleSpace &&
-            (!rightSidebarOpen || (usesDeckTitlebarStatus && hasWindowControls)) ? (
+            {reserveClosedExplorerToggleSpace && !rightSidebarOpen ? (
               <div
                 className="shrink-0"
                 style={
                   {
-                    // Why: on Windows the Deck status sits just left of an open right sidebar.
-                    width: rightSidebarOpen
-                      ? 'var(--deck-titlebar-status-width)'
-                      : 'calc(40px + var(--window-controls-width, 0px))',
+                    width: 'calc(40px + var(--window-controls-width, 0px))',
                     WebkitAppRegion: 'no-drag'
                   } as React.CSSProperties
                 }

@@ -3,6 +3,8 @@ import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CodexUsageRange } from '../../../../shared/codex-usage-types'
 import { useAppStore } from '@/store'
+import { hasWindowControls, usesDeckTitlebarStatus } from '@/app-shell/app-window-chrome'
+import { setDeckUsageStatusSlot } from '../status-bar/deck-usage-status-slot'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { Button } from '../ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible'
@@ -296,9 +298,6 @@ export default function DeckUsagePanel(): React.JSX.Element {
                   </div>
                 </div>
                 <DeckQuotaBlock />
-                {overview.hasPartialCost && (
-                  <p className="mt-3 text-[11px] text-muted-foreground">Unpriced usage excluded.</p>
-                )}
                 {error && (
                   <p className="mt-3 text-[11px] text-destructive" role="status">
                     {error}
@@ -308,6 +307,14 @@ export default function DeckUsagePanel(): React.JSX.Element {
             </div>
           </div>
         </CollapsibleContent>
+        {usesDeckTitlebarStatus && hasWindowControls ? (
+          <div
+            ref={setDeckUsageStatusSlot}
+            className="deck-usage-status"
+            role="group"
+            aria-label="System status"
+          />
+        ) : null}
       </div>
     </Collapsible>
   )
