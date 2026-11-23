@@ -711,8 +711,8 @@
 /* Cost and model figures on the left, the full-body portrait in its own right column. */
 .deck-usage-top {
   display: grid;
-  /* The cost column keeps room for its caption; the portrait takes everything left over. */
-  grid-template-columns: minmax(0, 1fr) clamp(100px, calc(100% - 148px), 190px);
+  /* The portrait keeps about 43% of the panel; a narrow dock holds its 100px floor. */
+  grid-template-columns: minmax(0, 1fr) clamp(100px, 46%, 190px);
   align-items: stretch;
   column-gap: 4px;
 }

@@ -87,7 +87,9 @@ export default function DeckUsagePanel(): React.JSX.Element {
         const state = useAppStore.getState()
         // Why: scan state is empty after an app restart until a fetch loads it from main.
         await Promise.allSettled([
-          state.claudeUsageScanState?.enabled ? state.refreshClaudeUsage() : state.fetchClaudeUsage(),
+          state.claudeUsageScanState?.enabled
+            ? state.refreshClaudeUsage()
+            : state.fetchClaudeUsage(),
           state.codexUsageScanState?.enabled ? state.refreshCodexUsage() : state.fetchCodexUsage()
         ])
       } finally {
@@ -196,7 +198,7 @@ export default function DeckUsagePanel(): React.JSX.Element {
                       {formatUsageCost(overview.estimatedCostUsd)}
                     </p>
                     <p
-                      className="truncate text-[11px] leading-4 text-muted-foreground"
+                      className="whitespace-nowrap text-[11px] leading-4 text-muted-foreground"
                       title="API-equivalent cost from local agent logs; not your subscription bill"
                     >
                       API equivalent · local logs
@@ -209,7 +211,7 @@ export default function DeckUsagePanel(): React.JSX.Element {
                             : 0
                         return (
                           <div key={provider.id} data-usage-provider={provider.id}>
-                            <div className="flex items-center gap-2 text-[13px]">
+                            <div className="flex items-center gap-1 text-[13px]">
                               <AgentIcon agent={provider.id} size={16} />
                               <span className="min-w-0 flex-1 truncate">{provider.label}</span>
                               <span className="shrink-0 tabular-nums">
