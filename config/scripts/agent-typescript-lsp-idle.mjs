@@ -38,6 +38,7 @@ export function createIdleLanguageServer({
   startServer,
   toClient,
   onExit,
+  isBackgroundMessage = () => false,
   stopTimeoutMs = STOP_TIMEOUT_MS,
   setTimer = setTimeout,
   clearTimer = clearTimeout
@@ -123,9 +124,11 @@ export function createIdleLanguageServer({
           return
         }
         if (message.id !== undefined && !message.method) {
-          pending.delete(message.id)
+          const finished = pending.delete(message.id)
           toClient(message)
-          armIdle()
+          if (finished) {
+            armIdle()
+          }
           return
         }
         toClient(message)
@@ -177,6 +180,8 @@ export function createIdleLanguageServer({
       const { id, method } = message
       track(message)
       const isRequest = id !== undefined && method !== undefined
+      // Why: a file outside the project can make the server refresh forever; only the client counts.
+      const background = isBackgroundMessage(message)
       if (!server) {
         if (method === 'shutdown') {
           toClient({ jsonrpc: '2.0', id, result: null })
@@ -186,12 +191,12 @@ export function createIdleLanguageServer({
           onExit(0)
           return
         }
-        if (!isRequest && !WAKE_NOTIFICATIONS.has(method)) {
+        if (background || (!isRequest && !WAKE_NOTIFICATIONS.has(method))) {
           return
         }
         start()
       }
-      if (isRequest) {
+      if (isRequest && !background) {
         pending.add(id)
       }
       if (ready) {
@@ -200,7 +205,9 @@ export function createIdleLanguageServer({
         // Why: open documents are replayed from `documents` once the new server is initialized.
         queue.push(message)
       }
-      armIdle()
+      if (method !== undefined && !background) {
+        armIdle()
+      }
     },
     close() {
       if (server) {

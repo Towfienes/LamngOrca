@@ -226,7 +226,8 @@ function runLanguageServer() {
       idleMs: idleStopMs,
       startServer,
       toClient: (message) => bridge.fromServer(message),
-      onExit: (code) => process.exit(code)
+      onExit: (code) => process.exit(code),
+      isBackgroundMessage: ({ id }) => typeof id === 'string' && id.startsWith(BRIDGE_ID_PREFIX)
     })
   } else {
     const server = startServer({

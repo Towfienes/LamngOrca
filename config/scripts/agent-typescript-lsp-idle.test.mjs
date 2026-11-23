@@ -15,6 +15,7 @@ function harness() {
     idleMs: IDLE_MS,
     toClient: (message) => client.push(message),
     onExit,
+    isBackgroundMessage: (message) => String(message.id).startsWith('bg-'),
     setTimer: (run) => {
       timers.set(++nextTimer, run)
       return nextTimer
@@ -140,7 +141,11 @@ describe('idle TypeScript language server', () => {
     boot()
     open()
     stopServer()
-    idle.send({ jsonrpc: '2.0', method: 'workspace/didChangeWatchedFiles', params: { changes: [] } })
+    idle.send({
+      jsonrpc: '2.0',
+      method: 'workspace/didChangeWatchedFiles',
+      params: { changes: [] }
+    })
     idle.send({
       jsonrpc: '2.0',
       method: 'textDocument/didClose',
@@ -195,6 +200,24 @@ describe('idle TypeScript language server', () => {
     expect(servers[0].killed).toBe(false)
     fireTimers()
     expect(servers[0].killed).toBe(true)
+  })
+
+  it('stops after client idle while background diagnostic pulls keep looping', () => {
+    const { idle, servers, boot, fireTimers } = harness()
+    boot()
+    idle.send({ jsonrpc: '2.0', id: 'bg-1', method: 'textDocument/diagnostic', params: {} })
+    servers[0].reply({ jsonrpc: '2.0', id: 'bg-1', result: { kind: 'full', items: [] } })
+    idle.send({ jsonrpc: '2.0', id: 'bg-2', method: 'textDocument/diagnostic', params: {} })
+    fireTimers()
+    expect(servers[0].written.some((message) => message.method === 'shutdown')).toBe(true)
+  })
+
+  it('does not wake a stopped server for a background pull', () => {
+    const { idle, servers, boot, stopServer } = harness()
+    boot()
+    stopServer()
+    idle.send({ jsonrpc: '2.0', id: 'bg-3', method: 'textDocument/diagnostic', params: {} })
+    expect(servers).toHaveLength(1)
   })
 })
 
