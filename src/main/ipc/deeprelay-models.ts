@@ -31,6 +31,18 @@ function shortModelId(id: string): string {
   return id.replace(/^deeprelay\//, '')
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isModelEntry(value: unknown): value is Record<string, unknown> & { id: string } {
+  return isRecord(value) && typeof value.id === 'string'
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
 function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -44,28 +56,18 @@ export function buildDeeprelayModelList(
   cache: unknown,
   now = Date.now()
 ): DeeprelayModelList {
-  const cfg = config as { base?: unknown; model?: unknown } | null
-  const model = typeof cfg?.model === 'string' ? cfg.model.trim() : ''
+  const model = isRecord(config) ? (stringValue(config.model)?.trim() ?? '') : ''
   if (!model) {
     return { available: false, reason: 'DeepRelay is not configured', fetchedAt: now }
   }
-  const cached = cache as { at?: unknown; usable?: unknown } | null
-  const cachedModels: DeeprelayModel[] = Array.isArray(cached?.usable)
-    ? cached.usable
-        .filter(
-          (entry): entry is { id: string; ctx?: unknown; out?: unknown; vision?: unknown } =>
-            typeof entry === 'object' &&
-            entry !== null &&
-            typeof (entry as { id?: unknown }).id === 'string'
-        )
-        .map((entry) => ({
-          id: entry.id,
-          label: shortModelId(entry.id),
-          ctx: finiteNumber(entry.ctx),
-          out: finiteNumber(entry.out),
-          vision: entry.vision === true
-        }))
-    : []
+  const usable = isRecord(cache) && Array.isArray(cache.usable) ? cache.usable : []
+  const cachedModels: DeeprelayModel[] = usable.filter(isModelEntry).map((entry) => ({
+    id: entry.id,
+    label: shortModelId(entry.id),
+    ctx: finiteNumber(entry.ctx),
+    out: finiteNumber(entry.out),
+    vision: entry.vision === true
+  }))
   // Why: env.json is the command's truth. A cache written before a model switch must not
   // change the row into launching a different model than `deeprelay` will start.
   const models = cachedModels.some((entry) => entry.id === model)
@@ -78,8 +80,8 @@ export function buildDeeprelayModelList(
     available: true,
     defaultId: model,
     models,
-    base: typeof cfg?.base === 'string' ? cfg.base : null,
-    fetchedAt: finiteNumber(cached?.at)
+    base: isRecord(config) ? stringValue(config.base) : null,
+    fetchedAt: isRecord(cache) ? finiteNumber(cache.at) : null
   }
 }
 

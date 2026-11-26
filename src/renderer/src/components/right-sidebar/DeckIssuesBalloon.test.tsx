@@ -9,6 +9,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+const NOW = Date.UTC(2026, 10, 26, 3, 0, 0)
+
 const issue: DeckAssignedIssue = {
   key: 'r1#56',
   repoId: 'r1',
@@ -17,7 +19,7 @@ const issue: DeckAssignedIssue = {
   number: 56,
   title: 'Kế hoạch 13–18/11: chuốt giao diện',
   url: 'https://github.com/bminhnemhoi/docset-check/issues/56',
-  updatedAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
+  updatedAt: new Date(NOW - 3 * 3_600_000).toISOString(),
   priority: 0
 }
 
@@ -29,7 +31,7 @@ function mount(props: Partial<Parameters<typeof DeckIssuesBalloon>[0]> = {}) {
       loading={false}
       refreshing={false}
       error={null}
-      updatedAt={Date.now()}
+      updatedAt={NOW}
       {...handlers}
       {...props}
     />
