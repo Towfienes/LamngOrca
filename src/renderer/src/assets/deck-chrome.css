@@ -896,15 +896,17 @@
 }
 
 .deck-tab-dots {
+  --deck-tab-dots-x: 0;
   grid-area: 1 / 2;
+  translate: var(--deck-tab-dots-x) 0;
 }
 
 @container tab-strip (min-width: 480px) {
   .deck-tab-dots {
+    --deck-tab-dots-x: -50%;
     position: absolute;
     top: calc(50% - 12px);
     left: 50%;
-    translate: -50% 0;
   }
 }
 
@@ -1062,8 +1064,9 @@
     transition: translate 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /* Why: keep the centering offset, or the hover lift drops it and the pill jumps away from the cursor. */
   .deck-tab-dots:is(:hover, :focus-within) {
-    translate: 0 -1px;
+    translate: var(--deck-tab-dots-x) -1px;
   }
 
   .deck-tab-dots::before {
