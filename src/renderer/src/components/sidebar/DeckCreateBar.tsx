@@ -10,7 +10,9 @@ import { DeckAgentAccountPicker } from './DeckAgentAccountPicker'
 import { DeckAgentSessionPicker } from './DeckAgentSessionPicker'
 import { DeckIdleRamBadge } from './DeckIdleRamBadge'
 import { deckAccountLaunchIsLocal, deckAgentHasAccountStep } from './deck-account-agent-launch'
-import { launchClaude9Tab, loadClaude9Sessions } from './deck-claude9-launch'
+import { launchClaude9Tab } from './deck-claude9-launch'
+import { launchDeeprelayTab } from './deck-deeprelay-launch'
+import { DeckRouterSessionPicker, type DeckRouterStep } from './DeckRouterSessionPicker'
 import { launchDeckAgentSession } from './deck-agent-session-launch'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { AiVaultSession } from '../../../../shared/ai-vault/contracts/ai-vault-types'
@@ -57,7 +59,8 @@ export function DeckCreateBar({
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountAgent, setAccountAgent] = useState<TuiAgent | null>(null)
   const [chosenAccount, setChosenAccount] = useState<{ id?: string } | null>(null)
-  const [claude9Step, setClaude9Step] = useState(false)
+  const [routerStep, setRouterStep] = useState<DeckRouterStep | null>(null)
+  const showRouters = accountAgent === 'claude'
   const chooseAccountAgent = (agent: TuiAgent): void => {
     cancelPendingTerminalTabFocus()
     pendingTab.current = null
@@ -70,7 +73,7 @@ export function DeckCreateBar({
     }
     setMenuOpen(false)
     setAccountAgent(agent)
-    setClaude9Step(false)
+    setRouterStep(null)
     setChosenAccount(deckAgentHasAccountStep(agent) ? null : {})
   }
 
@@ -118,13 +121,14 @@ export function DeckCreateBar({
   }
 
   // Why: errors reach the session picker, which shows them inline like other agents.
-  const launchClaude9 = async (session?: AiVaultSession): Promise<void> => {
+  const launchRouter = async (step: DeckRouterStep, session?: AiVaultSession): Promise<void> => {
     if (!worktreeId || !groupId) {
       return
     }
     setLaunching(true)
     try {
-      const tabId = await launchClaude9Tab(worktreeId, groupId, splitTarget, session)
+      const launch = step === 'claude9' ? launchClaude9Tab : launchDeeprelayTab
+      const tabId = await launch(worktreeId, groupId, splitTarget, session)
       useWorkspaceLaunchSelection.getState().dismiss(worktreeId)
       setAccountAgent(null)
       const state = useAppStore.getState()
@@ -341,15 +345,12 @@ export function DeckCreateBar({
           }}
         >
           {accountAgent && worktreeId && groupId ? (
-            accountAgent === 'claude' && claude9Step ? (
-              <DeckAgentSessionPicker
-                key="claude9"
-                agent="claude"
+            accountAgent === 'claude' && routerStep ? (
+              <DeckRouterSessionPicker
+                step={routerStep}
                 worktreeId={worktreeId}
-                accountLabel="9router (claude9)"
-                loadSessions={loadClaude9Sessions}
-                onBack={() => setClaude9Step(false)}
-                onLaunch={launchClaude9}
+                onBack={() => setRouterStep(null)}
+                onLaunch={launchRouter}
               />
             ) : chosenAccount !== null ? (
               <DeckAgentSessionPicker
@@ -382,7 +383,8 @@ export function DeckCreateBar({
                 agent={accountAgent === 'claude-agent-teams' ? 'claude' : accountAgent}
                 local={deckAccountLaunchIsLocal(worktreeId)}
                 onClose={() => setAccountAgent(null)}
-                onLaunchClaude9={accountAgent === 'claude' ? () => setClaude9Step(true) : undefined}
+                onLaunchClaude9={showRouters ? () => setRouterStep('claude9') : undefined}
+                onLaunchDeeprelay={showRouters ? () => setRouterStep('deeprelay') : undefined}
                 onLaunch={(accountId, login) => {
                   if (login) {
                     void launchSession(undefined, true).catch((error: unknown) =>

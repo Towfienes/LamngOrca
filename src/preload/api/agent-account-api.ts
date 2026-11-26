@@ -1,5 +1,6 @@
 import type { AiVaultSession } from '../../shared/ai-vault/contracts/ai-vault-types'
 import type { Claude9ModelList } from '../../shared/claude9-models'
+import type { DeeprelayModelList } from '../../shared/deeprelay-models'
 import type {
   ClaudeAccountSelectionChange,
   ClaudeRateLimitAccountsState,
@@ -71,6 +72,12 @@ export type ClaudeAccountsApi = {
 export type Claude9Api = {
   list: (args?: { force?: boolean }) => Promise<Claude9ModelList>
   /** claude9 transcripts from ~/.claude-9router/projects, newest first. */
+  sessions: () => Promise<AiVaultSession[]>
+}
+
+export type DeeprelayApi = {
+  list: () => Promise<DeeprelayModelList>
+  /** DeepRelay transcripts from ~/.claude-deeprelay/projects, newest first. */
   sessions: () => Promise<AiVaultSession[]>
 }
 

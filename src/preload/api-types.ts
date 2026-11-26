@@ -4,6 +4,7 @@ import type {
   CodexAccountsApi,
   CodexConfigSyncApi,
   CursorAccountsApi,
+  DeeprelayApi,
   GrokAccountsApi,
   MinimaxCredentialsApi,
   ZcodePlanCredentialsApi
@@ -116,6 +117,7 @@ export type PreloadApi = {
   codexAccounts: CodexAccountsApi
   claudeAccounts: ClaudeAccountsApi
   claude9: Claude9Api
+  deeprelay: DeeprelayApi
   cli: CliApi
   codexConfigSync: CodexConfigSyncApi
   preflight: PreflightApi

@@ -18,6 +18,7 @@ import {
   type AiVaultSession
 } from '../../../../shared/ai-vault/contracts/ai-vault-types'
 import { isClaude9TranscriptPath } from '../../../../shared/claude9-models'
+import { isDeeprelayTranscriptPath } from '../../../../shared/deeprelay-models'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 
@@ -32,7 +33,7 @@ export function DeckAgentSessionPicker({
   agent: TuiAgent
   worktreeId: string
   accountLabel: string
-  /** Replaces the AI vault scan with another history source (claude9 keeps its own dir). */
+  /** Replaces the AI vault scan with another history source (claude9/DeepRelay keep their own dirs). */
   loadSessions?: () => Promise<AiVaultSession[]>
   onBack: () => void
   onLaunch: (session?: AiVaultSession) => Promise<void>
@@ -90,9 +91,11 @@ export function DeckAgentSessionPicker({
         setSessions(
           result.sessions.filter((s) => {
             const identity = `${s.agent}:${s.sessionId}`
-            // Why: the shared scan also finds claude9's config dir once a claude9 pane reports it,
-            // but those sessions belong only to the claude9 picker and cannot resume as `claude`.
-            const otherPool = !loadSessions && isClaude9TranscriptPath(s.filePath)
+            // Why: the shared scan also finds claude9/DeepRelay profiles once their panes report
+            // them, but those sessions only resume through their own launcher, never `claude`.
+            const otherPool =
+              !loadSessions &&
+              (isClaude9TranscriptPath(s.filePath) || isDeeprelayTranscriptPath(s.filePath))
             if (
               otherPool ||
               s.executionHostId !== host ||

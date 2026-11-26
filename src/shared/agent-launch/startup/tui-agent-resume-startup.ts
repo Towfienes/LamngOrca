@@ -12,6 +12,7 @@ import { TUI_AGENT_CONFIG } from '../catalog/tui-agent-config'
 import type { TuiAgent } from '../catalog/tui-agent'
 import { buildAgentResumeLaunchCommand } from './agent-resume-launch-command'
 import { isClaude9TranscriptPath } from '../../claude9-models'
+import { isDeeprelayTranscriptPath } from '../../deeprelay-models'
 import { buildAiVaultResumeShellCommand } from '../../ai-vault/resume/ai-vault-resume-command'
 import { normalizeRuntimePathForComparison } from '../../cross-platform-path'
 import { parseWslUncPath } from '../../wsl-paths'
@@ -57,13 +58,18 @@ export function buildAgentResumeStartupPlan(args: {
     args.agent === 'codex' && !args.fork
       ? dropRecordedAgentPermissionArgs(args.agent, args, shell)
       : args
-  // Why: claude9 panes report Claude hooks, but their transcripts live in claude9's own config
-  // dir; `claude --resume` there fails with "No conversation found".
-  const claude9Command =
-    args.agent === 'claude' && isClaude9TranscriptPath(args.providerSession.transcriptPath)
-      ? ['claude9', recorded.agentArgs?.trim()].filter(Boolean).join(' ')
+  // Why: claude9/DeepRelay panes report Claude hooks, but their transcripts live in their own
+  // profile; `claude --resume` there fails with "No conversation found".
+  const alternateCommand =
+    args.agent === 'claude'
+      ? isClaude9TranscriptPath(args.providerSession.transcriptPath)
+        ? ['claude9', recorded.agentArgs?.trim()].filter(Boolean).join(' ')
+        : // DeepRelay already applies its own permission mode, so recorded args would conflict.
+          isDeeprelayTranscriptPath(args.providerSession.transcriptPath)
+          ? 'deeprelay'
+          : null
       : null
-  const resolvedAgentCommand = claude9Command ?? recorded.agentCommand?.trim()
+  const resolvedAgentCommand = alternateCommand ?? recorded.agentCommand?.trim()
   const baseCommand = resolvedAgentCommand
     ? ({
         ok: true,

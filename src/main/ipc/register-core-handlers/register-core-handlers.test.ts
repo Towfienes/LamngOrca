@@ -377,6 +377,8 @@ vi.mock('../claude-accounts', () => ({
 
 vi.mock('../claude9-models', () => ({ registerClaude9Handlers: vi.fn() }))
 
+vi.mock('../deeprelay-models', () => ({ registerDeeprelayHandlers: vi.fn() }))
+
 vi.mock('../opencode-go-credentials', () => ({
   registerOpenCodeGoCredentialsHandlers: registerOpenCodeGoCredentialsHandlersMock
 }))

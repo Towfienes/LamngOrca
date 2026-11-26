@@ -7,8 +7,13 @@ import { getUsageRosterRowState } from '../status-bar/usage-roster-row-state'
 import { getTightestUsageSection } from '../status-bar/UsageRosterPanel'
 import { Button } from '../ui/button'
 import { CodexLoginLinkNotice } from '../settings/accounts/codex/CodexLoginLinkNotice'
-import { DeckAccountUsage } from './DeckAccountUsage'
-import { DeckClaude9Detail, DeckClaude9Section, useClaude9Models } from './DeckClaude9Section'
+import { useClaude9Models } from './DeckClaude9Section'
+import { useDeeprelayModels } from './DeckDeeprelaySection'
+import {
+  DeckAccountRouterSections,
+  type DeckAccountRouterPreview
+} from './DeckAccountRouterSections'
+import { DeckAccountPreviewAside } from './DeckAccountPreviewAside'
 import type { DeckAccountAgent } from './deck-account-agent-launch'
 import { useDeckAntigravityAccounts } from './use-deck-antigravity-accounts'
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
@@ -26,6 +31,7 @@ export function DeckAgentAccountPicker({
   local,
   onLaunch,
   onLaunchClaude9,
+  onLaunchDeeprelay,
   onClose
 }: {
   agent: DeckAccountAgent
@@ -33,6 +39,8 @@ export function DeckAgentAccountPicker({
   onLaunch: (accountId?: string, login?: boolean) => void
   /** Present only where a claude9 (9router) launch is wired; adds the 9router row. */
   onLaunchClaude9?: () => void
+  /** Present only where a DeepRelay (claude-dl) launch is wired; adds its row. */
+  onLaunchDeeprelay?: () => void
   onClose: () => void
 }): React.JSX.Element {
   const settings = useAppStore((s) => s.settings)
@@ -47,7 +55,9 @@ export function DeckAgentAccountPicker({
   const busyRef = useRef(false)
   const showClaude9 = local && agent === 'claude' && Boolean(onLaunchClaude9)
   const claude9 = useClaude9Models(showClaude9)
-  const [c9Preview, setC9Preview] = useState(false)
+  const showDeeprelay = local && agent === 'claude' && Boolean(onLaunchDeeprelay)
+  const deeprelay = useDeeprelayModels(showDeeprelay)
+  const [altPreview, setAltPreview] = useState<DeckAccountRouterPreview>(null)
   const agy = useDeckAntigravityAccounts(local && agent === 'antigravity')
   const activeId =
     agent === 'antigravity'
@@ -168,9 +178,17 @@ export function DeckAgentAccountPicker({
   const previewAccount = (id: string | null): void => {
     if (!busyRef.current) {
       setSelectedId(id)
-      setC9Preview(false)
+      setAltPreview(null)
       setError(null)
     }
+  }
+  const launchAlt = (launch?: () => void): void => {
+    if (!launch || busyRef.current) {
+      return
+    }
+    busyRef.current = true
+    setBusy(true)
+    launch()
   }
   const launchAccount = (id: string | null): void => {
     if (busyRef.current) {
@@ -314,23 +332,17 @@ export function DeckAgentAccountPicker({
             )
           })}
         </div>
-        {showClaude9 && onLaunchClaude9 ? (
-          <DeckClaude9Section
-            list={claude9.list}
-            selected={c9Preview}
-            disabled={busy}
-            onPreview={() => !busyRef.current && setC9Preview(true)}
-            onRetry={claude9.refresh}
-            onLaunch={() => {
-              if (busyRef.current) {
-                return
-              }
-              busyRef.current = true
-              setBusy(true)
-              onLaunchClaude9()
-            }}
-          />
-        ) : null}
+        <DeckAccountRouterSections
+          claude9={claude9.list}
+          deeprelay={deeprelay.list}
+          altPreview={altPreview}
+          disabled={busy}
+          onPreview={(target) => !busyRef.current && setAltPreview(target)}
+          onLaunchClaude9={showClaude9 ? () => launchAlt(onLaunchClaude9) : undefined}
+          onLaunchDeeprelay={showDeeprelay ? () => launchAlt(onLaunchDeeprelay) : undefined}
+          onRetryClaude9={claude9.refresh}
+          onRetryDeeprelay={deeprelay.refresh}
+        />
         {local && agent === 'antigravity' && accounts.length === 0 && agy.state ? (
           <p className="text-xs text-muted-foreground">
             Sign in with agy; the account is saved here automatically.
@@ -380,23 +392,13 @@ export function DeckAgentAccountPicker({
         {signingIn && agent === 'codex' ? <CodexLoginLinkNotice /> : null}
       </div>
       {local ? (
-        <aside
-          className="w-64 min-w-0 space-y-3 border-l border-border p-3"
-          aria-label="Account usage preview"
-          aria-live="polite"
-        >
-          {c9Preview ? (
-            <DeckClaude9Detail list={claude9.list} />
-          ) : (
-            <>
-              <p className="text-xs font-medium">Usage</p>
-              <p className="truncate text-xs text-muted-foreground" title={previewLabel}>
-                {previewLabel}
-              </p>
-              <DeckAccountUsage usage={selectedUsage} />
-            </>
-          )}
-        </aside>
+        <DeckAccountPreviewAside
+          altPreview={altPreview}
+          claude9={claude9.list}
+          deeprelay={deeprelay.list}
+          previewLabel={previewLabel}
+          selectedUsage={selectedUsage}
+        />
       ) : null}
     </div>
   )

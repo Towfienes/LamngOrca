@@ -1,12 +1,11 @@
 import { ipcMain } from 'electron'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { readdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, win32 } from 'node:path'
 import type { Claude9Model, Claude9ModelList } from '../../shared/claude9-models'
 import type { AiVaultSession } from '../../shared/ai-vault/contracts/ai-vault-types'
-import { parseClaudeSessionFile } from '../ai-vault/scanners/claude/session-scanner-primary-parsers'
+import { listClaudeProfileSessions } from './claude-profile-sessions'
 
 const CACHE_MS = 5 * 60_000
 let cached: Claude9ModelList | null = null
@@ -102,47 +101,17 @@ export function listClaude9Models(force = false): Promise<Claude9ModelList> {
   return inflight
 }
 
-const SESSION_LIMIT = 300
-
 /** claude9 keeps Claude-format transcripts in its own config dir, outside Orca's Claude roots. */
 export function claude9ProjectsDir(): string {
   return join(homedir(), '.claude-9router', 'projects')
 }
 
 /**
- * Newest claude9 sessions, parsed with the AI vault's Claude transcript parser.
- * Why: Orca's history scan only covers its managed Claude config dirs, so claude9
- * sessions are listed here and resumed with `claude9 --resume` rather than `claude`.
+ * Newest claude9 sessions. Why: Orca's history scan only covers its managed Claude config
+ * dirs, so claude9 sessions are listed here and resumed with `claude9`, never plain `claude`.
  */
-export async function listClaude9Sessions(root = claude9ProjectsDir()): Promise<AiVaultSession[]> {
-  const projects = await readdir(root, { withFileTypes: true }).catch(() => [])
-  const files: { path: string; mtimeMs: number; modifiedAt: string }[] = []
-  for (const project of projects) {
-    if (!project.isDirectory()) {
-      continue
-    }
-    const dir = join(root, project.name)
-    const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
-    for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith('.jsonl')) {
-        continue
-      }
-      const path = join(dir, entry.name)
-      const info = await stat(path).catch(() => null)
-      if (info) {
-        files.push({ path, mtimeMs: info.mtimeMs, modifiedAt: info.mtime.toISOString() })
-      }
-    }
-  }
-  files.sort((a, b) => b.mtimeMs - a.mtimeMs)
-  const sessions: AiVaultSession[] = []
-  for (const file of files.slice(0, SESSION_LIMIT)) {
-    const session = await parseClaudeSessionFile(file).catch(() => null)
-    if (session && !session.subagent && !session.isSubagent) {
-      sessions.push({ ...session, resumeCommand: `claude9 --resume ${session.sessionId}` })
-    }
-  }
-  return sessions
+export function listClaude9Sessions(root = claude9ProjectsDir()): Promise<AiVaultSession[]> {
+  return listClaudeProfileSessions(root, (sessionId) => `claude9 --resume ${sessionId}`)
 }
 
 export function registerClaude9Handlers(): void {

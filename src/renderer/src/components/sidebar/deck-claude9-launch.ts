@@ -5,39 +5,18 @@ import type { AiVaultSession } from '../../../../shared/ai-vault/contracts/ai-va
 import { resolveAiVaultTargetWorkspacePath } from '../right-sidebar/ai-vault/session-actions/ai-vault-session-launch-target'
 import { launchDeckAccountAgent } from './deck-account-agent-launch'
 import type { DeckAgentSplitTarget } from './deck-agent-split'
-
-const SAFE_SESSION_ID = /^[\w-]+$/
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`
-}
-
-/** Windows desktops type agent commands into PowerShell, which has its own quoting and `cd`. */
-function changeDirectoryCommand(cwd: string, windows: boolean): string {
-  return windows
-    ? `Set-Location -LiteralPath '${cwd.replace(/'/g, "''")}'; `
-    : `cd ${shellQuote(cwd)} && `
-}
+import { buildClaudeRouterCommand } from './deck-router-launch'
 
 /**
  * The `claude9` command line: its default 9router model plus Claude's default launch args,
- * optionally resuming a session. `claude --resume` only finds a transcript under the project
- * dir of the session's start cwd, so a session from another directory is resumed from there.
+ * optionally resuming a session.
  */
 export function buildClaude9Command(
   defaultArgs: string,
   resume?: { sessionId: string; cwd: string | null; workspacePath: string | null },
   windows = isWindowsDesktopClient()
 ): string {
-  if (resume && !SAFE_SESSION_ID.test(resume.sessionId)) {
-    throw new Error(`Unsupported claude9 session id: ${resume.sessionId}`)
-  }
-  const command = ['claude9', resume ? `--resume ${resume.sessionId}` : '', defaultArgs.trim()]
-    .filter(Boolean)
-    .join(' ')
-  return resume?.cwd && resume.cwd !== resume.workspacePath
-    ? `${changeDirectoryCommand(resume.cwd, windows)}${command}`
-    : command
+  return buildClaudeRouterCommand('claude9', defaultArgs, resume, windows)
 }
 
 export function formatTokenCount(n: number | null): string {
