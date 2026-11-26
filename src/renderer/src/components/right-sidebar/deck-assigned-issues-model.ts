@@ -1,12 +1,18 @@
 import type { GitHubWorkItem, ListWorkItemsResult } from '../../../../shared/github/work-item-types'
 
-/** Open issues assigned to the signed-in `gh` user; the same search syntax the task list accepts. */
-export const ASSIGNED_ISSUES_QUERY = 'is:issue is:open assignee:@me'
+/** Open issues and PRs assigned to the signed-in `gh` user; the same search syntax the task list accepts. */
+export const ASSIGNED_QUERY = 'is:open assignee:@me'
+/** Open PRs that ask the signed-in `gh` user for a review. */
+export const REVIEW_QUERY = 'is:pr is:open review-requested:@me'
+
+/** `review` wins over `pr` when a PR is both assigned to you and waiting for your review. */
+export type DeckWorkKind = 'issue' | 'pr' | 'review'
 
 export type DeckAssignedIssue = {
   key: string
   repoId: string
-  /** `owner/name` from the issue URL; the Orca display name can differ from the GitHub repo. */
+  kind: DeckWorkKind
+  /** `owner/name` from the item URL; the Orca display name can differ from the GitHub repo. */
   repoFullName: string
   number: number
   title: string
@@ -16,9 +22,13 @@ export type DeckAssignedIssue = {
   priority: number | null
 }
 
+type RepoWorkItems = ListWorkItemsResult<Omit<GitHubWorkItem, 'repoId'>>
+
 export type RepoIssuesOutcome =
-  | { repoId: string; kind: 'ok'; result: ListWorkItemsResult<Omit<GitHubWorkItem, 'repoId'>> }
+  | { repoId: string; kind: 'ok'; assigned: RepoWorkItems; review: RepoWorkItems }
   | { repoId: string; kind: 'failed'; message: string }
+
+const OPEN_STATES = new Set<GitHubWorkItem['state']>(['open', 'draft'])
 
 const PRIORITY_LABEL = /^(?:priority[\s:/-]*)?p([0-9])$/i
 
@@ -35,7 +45,7 @@ export function issuePriority(labels: readonly string[]): number | null {
 }
 
 export function repoFullNameFromIssueUrl(url: string): string {
-  const match = /github\.com\/([^/]+\/[^/]+)\/issues\//i.exec(url)
+  const match = /github\.com\/([^/]+\/[^/]+)\/(?:issues|pull)\//i.exec(url)
   return match ? match[1] : ''
 }
 
@@ -72,30 +82,38 @@ export function mergeRepoOutcomes(
       failures.push(outcome.message)
       continue
     }
-    const { result } = outcome
-    if (!result.sources.issues || result.sources.ineligible) {
+    const { assigned, review } = outcome
+    const { sources } = assigned
+    if (sources.ineligible || (!sources.issues && !sources.prs)) {
       skipped.add(outcome.repoId)
       delete byRepo[outcome.repoId]
       continue
     }
-    if (result.errors?.issues) {
-      failures.push(result.errors.issues.message)
+    const fetchError = assigned.errors?.issues ?? assigned.errors?.prs ?? review.errors?.prs
+    if (fetchError) {
+      failures.push(fetchError.message)
       continue
     }
-    byRepo[outcome.repoId] = result.items
-      .filter((item) => item.type === 'issue' && item.state === 'open')
-      .map((item) => ({
-        key: `${outcome.repoId}#${item.number}`,
-        repoId: outcome.repoId,
-        repoFullName:
-          repoFullNameFromIssueUrl(item.url) ||
-          `${result.sources.issues!.owner}/${result.sources.issues!.repo}`,
-        number: item.number,
-        title: item.title,
-        url: item.url,
-        updatedAt: item.updatedAt,
-        priority: issuePriority(item.labels)
-      }))
+    const fallback = sources.issues ?? sources.prs!
+    const reviewUrls = new Set(review.items.map((item) => item.url))
+    // Why: issues and PRs can come from different repos (origin vs upstream), so the URL is the identity.
+    const byUrl = new Map<string, RepoWorkItems['items'][number]>()
+    for (const item of [...assigned.items, ...review.items]) {
+      if (OPEN_STATES.has(item.state) && !byUrl.has(item.url)) {
+        byUrl.set(item.url, item)
+      }
+    }
+    byRepo[outcome.repoId] = [...byUrl.values()].map((item) => ({
+      key: `${outcome.repoId}:${item.url}`,
+      repoId: outcome.repoId,
+      kind: item.type === 'issue' ? 'issue' : reviewUrls.has(item.url) ? 'review' : 'pr',
+      repoFullName: repoFullNameFromIssueUrl(item.url) || `${fallback.owner}/${fallback.repo}`,
+      number: item.number,
+      title: item.title,
+      url: item.url,
+      updatedAt: item.updatedAt,
+      priority: issuePriority(item.labels)
+    }))
   }
   const allFailed = outcomes.length > 0 && failures.length === outcomes.length
   return { byRepo, skipped: [...skipped], error: allFailed ? failures[0] : null }
@@ -103,6 +121,22 @@ export function mergeRepoOutcomes(
 
 export function flattenAssignedIssues(state: AssignedIssuesState): DeckAssignedIssue[] {
   return sortAssignedIssues(Object.values(state.byRepo).flat())
+}
+
+export type DeckRepoGroup = { repoFullName: string; items: DeckAssignedIssue[] }
+
+/** Groups sorted items by GitHub repo; the repo holding the most urgent item leads. */
+export function groupByRepo(sorted: DeckAssignedIssue[]): DeckRepoGroup[] {
+  const groups = new Map<string, DeckAssignedIssue[]>()
+  for (const item of sorted) {
+    const items = groups.get(item.repoFullName)
+    if (items) {
+      items.push(item)
+    } else {
+      groups.set(item.repoFullName, [item])
+    }
+  }
+  return [...groups].map(([repoFullName, items]) => ({ repoFullName, items }))
 }
 
 export function formatIssueAge(updatedAt: string, now: number): string {

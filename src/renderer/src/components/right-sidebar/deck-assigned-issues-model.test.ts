@@ -26,8 +26,24 @@ function item(number: number, labels: string[], updatedAt: string) {
   }
 }
 
-function ok(repoId: string, items: ReturnType<typeof item>[]): RepoIssuesOutcome {
-  return { repoId, kind: 'ok', result: { items, sources: { issues: source, prs: source } } }
+type Item = Omit<ReturnType<typeof item>, 'type'> & { type: 'issue' | 'pr' }
+
+function ok(repoId: string, items: Item[], reviewItems: Item[] = []): RepoIssuesOutcome {
+  const sources = { issues: source, prs: source }
+  return {
+    repoId,
+    kind: 'ok',
+    assigned: { items, sources },
+    review: { items: reviewItems, sources }
+  }
+}
+
+function pr(number: number): Item {
+  return {
+    ...item(number, [], '2026-11-24T10:00:00Z'),
+    type: 'pr',
+    url: `https://github.com/Towfienes/Momo-Techday/pull/${number}`
+  }
 }
 
 describe('issuePriority', () => {
@@ -68,9 +84,20 @@ describe('mergeRepoOutcomes', () => {
     expect(second.error).toBe('offline')
   })
 
-  it('skips repos without a GitHub issue source on later polls', () => {
+  it('wakes for PRs waiting on your review and lists a PR both assigned and requested once', () => {
+    const state = mergeRepoOutcomes(EMPTY, [ok('momo', [pr(3)], [pr(3), pr(2)])])
+    expect(
+      flattenAssignedIssues(state).map((entry) => [entry.number, entry.kind, entry.repoFullName])
+    ).toEqual([
+      [3, 'review', 'Towfienes/Momo-Techday'],
+      [2, 'review', 'Towfienes/Momo-Techday']
+    ])
+  })
+
+  it('skips repos without a GitHub source on later polls', () => {
+    const none = { items: [], sources: { issues: null, prs: null } }
     const state = mergeRepoOutcomes(EMPTY, [
-      { repoId: 'local', kind: 'ok', result: { items: [], sources: { issues: null, prs: null } } },
+      { repoId: 'local', kind: 'ok', assigned: none, review: none },
       ok('r1', [])
     ])
     expect(state.skipped).toEqual(['local'])

@@ -262,7 +262,7 @@ export default function DeckUsagePanel(): React.JSX.Element {
                             <button
                               type="button"
                               className="deck-usage-portrait-button"
-                              aria-label="Mở danh sách issue"
+                              aria-label="Mở danh sách việc chờ bạn"
                             >
                               <BorutoKarmaPortrait awake={assigned.issues.length > 0} />
                             </button>
@@ -270,12 +270,12 @@ export default function DeckUsagePanel(): React.JSX.Element {
                         </TooltipTrigger>
                         <TooltipContent>
                           {assigned.issues.length > 0
-                            ? `${assigned.issues.length} issue đang mở`
-                            : 'Không có issue đang mở'}
+                            ? `${assigned.issues.length} việc chờ bạn`
+                            : 'Không có việc chờ bạn'}
                         </TooltipContent>
                       </Tooltip>
                       <PopoverContent
-                        aria-label="Issues của tôi"
+                        aria-label="Việc chờ bạn"
                         side="top"
                         align="center"
                         sideOffset={8}

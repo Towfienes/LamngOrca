@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import {
-  ASSIGNED_ISSUES_QUERY,
+  ASSIGNED_QUERY,
+  REVIEW_QUERY,
   flattenAssignedIssues,
   mergeRepoOutcomes,
   type AssignedIssuesState,
@@ -55,13 +56,10 @@ export function useDeckAssignedIssues(): DeckAssignedIssues {
     const outcomes = await Promise.all(
       targets.map(async (repo): Promise<RepoIssuesOutcome> => {
         try {
-          const result = await window.api.gh.listWorkItems({
-            repoPath: repo.path,
-            repoId: repo.id,
-            query: ASSIGNED_ISSUES_QUERY,
-            limit: 30
-          })
-          return { repoId: repo.id, kind: 'ok', result }
+          const list = (query: string) =>
+            window.api.gh.listWorkItems({ repoPath: repo.path, repoId: repo.id, query, limit: 30 })
+          const [assigned, review] = await Promise.all([list(ASSIGNED_QUERY), list(REVIEW_QUERY)])
+          return { repoId: repo.id, kind: 'ok', assigned, review }
         } catch (error) {
           return {
             repoId: repo.id,

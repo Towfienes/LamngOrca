@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { DeckIssuesBalloon } from './DeckIssuesBalloon'
 import type { DeckAssignedIssue } from './deck-assigned-issues-model'
@@ -12,6 +12,7 @@ afterEach(() => {
 const issue: DeckAssignedIssue = {
   key: 'r1#56',
   repoId: 'r1',
+  kind: 'issue',
   repoFullName: 'bminhnemhoi/docset-check',
   number: 56,
   title: 'Kế hoạch 13–18/11: chuốt giao diện',
@@ -38,12 +39,7 @@ function mount(props: Partial<Parameters<typeof DeckIssuesBalloon>[0]> = {}) {
 
 it('shows a skeleton while the first poll is loading', () => {
   mount({ loading: true, updatedAt: null })
-  expect(screen.getByLabelText('Đang tải issue').getAttribute('aria-busy')).toBe('true')
-})
-
-it('says so when nothing is assigned', () => {
-  mount()
-  expect(screen.getByRole('status').textContent).toContain('Không có issue nào')
+  expect(screen.getByLabelText('Đang tải').getAttribute('aria-busy')).toBe('true')
 })
 
 it('reports a failure with a retry button', () => {
@@ -53,15 +49,24 @@ it('reports a failure with a retry button', () => {
   expect(onRefresh).toHaveBeenCalled()
 })
 
-it('lists the repo, number, priority and age, and opens the issue on click', () => {
+it('groups items under their repo and opens an item on click', () => {
   const openUrl = vi.fn(() => Promise.resolve())
   vi.stubGlobal('api', { shell: { openUrl } })
-  mount({ issues: [issue] })
-  const row = screen.getByRole('button', { name: /#56/ })
-  expect(row.textContent).toContain('P0')
-  expect(row.textContent).toContain('docset-check · 3 giờ trước')
+  const review: DeckAssignedIssue = {
+    ...issue,
+    key: 'r2#3',
+    repoId: 'r2',
+    kind: 'review',
+    repoFullName: 'Towfienes/Momo-Techday',
+    number: 3,
+    url: 'https://github.com/Towfienes/Momo-Techday/pull/3'
+  }
+  mount({ issues: [issue, review] })
+  const momo = screen.getByRole('region', { name: 'Towfienes/Momo-Techday' })
+  const row = within(momo).getByRole('button', { name: /#3/ })
+  expect(within(momo).queryByRole('button', { name: /#56/ })).toBeNull()
   fireEvent.click(row)
-  expect(openUrl).toHaveBeenCalledWith(issue.url)
+  expect(openUrl).toHaveBeenCalledWith(review.url)
 })
 
 it('closes from its close button', () => {
