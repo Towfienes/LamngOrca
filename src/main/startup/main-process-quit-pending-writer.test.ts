@@ -8,6 +8,10 @@ const stopAgentHookServer = idle()
 const stopStructuredAgentSessionRuntime = settled()
 const beginSshShutdown = settled()
 const killAllPty = idle()
+const disconnectDaemon = settled()
+const shutdownDaemon = settled()
+const shutdownDaemonAndSessions = settled()
+const isAppRelaunchRequested = vi.fn(() => false)
 /** Final-save calls seen by the first microtask after the SSH shutdown began. */
 let flushesByNextMicrotask = -1
 
@@ -17,7 +21,12 @@ const dependencies: Record<string, Record<string, unknown>> = {
   '../ipc/worktree-base-directory-watcher': { disposeWorktreeBaseDirectoryWatchers: settled() },
   '../ipc/folder-repo-git-upgrade': { stopFolderRepoGitUpgradeWatch: idle() },
   '../ipc/pty/kill-all': { killAllPty },
-  '../daemon/daemon-provider-state': { disconnectDaemon: settled(), shutdownDaemon: settled() },
+  '../daemon/daemon-provider-state': {
+    disconnectDaemon,
+    shutdownDaemon,
+    shutdownDaemonAndSessions
+  },
+  './quit/app-relaunch': { isAppRelaunchRequested },
   '../ipc/ssh/ssh-shutdown-drain': { beginSshShutdown },
   './main-process-connector-startup': { desktopConnectorCloud: () => null },
   '../agent-hooks/server': { agentHookServer: { stop: stopAgentHookServer } },
@@ -131,6 +140,24 @@ it('quits at the teardown deadline without releasing admission while the writer 
   expect(store.freezeWritesAsync).not.toHaveBeenCalled()
   expect(admission.release).not.toHaveBeenCalled()
   expect(state.profileStateAdmission).toBe(admission)
+})
+
+it.each([
+  { name: 'a user quit stops every terminal', relaunch: false, called: shutdownDaemonAndSessions },
+  { name: 'a relaunch keeps terminals warm', relaunch: true, called: disconnectDaemon }
+])('$name', async (c) => {
+  for (const teardown of [disconnectDaemon, shutdownDaemon, shutdownDaemonAndSessions]) {
+    teardown.mockClear()
+  }
+  isAppRelaunchRequested.mockReturnValue(c.relaunch)
+  await startQuit(async () => {})
+  expect(c.called).toHaveBeenCalledOnce()
+  expect(
+    disconnectDaemon.mock.calls.length +
+      shutdownDaemon.mock.calls.length +
+      shutdownDaemonAndSessions.mock.calls.length
+  ).toBe(1)
+  isAppRelaunchRequested.mockReturnValue(false)
 })
 
 it('releases admission only after the final flush and freeze complete', async () => {

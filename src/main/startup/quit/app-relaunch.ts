@@ -13,11 +13,19 @@ export type AppRelaunchReason =
   | 'windows-administrator'
   | 'wsl-drive-conversion'
 
+let relaunchRequested = false
+
+/** A relaunching quit keeps warm terminals; only a user quit stops them. */
+export function isAppRelaunchRequested(): boolean {
+  return relaunchRequested
+}
+
 export function relaunchApp(
   reason: AppRelaunchReason,
   data?: CrashReportBreadcrumbData,
   options?: Electron.RelaunchOptions
 ): void {
+  relaunchRequested = true
   // Persist the cause before relaunch can exit this process.
   recordDurableCrashBreadcrumb('app_relaunch_requested', { ...data, reason })
   runWithLaunchPath(() => app.relaunch(options ?? getWindowsAdministratorRelaunchOptions()))

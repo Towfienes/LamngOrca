@@ -13,6 +13,7 @@ import {
 } from './daemon-provider-routing'
 import { getDaemonPidPath, getDaemonSocketPath, getDaemonTokenPath } from './daemon-spawner'
 import type { DaemonSpawner } from './daemon-spawner'
+import { cleanupDaemonForProtocol } from './daemon-protocol-cleanup'
 import {
   getMacDaemonTccAttributionHealth,
   type MacDaemonTccAttributionHealth
@@ -112,6 +113,20 @@ export async function shutdownDaemon(): Promise<void> {
   adapter?.dispose()
   adapter = null
   await spawner?.shutdown()
+  spawner = null
+}
+
+/**
+ * User quit: the daemon kills every session tree (taskkill on Windows) and exits, so nothing
+ * outlives Orca. Why not shutdownDaemon: a daemon launched this run is only process-killed there.
+ */
+export async function shutdownDaemonAndSessions(): Promise<void> {
+  adapter?.dispose()
+  adapter = null
+  await cleanupDaemonForProtocol(getRuntimeDir(), PROTOCOL_VERSION).catch((error: unknown) => {
+    console.warn('[daemon] Quit session shutdown failed:', error)
+  })
+  spawner?.resetHandle()
   spawner = null
 }
 

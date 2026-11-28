@@ -5,7 +5,11 @@ import { closeAllWatchers } from '../ipc/filesystem/watchers/filesystem-watcher-
 import { disposeWorktreeBaseDirectoryWatchers } from '../ipc/worktrees/creation/worktree-base-directory-watcher'
 import { stopFolderRepoGitUpgradeWatch } from '../ipc/folder-repo-git-upgrade'
 import { killAllPty } from '../ipc/pty/kill-all'
-import { disconnectDaemon, shutdownDaemon } from '../daemon/daemon-provider-state'
+import {
+  disconnectDaemon,
+  shutdownDaemon,
+  shutdownDaemonAndSessions
+} from '../daemon/daemon-provider-state'
 import { beginSshShutdown } from '../ipc/ssh/ssh-shutdown-drain'
 import { agentHookServer } from '../agent-hooks/server'
 import { wslHookRelayManager } from '../agent-hooks/wsl-hook-relay-manager'
@@ -23,6 +27,7 @@ import { awaitPackedRefsLockRelease } from '../git/refs/maintenance/local-repo-r
 import { stopBackgroundWorktreeRemovals } from '../workspaces/removal/worktree-background-removal'
 import { settleTeardownWithinDeadline, settleWithinMs } from './quit/quit-teardown-deadline'
 import { quitTeardownStartGate } from './quit/quit-teardown-start-gate'
+import { isAppRelaunchRequested } from './quit/app-relaunch'
 import { setUnreadDockBadgeCount } from '../dock/unread-badge'
 import { destroySystemTray } from '../tray/system-tray'
 import { shutdownTelemetry } from '../telemetry/client'
@@ -262,8 +267,13 @@ function installWillQuitHandler(): void {
       structuredAgentSessionShutdown,
       rpcStopAndClear
     ]).then(() => state.runtime?.closeNotificationDismissals())
-    // Normal quits preserve the detached daemon for warm reattach; dev-parent death leaves its temporary profile ownerless.
-    const daemonTeardown = isDevParentShutdownRequested() ? shutdownDaemon() : disconnectDaemon()
+    // Lamng: a user quit stops every terminal so a closed Orca holds no RAM; agents resume from their quit records when their pane is shown.
+    // Updates and relaunches keep the detached daemon for warm reattach; dev-parent death leaves its temporary profile ownerless.
+    const daemonTeardown = isDevParentShutdownRequested()
+      ? shutdownDaemon()
+      : updateQuitInProgress || isAppRelaunchRequested()
+        ? disconnectDaemon()
+        : shutdownDaemonAndSessions()
     // Bound unsettled transports and final writes so quit cannot hang (#9447). Failures still exit; atomic swaps preserve old files if the final debounce is lost.
     settleTeardownWithinDeadline([
       { name: 'daemon', promise: daemonTeardown },
